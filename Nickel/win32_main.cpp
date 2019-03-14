@@ -192,7 +192,27 @@ struct ModelData {
 	std::vector<f64> v;
 	std::vector<u32> i;
 	std::vector<f64> n;
+	std::vector<f32> uv;
 };
+
+i32 createVertexBuffer(RendererState* rs, u32 size) {
+	D3D11_BUFFER_DESC bufferDesc;
+	ZeroMemory(&bufferDesc, sizeof(D3D11_BUFFER_DESC));
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.ByteWidth = size;
+	bufferDesc.CPUAccessFlags = 0;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	i32 bufferIndex = rs->vertexBuffersCount;
+	HRESULT hr = rs->g_d3dDevice->CreateBuffer(&bufferDesc, NULL, &rs->vertexBuffers[bufferIndex]);
+	if (!SUCCEEDED(hr)) {
+		bufferIndex = -1;
+	}
+
+	rs->vertexBuffersCount++;
+
+	return bufferIndex;
+}
 
 bool LoadContent(RendererState* rs)
 {
@@ -201,12 +221,12 @@ bool LoadContent(RendererState* rs)
 	//std::vector<u32> allIndices;
 	
 	ModelData md1;
-	FileMemory objFile = debug_read_entire_file("Data/Suzanne.obj"); // Suzanne
-	loadObjModel(&objFile, &md1.v, &md1.i, &md1.n);
+	FileMemory objFile = debug_read_entire_file("Data/bny.obj"); // Suzanne
+	loadObjModel(&objFile, &md1.v, &md1.i, &md1.n, &md1.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
 	rs->g_indexCount1 = md1.i.size();
 
-	std::vector<VertexPosColor> v1;
+	std::vector<VertexPosUV> v1;
 	f32 x, y, z;
 	for (u32 i = 0; i < md1.v.size() / 3; ++i) {
 		x = -md1.v[i*3];
@@ -215,37 +235,27 @@ bool LoadContent(RendererState* rs)
 
 		v1.push_back({
 			XMFLOAT3(x, y, z),
-			XMFLOAT3(0.53333, 0.84705, 0.69019),
-			XMFLOAT3(-md1.n[i*3], md1.n[i*3+1], -md1.n[i*3+2])
+			XMFLOAT3(-md1.n[i*3], md1.n[i*3+1], -md1.n[i*3+2]),
+			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
+			// XMFLOAT3(0.53333, 0.84705, 0.69019),
+			XMFLOAT2(md1.uv[i*2], md1.uv[i*2 + 1])
 			});
 	}
 	rs->g_vertexCount1 = v1.size();
 
 	// ------------------------------------------------
 	// Create and initialize the vertex buffer.
-	D3D11_BUFFER_DESC vertexBufferDesc1;
-	ZeroMemory(&vertexBufferDesc1, sizeof(D3D11_BUFFER_DESC));
-	vertexBufferDesc1.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc1.ByteWidth = sizeof(v1[0]) * rs->g_vertexCount1;
-	vertexBufferDesc1.CPUAccessFlags = 0;
-	vertexBufferDesc1.Usage = D3D11_USAGE_DEFAULT;
-
+	i32 bufferIndex = createVertexBuffer(rs, sizeof(v1[0]) * rs->g_vertexCount1);
 	D3D11_SUBRESOURCE_DATA resourceData1;
 	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData1.pSysMem = v1.data();
-
-#ifdef _DEBUG
-	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
-#endif // _DEBUG
-
-
-	HRESULT hr = rs->g_d3dDevice->CreateBuffer(&vertexBufferDesc1, NULL, &rs->g_d3dVertexBuffer1);
-	if (FAILED(hr))
-	{
-		return false;
-	}
 	// fill the buffer
-	rs->g_d3dDeviceContext->UpdateSubresource(rs->g_d3dVertexBuffer1, 0, nullptr, resourceData1.pSysMem, 0, 0);
+	rs->g_d3dDeviceContext->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0);
+
+//#ifdef _DEBUG
+//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
+//#endif // _DEBUG
+	
 
 	// Create and initialize the index buffer.
 	D3D11_BUFFER_DESC indexBufferDesc1;
@@ -259,17 +269,16 @@ bool LoadContent(RendererState* rs)
 	ZeroMemory(&resourceData2, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData2.pSysMem = md1.i.data(); 
 
-	hr = rs->g_d3dDevice->CreateBuffer(&indexBufferDesc1, &resourceData2, &rs->g_d3dIndexBuffer1);
+	HRESULT hr = rs->g_d3dDevice->CreateBuffer(&indexBufferDesc1, &resourceData2, &rs->g_d3dIndexBuffer1);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	// ---------------- 2nd object -------------------
-	
 	ModelData md2;
 	FileMemory objFile2 = debug_read_entire_file("Data/Suzanne.obj");
-	loadObjModel(&objFile2, &md2.v, &md2.i, &md2.n);
+	loadObjModel(&objFile2, &md2.v, &md2.i, &md2.n, &md2.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
 	rs->g_indexCount2 = md2.i.size();
 
@@ -281,29 +290,19 @@ bool LoadContent(RendererState* rs)
 
 		v2.push_back({
 			XMFLOAT3(x, y, z),
-			XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z)),
-			XMFLOAT3(-md2.n[i*3], md2.n[i*3+1], -md2.n[i*3+2])
+			XMFLOAT3(-md2.n[i*3], md2.n[i*3+1], -md2.n[i*3+2]),
+			XMFLOAT3(0.53333, 0.84705, 0.69019)
+			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
 			});
 	}
 	rs->g_vertexCount2 = v2.size();
 
-	D3D11_BUFFER_DESC vertexBufferDesc2;
-	ZeroMemory(&vertexBufferDesc2, sizeof(D3D11_BUFFER_DESC));
-	vertexBufferDesc2.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc2.ByteWidth = sizeof(v2[0]) * rs->g_vertexCount2;
-	vertexBufferDesc2.CPUAccessFlags = 0;
-	vertexBufferDesc2.Usage = D3D11_USAGE_DEFAULT;
+	bufferIndex = createVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
 
 	D3D11_SUBRESOURCE_DATA resourceData3;
 	ZeroMemory(&resourceData3, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData3.pSysMem = v2.data();
-	
-	hr = rs->g_d3dDevice->CreateBuffer(&vertexBufferDesc2, NULL, &rs->g_d3dVertexBuffer2);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	rs->g_d3dDeviceContext->UpdateSubresource(rs->g_d3dVertexBuffer2, 0, nullptr, resourceData3.pSysMem, 0, 0);
+	rs->g_d3dDeviceContext->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0);
 
 	D3D11_BUFFER_DESC indexBufferDesc2;
 	ZeroMemory(&indexBufferDesc2, sizeof(D3D11_BUFFER_DESC));
@@ -321,7 +320,6 @@ bool LoadContent(RendererState* rs)
 	{
 		return false;
 	}
-	
 	// ------------------------------------------------
 
 	// Create the constant buffers for the variables defined in the vertex shader.
@@ -351,7 +349,7 @@ bool LoadContent(RendererState* rs)
 	}
 
 	// vertex shader
-	hr = rs->g_d3dDevice->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dVertexShader);
+	hr = rs->g_d3dDevice->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
 	if (FAILED(hr))
 	{
 		return false;
@@ -361,8 +359,8 @@ bool LoadContent(RendererState* rs)
 	D3D11_INPUT_ELEMENT_DESC vertexLayoutDesc[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	hr = rs->g_d3dDevice->CreateInputLayout(
@@ -370,16 +368,53 @@ bool LoadContent(RendererState* rs)
 		ArrayCount(vertexLayoutDesc),
 		g_SimpleVertexShader,
 		ArrayCount(g_SimpleVertexShader),
-		&rs->g_d3dInputLayout);
+		&rs->simpleShaderInputLayout);
 
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	// Load the compiled pixel shader.
+	// vertex shader2
+	hr = rs->g_d3dDevice->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	// Create the input layout2
+	D3D11_INPUT_ELEMENT_DESC texVertexLayoutDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
 
-	hr = rs->g_d3dDevice->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dPixelShader);
+	if (FAILED(rs->g_d3dDevice->CreateInputLayout(
+		texVertexLayoutDesc,
+		ArrayCount(texVertexLayoutDesc),
+		g_TexVertexShader,
+		ArrayCount(g_TexVertexShader),
+		&rs->texShaderInputLayout))) {
+		return false;
+	}
+
+	// Load the compiled pixel shader.
+	hr = rs->g_d3dDevice->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	hr = rs->g_d3dDevice->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	// create Texture
+	hr = CreateWICTextureFromFile( rs->g_d3dDevice,
+		L"Data/matcap.jpg", //tex.png
+		&rs->textureResource, &rs->textureView);
 	if (FAILED(hr))
 	{
 		return false;

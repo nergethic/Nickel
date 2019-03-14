@@ -146,7 +146,7 @@ enum class ObjFormat {
 	Vertex_Normal
 };
 
-void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals) {
+void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uvs) {
 
 	using namespace std;
 	vector<array<f64, 3>> packedVertices;
@@ -235,6 +235,7 @@ void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>
 					if (dataFormat == ObjFormat::Vertex_UV_Normal) {
 						UVIdx = parseIntAndAdvance()-1;
 					}
+
 					stream++;
 					normalIdx = parseIntAndAdvance()-1;
 					skipToWhitespace();
@@ -264,6 +265,11 @@ void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>
 								normals->push_back(packedNormals[normalIdx][0]);
 								normals->push_back(packedNormals[normalIdx][1]);
 								normals->push_back(packedNormals[normalIdx][2]);
+
+								if (dataFormat == ObjFormat::Vertex_UV_Normal) { // todo bake it
+									uvs->push_back(packedUVs[UVIdx][0]);
+									uvs->push_back(packedUVs[UVIdx][1]);
+								}
 								break;
 							} else { // go to next entry
 								if (e->nextEntry == nullptr) { 

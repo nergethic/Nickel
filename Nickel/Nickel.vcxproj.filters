@@ -55,10 +55,19 @@
     <FxCompile Include="Data\Shaders\SimpleVertexShader.hlsl">
       <Filter>Resource Files\Data\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Data\Shaders\TexVertexShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Data\Shaders\TexPixelShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Object Include="Data\Suzanne.obj">
       <Filter>Resource Files\Data</Filter>
     </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

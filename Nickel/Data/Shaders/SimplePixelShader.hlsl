@@ -1,8 +1,8 @@
 struct PixelShaderInput
 {
 	float3 worldPos : WORLD_POSITION;
-    float4 color : COLOR;
 	float3 normal : NORMAL;
+    float4 color : COLOR;
 	float3 eyeVec : VIEW;
 	float3 lightVec : LIGHT;
 };

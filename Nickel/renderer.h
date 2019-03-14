@@ -5,6 +5,7 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <WICTextureLoader.h>
 
 // STL includes
 #include <algorithm>
@@ -20,6 +21,9 @@
 #include "VertexShader.h"
 #include "PixelShader.h"
 
+#include "TexVertexShader.h"
+#include "TexPixelShader.h"
+
 using namespace DirectX;
 
 //static 
@@ -28,8 +32,15 @@ using namespace DirectX;
 struct VertexPosColor
 {
 	XMFLOAT3 Position;
-	XMFLOAT3 Color;
 	XMFLOAT3 Normal;
+	XMFLOAT3 Color;
+};
+
+struct VertexPosUV
+{
+	XMFLOAT3 Position;
+	XMFLOAT3 Normal;
+	XMFLOAT2 UV;
 };
 
 struct PerFrameBufferData {
@@ -72,19 +83,22 @@ struct RendererState {
 	ID3D11RasterizerState* g_d3dRasterizerState = nullptr;
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	// Vertex buffer data
-	ID3D11InputLayout* g_d3dInputLayout = nullptr;
+	ID3D11Resource* textureResource = nullptr;
+	ID3D11ShaderResourceView* textureView = nullptr;
+	ID3D11SamplerState* texSamplerState = nullptr;
 
-	ID3D11Buffer* g_d3dVertexBuffer1 = nullptr;
-	ID3D11Buffer* g_d3dIndexBuffer1 = nullptr;
-	ID3D11Buffer* g_d3dVertexBuffer2 = nullptr;
-	ID3D11Buffer* g_d3dIndexBuffer2 = nullptr;
+	// Vertex buffer data
+	ID3D11InputLayout* simpleShaderInputLayout = nullptr;
+	ID3D11InputLayout* texShaderInputLayout = nullptr;
 
 	ID3D11Buffer* g_d3dConstantBuffers[NumConstantBuffers];
 
 	// Shader data
-	ID3D11VertexShader* g_d3dVertexShader = nullptr;
-	ID3D11PixelShader* g_d3dPixelShader = nullptr;
+	ID3D11VertexShader* g_d3dSimpleVertexShader = nullptr;
+	ID3D11PixelShader* g_d3dSimplePixelShader = nullptr;
+
+	ID3D11VertexShader* g_d3dTexVertexShader = nullptr;
+	ID3D11PixelShader* g_d3dTexPixelShader = nullptr;
 
 	// Demo parameters
 	XMMATRIX g_WorldMatrix;
@@ -95,6 +109,15 @@ struct RendererState {
 	u32 g_vertexCount1 = 0;
 	u32 g_indexCount2  = 0;
 	u32 g_vertexCount2 = 0;
+
+	// ------- toto this probably should be separated
+	ID3D11Buffer* vertexBuffers[20];
+	ID3D11Buffer* indexBuffers[20];
+	u32 vertexBuffersCount = 0;
+	u32 indexBuffersCount = 0;
+
+	ID3D11Buffer* g_d3dIndexBuffer1 = nullptr;
+	ID3D11Buffer* g_d3dIndexBuffer2 = nullptr;
 };
 
 // Safely release a COM object.
