@@ -10,10 +10,10 @@ std::string GetLatestProfile(RendererState* rs);
 template<>
 std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs)
 {
-	assert(rs->g_d3dDevice);
+	assert(rs->device);
 
 	// Query the current feature level:
-	D3D_FEATURE_LEVEL featureLevel = rs->g_d3dDevice->GetFeatureLevel();
+	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
 
 	switch (featureLevel)
 	{
@@ -44,7 +44,7 @@ std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs)
 		return "vs_4_0_level_9_1";
 	}
 	break;
-	} // switch( featureLevel )
+	}
 
 	return "";
 }
@@ -52,10 +52,10 @@ std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs)
 template<>
 std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs)
 {
-	assert(rs->g_d3dDevice);
+	assert(rs->device);
 
 	// Query the current feature level:
-	D3D_FEATURE_LEVEL featureLevel = rs->g_d3dDevice->GetFeatureLevel();
+	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
 	switch (featureLevel)
 	{
 	case D3D_FEATURE_LEVEL_11_1:
@@ -95,11 +95,11 @@ ShaderClass* CreateShader(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassL
 template<>
 ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage)
 {
-	assert(rs->g_d3dDevice);
+	assert(rs->device);
 	assert(pShaderBlob);
 
 	ID3D11VertexShader* pVertexShader = nullptr;
-	rs->g_d3dDevice->CreateVertexShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pVertexShader);
+	rs->device->CreateVertexShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pVertexShader);
 
 	return pVertexShader;
 }
@@ -107,11 +107,11 @@ ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob
 template<>
 ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage)
 {
-	assert(rs->g_d3dDevice);
+	assert(rs->device);
 	assert(pShaderBlob);
 
 	ID3D11PixelShader* pPixelShader = nullptr;
-	rs->g_d3dDevice->CreatePixelShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pPixelShader);
+	rs->device->CreatePixelShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pPixelShader);
 
 	return pPixelShader;
 }
@@ -167,7 +167,7 @@ inline f32 clamp(f32 min, f32 max, f32 val) {
 	} else {
 		return val;
 	}
-}
+} 
 
 void addMesh(std::vector<VertexPosColor>* vertices, std::vector<u32>* indices, std::vector<f64>* v, std::vector<u32>* indcs, std::vector<f64>* n) {
 	f32 x, y, z;
@@ -204,7 +204,7 @@ i32 createVertexBuffer(RendererState* rs, u32 size) {
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
 	i32 bufferIndex = rs->vertexBuffersCount;
-	HRESULT hr = rs->g_d3dDevice->CreateBuffer(&bufferDesc, NULL, &rs->vertexBuffers[bufferIndex]);
+	HRESULT hr = rs->device->CreateBuffer(&bufferDesc, NULL, &rs->vertexBuffers[bufferIndex]);
 	if (!SUCCEEDED(hr)) {
 		bufferIndex = -1;
 	}
@@ -216,7 +216,7 @@ i32 createVertexBuffer(RendererState* rs, u32 size) {
 
 bool LoadContent(RendererState* rs)
 {
-	assert(rs->g_d3dDevice);
+	assert(rs->device);
 
 	//std::vector<u32> allIndices;
 	
@@ -250,7 +250,7 @@ bool LoadContent(RendererState* rs)
 	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData1.pSysMem = v1.data();
 	// fill the buffer
-	rs->g_d3dDeviceContext->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0);
+	rs->deviceCtx->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0);
 
 //#ifdef _DEBUG
 //	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
@@ -269,7 +269,7 @@ bool LoadContent(RendererState* rs)
 	ZeroMemory(&resourceData2, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData2.pSysMem = md1.i.data(); 
 
-	HRESULT hr = rs->g_d3dDevice->CreateBuffer(&indexBufferDesc1, &resourceData2, &rs->g_d3dIndexBuffer1);
+	HRESULT hr = rs->device->CreateBuffer(&indexBufferDesc1, &resourceData2, &rs->g_d3dIndexBuffer1);
 	if (FAILED(hr))
 	{
 		return false;
@@ -302,7 +302,7 @@ bool LoadContent(RendererState* rs)
 	D3D11_SUBRESOURCE_DATA resourceData3;
 	ZeroMemory(&resourceData3, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData3.pSysMem = v2.data();
-	rs->g_d3dDeviceContext->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0);
+	rs->deviceCtx->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0);
 
 	D3D11_BUFFER_DESC indexBufferDesc2;
 	ZeroMemory(&indexBufferDesc2, sizeof(D3D11_BUFFER_DESC));
@@ -315,7 +315,7 @@ bool LoadContent(RendererState* rs)
 	ZeroMemory(&resourceData4, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData4.pSysMem = md2.i.data();
 	
-	hr = rs->g_d3dDevice->CreateBuffer(&indexBufferDesc2, &resourceData4, &rs->g_d3dIndexBuffer2);
+	hr = rs->device->CreateBuffer(&indexBufferDesc2, &resourceData4, &rs->g_d3dIndexBuffer2);
 	if (FAILED(hr))
 	{
 		return false;
@@ -331,25 +331,25 @@ bool LoadContent(RendererState* rs)
 	constantBufferDesc.CPUAccessFlags = 0;
 	constantBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	hr = rs->g_d3dDevice->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Appliation]);
+	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Appliation]);
 	if (FAILED(hr))
 	{
 		return false;
 	}
-	hr = rs->g_d3dDevice->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Object]);
+	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Object]);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 	constantBufferDesc.ByteWidth = sizeof(PerFrameBufferData);
-	hr = rs->g_d3dDevice->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Frame]);
+	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Frame]);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	// vertex shader
-	hr = rs->g_d3dDevice->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
+	hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
 	if (FAILED(hr))
 	{
 		return false;
@@ -363,7 +363,7 @@ bool LoadContent(RendererState* rs)
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
-	hr = rs->g_d3dDevice->CreateInputLayout(
+	hr = rs->device->CreateInputLayout(
 		vertexLayoutDesc,
 		ArrayCount(vertexLayoutDesc),
 		g_SimpleVertexShader,
@@ -376,7 +376,7 @@ bool LoadContent(RendererState* rs)
 	}
 
 	// vertex shader2
-	hr = rs->g_d3dDevice->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
+	hr = rs->device->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
 	if (FAILED(hr))
 	{
 		return false;
@@ -389,7 +389,7 @@ bool LoadContent(RendererState* rs)
 		{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
-	if (FAILED(rs->g_d3dDevice->CreateInputLayout(
+	if (FAILED(rs->device->CreateInputLayout(
 		texVertexLayoutDesc,
 		ArrayCount(texVertexLayoutDesc),
 		g_TexVertexShader,
@@ -399,20 +399,20 @@ bool LoadContent(RendererState* rs)
 	}
 
 	// Load the compiled pixel shader.
-	hr = rs->g_d3dDevice->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
+	hr = rs->device->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	hr = rs->g_d3dDevice->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
+	hr = rs->device->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	// create Texture
-	hr = CreateWICTextureFromFile( rs->g_d3dDevice,
+	hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
 		L"Data/matcap.jpg", //tex.png
 		&rs->textureResource, &rs->textureView);
 	if (FAILED(hr))
@@ -431,7 +431,7 @@ bool LoadContent(RendererState* rs)
 
 	rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
 
-	rs->g_d3dDeviceContext->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0);
+	rs->deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0);
 
 	return true;
 }
@@ -657,61 +657,66 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 static u32 GlobalWindowWidth = 1280;
 static u32 GlobalWindowHeight = 720;
 
-int WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR     lpCmdLine,
-	int       nShowCmd
-) {
-
-	if (!XMVerifyCPUSupport())
-	{
-		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
-		return -1;
-	}
-
-	Win32State win32State = {};
-	WNDCLASSEX WindowClass = {};
-
-	if (!hPrevInstance)
-	{
-		WindowClass.cbSize = sizeof(WNDCLASSEX);
-		WindowClass.style = CS_HREDRAW | CS_VREDRAW;
-		WindowClass.lpfnWndProc = (WNDPROC)WndProc;
-		WindowClass.cbClsExtra = 0;
-		WindowClass.cbWndExtra = 0;
-		WindowClass.hInstance = hInstance;
+HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) {//HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
+	windowClass->cbSize = sizeof(WNDCLASSEX);
+	windowClass->style = CS_HREDRAW | CS_VREDRAW;
+	windowClass->lpfnWndProc = (WNDPROC)WndProc;
+	windowClass->cbClsExtra = 0;
+	windowClass->cbWndExtra = 0;
+	windowClass->hInstance = hInstance;
 		// WindowClass.hIcon = LoadIcon((HINSTANCE)NULL, IDI_APPLICATION);
-		WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		WindowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // GetStockObject(WHITE_BRUSH);
-		WindowClass.lpszMenuName = nullptr;
-		WindowClass.lpszClassName = "MainWndClass";
-	}
+	windowClass->hCursor = LoadCursor(NULL, IDC_ARROW);
+	windowClass->hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // GetStockObject(WHITE_BRUSH);
+	windowClass->lpszMenuName = nullptr;
+	windowClass->lpszClassName = "MainWndClass";
 
-	if (!RegisterClassEx(&WindowClass))
+	if (!RegisterClassEx(windowClass))
 		return FALSE;
 
 	RECT windowRect = { 0, 0, GlobalWindowWidth, GlobalWindowHeight };
 	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	HWND wndHandle = CreateWindowExA(
-			0, // WS_EX_TOPMOST | WS_EX_LAYERED,
-			WindowClass.lpszClassName,
-			"Nickel",
-			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			CW_USEDEFAULT,
-			CW_USEDEFAULT,
-			windowRect.right - windowRect.left,
-			windowRect.bottom - windowRect.top,
-			0,
-			0,
-			hInstance,
-			0
+		0, // WS_EX_TOPMOST | WS_EX_LAYERED,
+		windowClass->lpszClassName,
+		"Nickel",
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		0,
+		0,
+		hInstance,
+		0
 	);
 
 	if (!wndHandle) {
 		return FALSE;
 	}
+
+	return wndHandle;
+}
+
+int WinMain(
+	HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPSTR     lpCmdLine,
+	int       nShowCmd
+) {
+	if (!XMVerifyCPUSupport())
+	{
+		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
+		return -1;
+	}
+
+	//if (!InitializeWinMain(hInstance, "Title", "MyWndClassName", 800, 600))
+	//	return -1;
+
+	Win32State win32State = {};
+	WNDCLASSEX WindowClass = {};
+
+	auto wndHandle = InitializeWinMain(&WindowClass, hInstance);
 
 	// display window
 	ShowWindow(wndHandle, nShowCmd);
@@ -793,10 +798,10 @@ int WinMain(
 		ArrayCount(FeatureLevels),
 		D3D11_SDK_VERSION,
 		&swapChainDesc,
-		&rs.g_d3dSwapChain,
-		&rs.g_d3dDevice,
+		rs.swapChain.GetAddressOf(),
+		rs.device.GetAddressOf(),
 		&SelectedFeatureLevel,
-		&rs.g_d3dDeviceContext);
+		rs.deviceCtx.GetAddressOf());
 
 	if (result == E_INVALIDARG) { // if 11.1 failed, use 11.0
 		result = D3D11CreateDeviceAndSwapChain(
@@ -808,10 +813,10 @@ int WinMain(
 			ArrayCount(FeatureLevels)-1,
 			D3D11_SDK_VERSION,
 			&swapChainDesc,
-			&rs.g_d3dSwapChain,
-			&rs.g_d3dDevice,
+			rs.swapChain.GetAddressOf(),
+			rs.device.GetAddressOf(),
 			&SelectedFeatureLevel,
-			&rs.g_d3dDeviceContext);
+			rs.deviceCtx.GetAddressOf());
 	}
 
 	if (FAILED(result)) {
@@ -820,7 +825,7 @@ int WinMain(
 
 #ifdef _DEBUG
 	// init debug layer
-	if( SUCCEEDED( rs.g_d3dDevice->QueryInterface( __uuidof(ID3D11Debug), (void**)&rs.d3dDebug ) ) )
+	if( SUCCEEDED( rs.device->QueryInterface( __uuidof(ID3D11Debug), (void**)&rs.d3dDebug ) ) )
 	{
 		ID3D11InfoQueue *d3dInfoQueue = nullptr;
 		if( SUCCEEDED( rs.d3dDebug->QueryInterface( __uuidof(ID3D11InfoQueue), (void**)&d3dInfoQueue ) ) )
@@ -849,12 +854,12 @@ int WinMain(
 
 	// swap chain stuff
 	ID3D11Texture2D* backBuffer;
-	result = rs.g_d3dSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
+	result = rs.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
 	if (FAILED(result)) {
 		return -1;
 	}
 
-	result = rs.g_d3dDevice->CreateRenderTargetView(backBuffer, nullptr, &rs.g_d3dRenderTargetView);
+	result = rs.device->CreateRenderTargetView(backBuffer, nullptr, &rs.g_d3dRenderTargetView);
 	if (FAILED(result)) {
 		return -1;
 	}
@@ -876,12 +881,12 @@ int WinMain(
 	depthStencilBufferDesc.SampleDesc.Quality = 0;
 	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	result = rs.g_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, &rs.g_d3dDepthStencilBuffer);
+	result = rs.device->CreateTexture2D(&depthStencilBufferDesc, nullptr, &rs.g_d3dDepthStencilBuffer);
 	if (FAILED(result)) {
 		return -1;
 	}
 
-	result = rs.g_d3dDevice->CreateDepthStencilView(rs.g_d3dDepthStencilBuffer, nullptr, &rs.g_d3dDepthStencilView);
+	result = rs.device->CreateDepthStencilView(rs.g_d3dDepthStencilBuffer, nullptr, &rs.g_d3dDepthStencilView);
 	if (FAILED(result)) {
 		return -1;
 	}
@@ -895,7 +900,7 @@ int WinMain(
 	depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
 	depthStencilStateDesc.StencilEnable = FALSE;
 
-	result = rs.g_d3dDevice->CreateDepthStencilState(&depthStencilStateDesc, &rs.g_d3dDepthStencilState);
+	result = rs.device->CreateDepthStencilState(&depthStencilStateDesc, &rs.g_d3dDepthStencilState);
 	if (FAILED(result)) {
 		return -1;
 	}
@@ -916,7 +921,7 @@ int WinMain(
 	rasterizerDesc.SlopeScaledDepthBias = 0.0f;
 
 	// Create the rasterizer state object.
-	result = rs.g_d3dDevice->CreateRasterizerState(&rasterizerDesc, &rs.g_d3dRasterizerState);
+	result = rs.device->CreateRasterizerState(&rasterizerDesc, &rs.g_d3dRasterizerState);
 	if (FAILED(result))
 	{
 		return -1;

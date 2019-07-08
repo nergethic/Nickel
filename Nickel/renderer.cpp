@@ -2,8 +2,8 @@
 
 void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil)
 {
-	rs->g_d3dDeviceContext->ClearRenderTargetView(rs->g_d3dRenderTargetView, clearColor);
-	rs->g_d3dDeviceContext->ClearDepthStencilView(rs->g_d3dDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
+	rs->deviceCtx->ClearRenderTargetView(rs->g_d3dRenderTargetView, clearColor);
+	rs->deviceCtx->ClearDepthStencilView(rs->g_d3dDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
 }
 
 // function inspired by:

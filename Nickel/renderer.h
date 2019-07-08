@@ -7,6 +7,8 @@
 #include <DirectXColors.h>
 #include <WICTextureLoader.h>
 
+#include <wrl/client.h>
+
 // STL includes
 #include <algorithm>
 #include <iostream>
@@ -63,9 +65,10 @@ struct RendererState {
 	HWND g_WindowHandle;
 
 	// Direct3D device and swap chain.
-	ID3D11Device* g_d3dDevice = nullptr;
-	ID3D11DeviceContext* g_d3dDeviceContext = nullptr;
-	IDXGISwapChain* g_d3dSwapChain = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11Device> device = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
+	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain = nullptr;
+
 #ifdef _DEBUG
 	ID3D11Debug *d3dDebug = nullptr;
 #endif // _DEBUG
