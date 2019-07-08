@@ -119,18 +119,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="game.cpp" />
-    <ClCompile Include="obj_loader.cpp" />
-    <ClCompile Include="renderer.cpp" />
-    <ClCompile Include="win32_main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="game.h" />
-    <ClInclude Include="obj_loader.h" />
-    <ClInclude Include="platform.h" />
-    <ClInclude Include="renderer.h" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="Data\Shaders\SimplePixelShader.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">SimplePixelShader</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -176,6 +164,22 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\game.cpp" />
+    <ClCompile Include="Source\obj_loader.cpp" />
+    <ClCompile Include="Source\renderer.cpp" />
+    <ClCompile Include="Source\win32_main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\game.h" />
+    <ClInclude Include="Source\obj_loader.h" />
+    <ClInclude Include="Source\platform.h" />
+    <ClInclude Include="Source\renderer.h" />
+    <ClInclude Include="Source\Shaders\PixelShader.h" />
+    <ClInclude Include="Source\Shaders\TexPixelShader.h" />
+    <ClInclude Include="Source\Shaders\TexVertexShader.h" />
+    <ClInclude Include="Source\Shaders\VertexShader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
