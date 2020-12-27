@@ -29,3 +29,4 @@ extern u8* endAddress;
 
 FileMemory debug_read_entire_file(LPCSTR Filename);
 void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uv);
+void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uv);

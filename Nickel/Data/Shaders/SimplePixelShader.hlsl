@@ -24,12 +24,9 @@ float4 SimplePixelShader( PixelShaderInput IN ) : SV_TARGET
 	float3 r = 2.0*dot(n,l)*n-l;
 	//float3 r = reflect(-l, n);
 	float s = saturate(100.0*dot(r,v) - 97.0);
+	float3 color = lerp(highlight, lerp(warm, cool, 1.0-t), 1.0-s);
 
-	float3 c = s*highlight + ((1.0-s)*(t*warm + (1.0-t)*cool));
-	//float3 c = t*warm + (1.0-t)*cool;
-	//float3 c = lerp(cool, warm, t);
-	//float3 c = lerp(highlight, lerp(warm, cool, t), 1.0-s);
-    return float4(c, 1.0f);
+    return float4(color, 1.0f);
 
 	//return float4(IN.view, 1.0f);
 	//return IN.color;
