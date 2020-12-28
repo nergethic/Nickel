@@ -777,8 +777,8 @@ int WinMain(
 	swapChainDesc.BufferDesc.RefreshRate = QueryRefreshRate(clientWidth, clientHeight, false); // TODO vsync
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.OutputWindow = rs.g_WindowHandle;
-	swapChainDesc.SampleDesc.Count = 1;
-	swapChainDesc.SampleDesc.Quality = 0;
+	swapChainDesc.SampleDesc.Count = 8;
+	swapChainDesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	swapChainDesc.Windowed = TRUE;
 
@@ -877,8 +877,8 @@ int WinMain(
 	depthStencilBufferDesc.Width = GlobalWindowWidth;
 	depthStencilBufferDesc.Height = GlobalWindowHeight;
 	depthStencilBufferDesc.MipLevels = 1;
-	depthStencilBufferDesc.SampleDesc.Count = 1;
-	depthStencilBufferDesc.SampleDesc.Quality = 0;
+	depthStencilBufferDesc.SampleDesc.Count = 8;
+	depthStencilBufferDesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
 	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
 	result = rs.device->CreateTexture2D(&depthStencilBufferDesc, nullptr, &rs.g_d3dDepthStencilBuffer);
