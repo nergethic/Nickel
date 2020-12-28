@@ -725,7 +725,7 @@ int WinMain(
 	RendererState rs;
 	rs.g_WindowHandle = wndHandle;
 		
-	const D3D_FEATURE_LEVEL FeatureLevels[] = {
+	const D3D_FEATURE_LEVEL FEATURE_LEVELS[] = {
 		D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0,
 		D3D_FEATURE_LEVEL_10_1,
@@ -794,8 +794,8 @@ int WinMain(
 		D3D_DRIVER_TYPE_HARDWARE,
 		NULL, // dll handle for software rasterize
 		deviceFlags, // D3D11_CREATE_DEVICE_SINGLETHREADED, D3D11_CREATE_DEVICE_DEBUGGABLE, D3D11_CREATE_DEVICE_DEBUG
-		FeatureLevels,
-		ArrayCount(FeatureLevels),
+		FEATURE_LEVELS,
+		ArrayCount(FEATURE_LEVELS),
 		D3D11_SDK_VERSION,
 		&swapChainDesc,
 		rs.swapChain.GetAddressOf(),
@@ -809,8 +809,8 @@ int WinMain(
 			D3D_DRIVER_TYPE_HARDWARE,
 			NULL, // dll handle for software rasterize
 			deviceFlags, // D3D11_CREATE_DEVICE_SINGLETHREADED, D3D11_CREATE_DEVICE_DEBUGGABLE, DEBUG
-			&FeatureLevels[1],
-			ArrayCount(FeatureLevels)-1,
+			&FEATURE_LEVELS[1],
+			ArrayCount(FEATURE_LEVELS)-1,
 			D3D11_SDK_VERSION,
 			&swapChainDesc,
 			rs.swapChain.GetAddressOf(),
@@ -910,11 +910,11 @@ int WinMain(
 	ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
 
 	rasterizerDesc.AntialiasedLineEnable = FALSE;
-	rasterizerDesc.CullMode = D3D11_CULL_BACK;
+	rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 	rasterizerDesc.DepthBias = 0;
 	rasterizerDesc.DepthBiasClamp = 0.0f;
 	rasterizerDesc.DepthClipEnable = TRUE;
-	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
 	rasterizerDesc.FrontCounterClockwise = FALSE;
 	rasterizerDesc.MultisampleEnable = FALSE;
 	rasterizerDesc.ScissorEnable = FALSE;
@@ -922,8 +922,7 @@ int WinMain(
 
 	// Create the rasterizer state object.
 	result = rs.device->CreateRasterizerState(&rasterizerDesc, &rs.g_d3dRasterizerState);
-	if (FAILED(result))
-	{
+	if (FAILED(result)) {
 		return -1;
 	}
 

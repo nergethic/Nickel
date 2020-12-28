@@ -68,6 +68,45 @@ void CreateCubeMap() {
 }
 */
 
+struct PipelineState {
+	ID3D11RasterizerState* rasterizerState;
+	ID3D11DepthStencilState* depthStencilState;
+	ID3D11InputLayout* inputLayout;
+	ID3D11VertexShader* vertexShader;
+	ID3D11Buffer* vertexConstantBuffers;
+	short vertexConstantBuffersCount;
+	ID3D11PixelShader* pixelShader;
+	ID3D11Buffer* pixelConstantBuffers;
+	short pixelConstantBuffersCount;
+	D3D11_PRIMITIVE_TOPOLOGY topology;
+};
+
+void SetPipelineState(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState& pipeline) {
+	assert(deviceCtx != nullptr);
+	assert(rs != nullptr);
+
+	deviceCtx->OMSetRenderTargets(1, &rs->g_d3dRenderTargetView, rs->g_d3dDepthStencilView);
+
+	deviceCtx->RSSetState(pipeline.rasterizerState);
+	deviceCtx->OMSetDepthStencilState(pipeline.depthStencilState, 1);
+
+	// deviceCtx->OMSetBlendState(); // TODO
+
+	deviceCtx->IASetPrimitiveTopology(pipeline.topology);
+	deviceCtx->IASetInputLayout(pipeline.inputLayout);
+	deviceCtx->VSSetShader(pipeline.vertexShader, nullptr, 0);
+
+	if (pipeline.vertexConstantBuffersCount == 0)
+		deviceCtx->VSSetConstantBuffers(0, 4, rs->zeroBuffer);
+	else
+		deviceCtx->VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer *const*)pipeline.vertexConstantBuffers);
+
+	deviceCtx->PSSetShader(pipeline.pixelShader, nullptr, 0);
+	// deviceCtx->PSSetConstantBuffers(); // TODO
+
+	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
+}
+
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	if (!memory->isInitialized) {
@@ -78,10 +117,6 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	// GameState* gs = (GameState*)memory;
 
-	assert(rs->device);
-	assert(rs->deviceCtx);
-	ID3D11DeviceContext* deviceCtx = *rs->deviceCtx.GetAddressOf();
-
 	Vec3 cameraPos;
 	cameraPos.x = 0.0f;
 	cameraPos.y = 0.0f;
@@ -90,7 +125,6 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	XMVECTOR eyePosition = XMVectorSet(cameraPos.x, cameraPos.y, cameraPos.z, 1);
 	XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
 	XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
-
 
 	static float angle = -90.0f;
 	float radius = 2.1f;
@@ -101,6 +135,10 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	data.viewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 	data.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 	data.lightPosition = lightPos;
+
+	assert(rs->device);
+	assert(rs->deviceCtx);
+	ID3D11DeviceContext* deviceCtx = *rs->deviceCtx.GetAddressOf();
 
 	deviceCtx->ClearDepthStencilView(rs->g_d3dDepthStencilView, NULL, 0.0, 0);
 	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &data, 0, 0);
@@ -122,43 +160,48 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	const FLOAT clearColor[4] = {0.13333f, 0.13333f, 0.13333f, 1.0f};
 	Clear(rs, clearColor, 1.0f, 0);
 
+	// pipeline 1 data:
+	PipelineState pip1;
+	pip1.depthStencilState = rs->g_d3dDepthStencilState;
+	pip1.rasterizerState   = rs->g_d3dRasterizerState;
+	pip1.inputLayout       = rs->texShaderInputLayout;
+	pip1.vertexShader      = rs->g_d3dTexVertexShader;
+	pip1.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+	pip1.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+	pip1.pixelShader       = rs->g_d3dTexPixelShader;
+	pip1.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	SetPipelineState(deviceCtx, rs, pip1);
+
 	const UINT vertexStride = sizeof(VertexPosColor);
 	const UINT texVertexStride = sizeof(VertexPosUV);
 	const UINT offset = 0;
 
-	deviceCtx->VSSetShader(rs->g_d3dTexVertexShader, nullptr, 0);
-	deviceCtx->PSSetShader(rs->g_d3dTexPixelShader, nullptr, 0);
-
-	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[0], &texVertexStride, &offset);
-	deviceCtx->IASetInputLayout(rs->texShaderInputLayout);
 	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer1, DXGI_FORMAT_R32_UINT, 0);
-	deviceCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	
-	deviceCtx->VSSetConstantBuffers(0, 3, rs->g_d3dConstantBuffers);
-
-	deviceCtx->RSSetState(rs->g_d3dRasterizerState);
-	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
-
+	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[0], &texVertexStride, &offset);
 	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
 	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
-
-	deviceCtx->OMSetRenderTargets(1, &rs->g_d3dRenderTargetView, rs->g_d3dDepthStencilView);
-	deviceCtx->OMSetDepthStencilState(rs->g_d3dDepthStencilState, 1);
-
 	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
 
 	// --- 2nd object
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
-	rs->g_WorldMatrix *= XMMatrixTranslation(radius*cos(XMConvertToRadians(angle)), 0.0, radius*sin(XMConvertToRadians(angle)));	
+	rs->g_WorldMatrix *= XMMatrixTranslation(radius*cos(XMConvertToRadians(angle)), 0.0, radius*sin(XMConvertToRadians(angle)));
+
+	PipelineState pip2;
+	pip2.depthStencilState = rs->g_d3dDepthStencilState;
+	pip2.rasterizerState   = rs->g_d3dRasterizerState;
+	pip2.inputLayout       = rs->texShaderInputLayout;
+	pip2.vertexShader      = rs->g_d3dSimpleVertexShader;
+	pip2.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+	pip2.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+	pip2.pixelShader       = rs->g_d3dSimplePixelShader;
+	pip2.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	SetPipelineState(deviceCtx, rs, pip2);
+
 	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0);
 
-	deviceCtx->VSSetShader(rs->g_d3dSimpleVertexShader, nullptr, 0);
-	deviceCtx->PSSetShader(rs->g_d3dSimplePixelShader, nullptr, 0);
-
-	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[1], &vertexStride, &offset);
 	deviceCtx->IASetInputLayout(rs->simpleShaderInputLayout);
 	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer2, DXGI_FORMAT_R32_UINT, 0);
+	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[1], &vertexStride, &offset);
 	
 	//deviceCtx->VSSetConstantBuffers(0, 3, rs->g_d3dConstantBuffers);
 

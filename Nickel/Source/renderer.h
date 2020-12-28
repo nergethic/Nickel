@@ -121,6 +121,8 @@ struct RendererState {
 
 	ID3D11Buffer* g_d3dIndexBuffer1 = nullptr;
 	ID3D11Buffer* g_d3dIndexBuffer2 = nullptr;
+
+	ID3D11Buffer* zeroBuffer[4]; // TODO: check Sokol defines max to be 4
 };
 
 // Safely release a COM object.
