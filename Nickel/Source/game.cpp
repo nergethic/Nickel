@@ -137,14 +137,11 @@ void RenderLight(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineStat
 	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
 }
 
+void Initialize(GameMemory* memory) {
+
+}
+
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
-
-	if (!memory->isInitialized) {
-		//VertexPosColor cube2Vertices[] = g_Vertices;
-
-		memory->isInitialized = true;
-	}
-
 	// GameState* gs = (GameState*)memory;
 
 	Vec3 cameraPos;

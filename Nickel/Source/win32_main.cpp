@@ -959,6 +959,11 @@ int WinMain(
 	GameInput *newInput = &input[0];
 	GameInput *oldInput = &input[1];
 
+	if (!gameMemory.isInitialized) {
+		Initialize(&gameMemory);
+		gameMemory.isInitialized = true;
+	}
+
 	while (running) {
 
 		GameControllerInput *oldKeyboardController = GetController(oldInput, 0);
@@ -976,7 +981,6 @@ int WinMain(
 
 		Win32ProcessPendingMessages(newKeyboardController);
 
-		// update game and render
 		UpdateAndRender(&gameMemory, &rs, newInput);
 
 		GameInput *temp = newInput;
