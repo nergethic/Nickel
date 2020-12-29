@@ -654,8 +654,8 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 	return 0;
 }
 
-static u32 GlobalWindowWidth = 1280;
-static u32 GlobalWindowHeight = 720;
+static u32 GlobalWindowWidth = 1920;
+static u32 GlobalWindowHeight = 1080;
 
 HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) {//HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
 	windowClass->cbSize = sizeof(WNDCLASSEX);

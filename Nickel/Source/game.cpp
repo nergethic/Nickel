@@ -81,6 +81,11 @@ struct PipelineState {
 	D3D11_PRIMITIVE_TOPOLOGY topology;
 };
 
+const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+const UINT vertexStride = sizeof(VertexPosColor);
+const UINT texVertexStride = sizeof(VertexPosUV);
+const UINT offset = 0;
+
 void SetPipelineState(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState& pipeline) {
 	assert(deviceCtx != nullptr);
 	assert(rs != nullptr);
@@ -107,6 +112,31 @@ void SetPipelineState(ID3D11DeviceContext* deviceCtx, RendererState* rs, Pipelin
 	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
 }
 
+void RenderSuzanne(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState pip) {
+	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer2, DXGI_FORMAT_R32_UINT, 0);
+	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[1], &vertexStride, &offset);
+
+	deviceCtx->DrawIndexed(rs->g_indexCount2, 0, 0);
+}
+
+void RenderBunny(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState pip) {
+	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer1, DXGI_FORMAT_R32_UINT, 0);
+	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[0], &texVertexStride, &offset);
+	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
+	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
+
+	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
+}
+
+void RenderLight(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState pip) {
+	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer1, DXGI_FORMAT_R32_UINT, 0);
+	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[0], &texVertexStride, &offset);
+	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
+	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
+
+	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
+}
+
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	if (!memory->isInitialized) {
@@ -124,7 +154,6 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	
 	XMVECTOR eyePosition = XMVectorSet(cameraPos.x, cameraPos.y, cameraPos.z, 1);
 	XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
-	XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 
 	static float angle = -90.0f;
 	float radius = 2.1f;
@@ -143,74 +172,49 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	deviceCtx->ClearDepthStencilView(rs->g_d3dDepthStencilView, NULL, 0.0, 0);
 	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &data, 0, 0);
 
-	XMVECTOR rotationAxis = XMVectorSet(0, 1, 0, 0);
-
-	//g_WorldMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(180.0f));
-	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
-	rs->g_WorldMatrix *= XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle/2.0));
-	rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
-	//rs->g_WorldMatrix = XMMatrixIdentity();// XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(180.0f));
-	//g_WorldMatrix *= XMMatrixTranslation(2.0*cos(angle), 0.0, 2.0*sin(angle));
-	//g_WorldMatrix = XMMatrixIdentity();
-
-	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0);
-
-
 	// RENDER ---------------------------
 	const FLOAT clearColor[4] = {0.13333f, 0.13333f, 0.13333f, 1.0f};
 	Clear(rs, clearColor, 1.0f, 0);
 
-	// pipeline 1 data:
-	PipelineState pip1;
-	pip1.depthStencilState = rs->g_d3dDepthStencilState;
-	pip1.rasterizerState   = rs->g_d3dRasterizerState;
-	pip1.inputLayout       = rs->texShaderInputLayout;
-	pip1.vertexShader      = rs->g_d3dTexVertexShader;
-	pip1.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-	pip1.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-	pip1.pixelShader       = rs->g_d3dTexPixelShader;
-	pip1.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	SetPipelineState(deviceCtx, rs, pip1);
+	PipelineState pip;
+	pip.depthStencilState = rs->g_d3dDepthStencilState;
+	pip.rasterizerState = rs->g_d3dRasterizerState;
+	pip.inputLayout = rs->texShaderInputLayout;
+	pip.vertexShader = rs->g_d3dTexVertexShader;
+	pip.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+	pip.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+	pip.pixelShader = rs->g_d3dTexPixelShader;
+	pip.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	const UINT vertexStride = sizeof(VertexPosColor);
-	const UINT texVertexStride = sizeof(VertexPosUV);
-	const UINT offset = 0;
+	// bunny
+	SetPipelineState(deviceCtx, rs, pip);
+	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
+	rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
+	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0);
+	RenderBunny(deviceCtx, rs, pip);
 
-	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer1, DXGI_FORMAT_R32_UINT, 0);
-	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[0], &texVertexStride, &offset);
-	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
-	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
-	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
-
-	// --- 2nd object
-	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
-	rs->g_WorldMatrix *= XMMatrixTranslation(radius*cos(XMConvertToRadians(angle)), 0.0, radius*sin(XMConvertToRadians(angle)));
-
+	// light
+	SetPipelineState(deviceCtx, rs, pip);
+	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
+	rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
+	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0);
+	RenderLight(deviceCtx, rs, pip);
+	
+	// suzanne
 	PipelineState pip2;
 	pip2.depthStencilState = rs->g_d3dDepthStencilState;
 	pip2.rasterizerState   = rs->g_d3dRasterizerState;
-	pip2.inputLayout       = rs->texShaderInputLayout;
+	pip2.inputLayout       = rs->simpleShaderInputLayout;
 	pip2.vertexShader      = rs->g_d3dSimpleVertexShader;
 	pip2.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 	pip2.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
 	pip2.pixelShader       = rs->g_d3dSimplePixelShader;
 	pip2.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	SetPipelineState(deviceCtx, rs, pip2);
-
+	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
+	rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
 	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0);
-
-	deviceCtx->IASetInputLayout(rs->simpleShaderInputLayout);
-	deviceCtx->IASetIndexBuffer(rs->g_d3dIndexBuffer2, DXGI_FORMAT_R32_UINT, 0);
-	deviceCtx->IASetVertexBuffers(0, 1, &rs->vertexBuffers[1], &vertexStride, &offset);
-	
-	//deviceCtx->VSSetConstantBuffers(0, 3, rs->g_d3dConstantBuffers);
-
-	//deviceCtx->RSSetState(rs->g_d3dRasterizerState);
-	//deviceCtx->RSSetViewports(1, &rs->g_Viewport);
-
-	//deviceCtx->OMSetRenderTargets(1, &rs->g_d3dRenderTargetView, rs->g_d3dDepthStencilView);
-	//deviceCtx->OMSetDepthStencilState(rs->g_d3dDepthStencilState, 1);
-	deviceCtx->DrawIndexed(rs->g_indexCount2, 0, 0);
+	RenderSuzanne(deviceCtx, rs, pip2);
 
 	//deviceCtx->Draw(g_vertexCount, 0);
 
