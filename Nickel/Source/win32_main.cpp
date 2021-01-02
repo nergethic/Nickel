@@ -355,46 +355,10 @@ bool LoadContent(RendererState* rs)
 		return false;
 	}
 
-	// Create the input layout for the vertex shader.
-	D3D11_INPUT_ELEMENT_DESC vertexLayoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	hr = rs->device->CreateInputLayout(
-		vertexLayoutDesc,
-		ArrayCount(vertexLayoutDesc),
-		g_SimpleVertexShader,
-		ArrayCount(g_SimpleVertexShader),
-		&rs->simpleShaderInputLayout);
-
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
 	// vertex shader2
 	hr = rs->device->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
 	if (FAILED(hr))
 	{
-		return false;
-	}
-	// Create the input layout2
-	D3D11_INPUT_ELEMENT_DESC texVertexLayoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	if (FAILED(rs->device->CreateInputLayout(
-		texVertexLayoutDesc,
-		ArrayCount(texVertexLayoutDesc),
-		g_TexVertexShader,
-		ArrayCount(g_TexVertexShader),
-		&rs->texShaderInputLayout))) {
 		return false;
 	}
 
@@ -934,6 +898,16 @@ int WinMain(
 	rs.g_Viewport.MinDepth = 0.0f;
 	rs.g_Viewport.MaxDepth = 1.0f;
 
+	for (int i = 0; i < ArrayCount(rs.zeroBuffer); i++) {
+		rs.zeroBuffer[i] = nullptr;
+	}
+	for (int i = 0; i < ArrayCount(rs.zeroSamplerStates); i++) {
+		rs.zeroSamplerStates[i] = nullptr;
+	}
+	for (int i = 0; i < ArrayCount(rs.zeroResourceViews); i++) {
+		rs.zeroResourceViews[i] = nullptr;
+	}
+
 	if (!LoadContent(&rs)) {
 		return -1;
 	}
@@ -960,7 +934,7 @@ int WinMain(
 	GameInput *oldInput = &input[1];
 
 	if (!gameMemory.isInitialized) {
-		Initialize(&gameMemory);
+		Initialize(&gameMemory, &rs);
 		gameMemory.isInitialized = true;
 	}
 

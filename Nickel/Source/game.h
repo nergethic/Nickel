@@ -6,5 +6,5 @@ struct GameState {
 	RendererState* rs;
 };
 
-void Initialize(GameMemory* memory);
+void Initialize(GameMemory* memory, RendererState* rs);
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input);

@@ -123,6 +123,8 @@ struct RendererState {
 	ID3D11Buffer* g_d3dIndexBuffer2 = nullptr;
 
 	ID3D11Buffer* zeroBuffer[4]; // TODO: check Sokol defines max to be 4
+	ID3D11ShaderResourceView* zeroResourceViews[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
+	ID3D11SamplerState* zeroSamplerStates[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
 };
 
 // Safely release a COM object.
