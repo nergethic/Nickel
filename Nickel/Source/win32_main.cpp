@@ -195,25 +195,6 @@ struct ModelData {
 	std::vector<f32> uv;
 };
 
-i32 createVertexBuffer(RendererState* rs, u32 size) {
-	D3D11_BUFFER_DESC bufferDesc;
-	ZeroMemory(&bufferDesc, sizeof(D3D11_BUFFER_DESC));
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.ByteWidth = size;
-	bufferDesc.CPUAccessFlags = 0;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	i32 bufferIndex = rs->vertexBuffersCount;
-	HRESULT hr = rs->device->CreateBuffer(&bufferDesc, NULL, &rs->vertexBuffers[bufferIndex]);
-	if (!SUCCEEDED(hr)) {
-		bufferIndex = -1;
-	}
-
-	rs->vertexBuffersCount++;
-
-	return bufferIndex;
-}
-
 bool LoadContent(RendererState* rs)
 {
 	assert(rs->device);
@@ -245,7 +226,7 @@ bool LoadContent(RendererState* rs)
 
 	// ------------------------------------------------
 	// Create and initialize the vertex buffer.
-	i32 bufferIndex = createVertexBuffer(rs, sizeof(v1[0]) * rs->g_vertexCount1);
+	i32 bufferIndex = CreateVertexBuffer(rs, sizeof(v1[0]) * rs->g_vertexCount1);
 	D3D11_SUBRESOURCE_DATA resourceData1;
 	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData1.pSysMem = v1.data();
@@ -297,7 +278,7 @@ bool LoadContent(RendererState* rs)
 	}
 	rs->g_vertexCount2 = v2.size();
 
-	bufferIndex = createVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
+	bufferIndex = CreateVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
 
 	D3D11_SUBRESOURCE_DATA resourceData3;
 	ZeroMemory(&resourceData3, sizeof(D3D11_SUBRESOURCE_DATA));
@@ -618,9 +599,6 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 	return 0;
 }
 
-static u32 GlobalWindowWidth = 1920;
-static u32 GlobalWindowHeight = 1080;
-
 HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) {//HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
 	windowClass->cbSize = sizeof(WNDCLASSEX);
 	windowClass->style = CS_HREDRAW | CS_VREDRAW;
@@ -823,72 +801,12 @@ int WinMain(
 		return -1;
 	}
 
-	result = rs.device->CreateRenderTargetView(backBuffer, nullptr, &rs.g_d3dRenderTargetView);
+	result = rs.device->CreateRenderTargetView(backBuffer, nullptr, &rs.defaultRenderTargetView);
 	if (FAILED(result)) {
 		return -1;
 	}
 
 	SafeRelease(backBuffer);
-
-	// depth/stencil buffer
-	D3D11_TEXTURE2D_DESC depthStencilBufferDesc;
-	ZeroMemory(&depthStencilBufferDesc, sizeof(D3D11_TEXTURE2D_DESC));
-
-	depthStencilBufferDesc.ArraySize = 1;
-	depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	depthStencilBufferDesc.CPUAccessFlags = 0; // No CPU access required.
-	depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilBufferDesc.Width = GlobalWindowWidth;
-	depthStencilBufferDesc.Height = GlobalWindowHeight;
-	depthStencilBufferDesc.MipLevels = 1;
-	depthStencilBufferDesc.SampleDesc.Count = 8;
-	depthStencilBufferDesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
-	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	result = rs.device->CreateTexture2D(&depthStencilBufferDesc, nullptr, &rs.g_d3dDepthStencilBuffer);
-	if (FAILED(result)) {
-		return -1;
-	}
-
-	result = rs.device->CreateDepthStencilView(rs.g_d3dDepthStencilBuffer, nullptr, &rs.g_d3dDepthStencilView);
-	if (FAILED(result)) {
-		return -1;
-	}
-
-	// Setup depth/stencil state.
-	D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
-	ZeroMemory(&depthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-
-	depthStencilStateDesc.DepthEnable = TRUE;
-	depthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthStencilStateDesc.StencilEnable = FALSE;
-
-	result = rs.device->CreateDepthStencilState(&depthStencilStateDesc, &rs.g_d3dDepthStencilState);
-	if (FAILED(result)) {
-		return -1;
-	}
-
-	// Setup rasterizer state.
-	D3D11_RASTERIZER_DESC rasterizerDesc;
-	ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
-
-	rasterizerDesc.AntialiasedLineEnable = FALSE;
-	rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
-	rasterizerDesc.DepthBias = 0;
-	rasterizerDesc.DepthBiasClamp = 0.0f;
-	rasterizerDesc.DepthClipEnable = TRUE;
-	rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-	rasterizerDesc.FrontCounterClockwise = FALSE;
-	rasterizerDesc.MultisampleEnable = FALSE;
-	rasterizerDesc.ScissorEnable = FALSE;
-	rasterizerDesc.SlopeScaledDepthBias = 0.0f;
-
-	// Create the rasterizer state object.
-	result = rs.device->CreateRasterizerState(&rasterizerDesc, &rs.g_d3dRasterizerState);
-	if (FAILED(result)) {
-		return -1;
-	}
 
 	// Initialize the viewport to occupy the entire client area.
 	rs.g_Viewport.Width = static_cast<float>(GlobalWindowWidth);
@@ -898,15 +816,19 @@ int WinMain(
 	rs.g_Viewport.MinDepth = 0.0f;
 	rs.g_Viewport.MaxDepth = 1.0f;
 
-	for (int i = 0; i < ArrayCount(rs.zeroBuffer); i++) {
+	//ZeroMemory(rs.zeroBuffer, ArrayCount(rs.zeroBuffer));
+	//ZeroMemory(rs.zeroSamplerStates, ArrayCount(rs.zeroSamplerStates));
+	//ZeroMemory(rs.zeroResourceViews, ArrayCount(rs.zeroBuffer));
+
+	for (int i = 0; i < ArrayCount(rs.zeroBuffer); i++)
 		rs.zeroBuffer[i] = nullptr;
-	}
-	for (int i = 0; i < ArrayCount(rs.zeroSamplerStates); i++) {
+
+	for (int i = 0; i < ArrayCount(rs.zeroSamplerStates); i++)
 		rs.zeroSamplerStates[i] = nullptr;
-	}
-	for (int i = 0; i < ArrayCount(rs.zeroResourceViews); i++) {
+
+	for (int i = 0; i < ArrayCount(rs.zeroResourceViews); i++)
 		rs.zeroResourceViews[i] = nullptr;
-	}
+
 
 	if (!LoadContent(&rs)) {
 		return -1;

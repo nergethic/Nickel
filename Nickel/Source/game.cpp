@@ -88,7 +88,7 @@ const UINT offset = 0;
 
 void SetDefaultPass(ID3D11DeviceContext* deviceCtx, RendererState* rs) {
 	assert(deviceCtx != nullptr);
-	deviceCtx->OMSetRenderTargets(1, &rs->g_d3dRenderTargetView, rs->g_d3dDepthStencilView);
+	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 }
 
 void SetPipelineState(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineState& pipeline) {
@@ -117,7 +117,7 @@ void SetPipelineState(ID3D11DeviceContext* deviceCtx, RendererState* rs, Pipelin
 
 struct VertexBuffer {
 	ID3D11Buffer* buffer;
-	ID3D11InputLayout* inputLayout;
+	D3D11_INPUT_ELEMENT_DESC inputElementDescription;
 	UINT stride;
 	UINT offset;
 };
@@ -179,63 +179,59 @@ void DrawSuzanne(ID3D11DeviceContext* deviceCtx, RendererState* rs, PipelineStat
 PipelineState pip;
 PipelineState pip2;
 
-void Initialize(GameMemory* memory, RendererState* rs) {
-	assert(memory != nullptr);
-	assert(rs != nullptr);
+ID3D11InputLayout* CreateInputLayout(ID3D11Device* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
+	assert(device != nullptr);
+	assert(vertexLayoutDesc != nullptr);
+	assert(shaderBytecodeWithInputSignature != nullptr);
 
-	// Create the input layout for the vertex shader.
-	D3D11_INPUT_ELEMENT_DESC vertexLayoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Position), D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Normal),   D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Color),    D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
+	ID3D11InputLayout* result = nullptr;
 
-	HRESULT hr = rs->device->CreateInputLayout(
+	HRESULT hr = device->CreateInputLayout(
 		vertexLayoutDesc,
-		ArrayCount(vertexLayoutDesc),
-		g_SimpleVertexShader,
-		ArrayCount(g_SimpleVertexShader),
-		&rs->simpleShaderInputLayout);
+		vertexLayoutDescLength,
+		shaderBytecodeWithInputSignature,
+		shaderBytecodeSize,
+		&result);
 
 	if (FAILED(hr)) {
 		// TODO: log error
+		assert(nullptr);
 	}
 
-	// Create the input layout2
-	D3D11_INPUT_ELEMENT_DESC texVertexLayoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Position), D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosUV, Normal),   D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
+	return result;
+}
 
-	if (FAILED(rs->device->CreateInputLayout(
-		texVertexLayoutDesc,
-		ArrayCount(texVertexLayoutDesc),
-		g_TexVertexShader,
-		ArrayCount(g_TexVertexShader),
-		&rs->texShaderInputLayout))) {
-		// TODO: log error
-	}
+void Initialize(GameMemory* memory, RendererState* rs) {
+	assert(memory != nullptr);
+	assert(rs != nullptr);
+	assert(rs->device);
+	assert(rs->deviceCtx);
 
-	pip.depthStencilState = rs->g_d3dDepthStencilState;
-	pip.rasterizerState = rs->g_d3dRasterizerState;
-	pip.inputLayout = rs->texShaderInputLayout;
-	pip.vertexShader = rs->g_d3dTexVertexShader;
-	pip.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+	ID3D11Device* device = *rs->device.GetAddressOf();
+
+	rs->defaultDepthStencilBuffer = CreateDepthStencilTexture(device, GlobalWindowWidth, GlobalWindowHeight);
+	rs->defaultDepthStencilView   = CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
+
+	auto depthStencilState = CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+	auto rasterizerState   = CreateRasterizerState(device);
+
+	pip.depthStencilState          = depthStencilState;
+	pip.rasterizerState            = rasterizerState;
+	pip.inputLayout                = CreateInputLayout(device, vertexPosUVLayoutDesc, ArrayCount(vertexPosUVLayoutDesc), g_TexVertexShader, ArrayCount(g_TexVertexShader));
+	pip.vertexShader               = rs->g_d3dTexVertexShader;
+	pip.vertexConstantBuffers      = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 	pip.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-	pip.pixelShader = rs->g_d3dTexPixelShader;
-	pip.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	pip.pixelShader                = rs->g_d3dTexPixelShader;
+	pip.topology                   = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	pip2.depthStencilState = rs->g_d3dDepthStencilState;
-	pip2.rasterizerState = rs->g_d3dRasterizerState;
-	pip2.inputLayout = rs->simpleShaderInputLayout;
-	pip2.vertexShader = rs->g_d3dSimpleVertexShader;
-	pip2.vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+	pip2.depthStencilState          = depthStencilState;
+	pip2.rasterizerState            = rasterizerState;
+	pip2.inputLayout                = CreateInputLayout(device, vertexPosColorLayoutDesc, ArrayCount(vertexPosColorLayoutDesc), g_SimpleVertexShader, ArrayCount(g_SimpleVertexShader));
+	pip2.vertexShader               = rs->g_d3dSimpleVertexShader;
+	pip2.vertexConstantBuffers      = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 	pip2.vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-	pip2.pixelShader = rs->g_d3dSimplePixelShader;
-	pip2.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	pip2.pixelShader                = rs->g_d3dSimplePixelShader;
+	pip2.topology                   = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
@@ -259,8 +255,6 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 	frameData.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 	frameData.lightPosition = lightPos;
 
-	assert(rs->device);
-	assert(rs->deviceCtx);
 	ID3D11DeviceContext* deviceCtx = *rs->deviceCtx.GetAddressOf();
 
 	deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0);

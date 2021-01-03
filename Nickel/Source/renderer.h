@@ -28,23 +28,6 @@
 
 using namespace DirectX;
 
-//static 
-
-// Vertex data for a colored cube.
-struct VertexPosColor
-{
-	XMFLOAT3 Position;
-	XMFLOAT3 Normal;
-	XMFLOAT3 Color;
-};
-
-struct VertexPosUV
-{
-	XMFLOAT3 Position;
-	XMFLOAT3 Normal;
-	XMFLOAT2 UV;
-};
-
 struct PerFrameBufferData {
 	XMMATRIX viewMatrix;
 	XMFLOAT3 cameraPosition;
@@ -74,25 +57,17 @@ struct RendererState {
 #endif // _DEBUG
 
 	// Render target view for the back buffer of the swap chain.
-	ID3D11RenderTargetView* g_d3dRenderTargetView = nullptr;
+	ID3D11RenderTargetView* defaultRenderTargetView = nullptr;
 	// Depth/stencil view for use as a depth buffer.
-	ID3D11DepthStencilView* g_d3dDepthStencilView = nullptr;
+	ID3D11DepthStencilView* defaultDepthStencilView = nullptr;
 	// A texture to associate to the depth stencil view.
-	ID3D11Texture2D* g_d3dDepthStencilBuffer = nullptr;
+	ID3D11Texture2D* defaultDepthStencilBuffer = nullptr;
 
-	// Define the functionality of the depth/stencil stages.
-	ID3D11DepthStencilState* g_d3dDepthStencilState = nullptr;
-	// Define the functionality of the rasterizer stage.
-	ID3D11RasterizerState* g_d3dRasterizerState = nullptr;
 	D3D11_VIEWPORT g_Viewport = {0};
 
 	ID3D11Resource* textureResource = nullptr;
 	ID3D11ShaderResourceView* textureView = nullptr;
 	ID3D11SamplerState* texSamplerState = nullptr;
-
-	// Vertex buffer data
-	ID3D11InputLayout* simpleShaderInputLayout = nullptr;
-	ID3D11InputLayout* texShaderInputLayout = nullptr;
 
 	ID3D11Buffer* g_d3dConstantBuffers[NumConstantBuffers];
 
@@ -140,3 +115,8 @@ inline void SafeRelease(T& ptr)
 
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
 void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
+i32 CreateVertexBuffer(RendererState* rs, u32 size);
+ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
+ID3D11RasterizerState* CreateRasterizerState(ID3D11Device* device);
+ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device* device, UINT width, UINT height);
+ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device* device, ID3D11Resource* depthStencilTexture);
