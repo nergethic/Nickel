@@ -2,8 +2,9 @@
 #include "platform.h"
 #include "renderer.h"
 
-static u32 GlobalWindowWidth = 1920;
-static u32 GlobalWindowHeight = 1080;
+static u32 GLOBAL_WINDOW_WIDTH = 1080;
+static u32 GLOBAL_WINDOW_HEIGHT = 720;
+static UINT MSAA_LEVEL = 4;
 
 struct GameState {
 	RendererState* rs;
@@ -35,3 +36,4 @@ static D3D11_INPUT_ELEMENT_DESC vertexPosUVLayoutDesc[] = {
 
 void Initialize(GameMemory* memory, RendererState* rs);
 void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input);
+void SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs);

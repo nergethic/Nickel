@@ -231,7 +231,7 @@ bool LoadContent(RendererState* rs)
 	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData1.pSysMem = v1.data();
 	// fill the buffer
-	rs->deviceCtx->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0);
+	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
 
 //#ifdef _DEBUG
 //	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
@@ -283,7 +283,7 @@ bool LoadContent(RendererState* rs)
 	D3D11_SUBRESOURCE_DATA resourceData3;
 	ZeroMemory(&resourceData3, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData3.pSysMem = v2.data();
-	rs->deviceCtx->UpdateSubresource(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0);
+	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
 
 	D3D11_BUFFER_DESC indexBufferDesc2;
 	ZeroMemory(&indexBufferDesc2, sizeof(D3D11_BUFFER_DESC));
@@ -376,7 +376,7 @@ bool LoadContent(RendererState* rs)
 
 	rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
 
-	rs->deviceCtx->UpdateSubresource(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0);
+	rs->deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
 
 	return true;
 }
@@ -615,7 +615,7 @@ HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) {//HINSTANC
 	if (!RegisterClassEx(windowClass))
 		return FALSE;
 
-	RECT windowRect = { 0, 0, GlobalWindowWidth, GlobalWindowHeight };
+	RECT windowRect = { 0, 0, GLOBAL_WINDOW_WIDTH, GLOBAL_WINDOW_HEIGHT };
 	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	HWND wndHandle = CreateWindowExA(
@@ -664,7 +664,7 @@ int WinMain(
 	ShowWindow(wndHandle, nShowCmd);
 	UpdateWindow(wndHandle);
 
-	RendererState rs;
+	RendererState rs = {0};
 	rs.g_WindowHandle = wndHandle;
 		
 	const D3D_FEATURE_LEVEL FEATURE_LEVELS[] = {
@@ -691,26 +691,10 @@ int WinMain(
 	bufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	*/
 
-	RECT clientRect;
-	GetClientRect(rs.g_WindowHandle, &clientRect);
-	unsigned int clientWidth = clientRect.right - clientRect.left;
-	unsigned int clientHeight = clientRect.bottom - clientRect.top;
-
+	/*
 	//Describe our SwapChain
 	DXGI_SWAP_CHAIN_DESC swapChainDesc;
-
 	ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-
-	/*
-	swapChainDesc.BufferDesc = bufferDesc;
-	swapChainDesc.SampleDesc.Count = 1;
-	swapChainDesc.SampleDesc.Quality = 0;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = 1;
-	swapChainDesc.OutputWindow = g_WindowHandle;
-	swapChainDesc.Windowed = true;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	*/
 
 	swapChainDesc.BufferCount = 1;
 	swapChainDesc.BufferDesc.Width = clientWidth;
@@ -719,65 +703,53 @@ int WinMain(
 	swapChainDesc.BufferDesc.RefreshRate = QueryRefreshRate(clientWidth, clientHeight, false); // TODO vsync
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.OutputWindow = rs.g_WindowHandle;
-	swapChainDesc.SampleDesc.Count = 8;
-	swapChainDesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
+	swapChainDesc.SampleDesc.Count = MSAA_LEVEL;
+	//swapChainDesc.SampleDesc.Quality = GetHighestQualitySampleLevel(device, DXGI_FORMAT format);
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	swapChainDesc.Windowed = TRUE;
+	*/
 
-	UINT deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+	UINT deviceFlags = D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-#ifdef _DEBUG
-	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#if defined(_DEBUG)
+	deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
+	// deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUGGABLE; // this shit just gave up and refuses to work (but be sure to have Graphics Tools feature installed on Win 10!)
 #endif
 
-	D3D_FEATURE_LEVEL SelectedFeatureLevel;
-	HRESULT result = D3D11CreateDeviceAndSwapChain(
-		NULL, // defauld adapter
-		D3D_DRIVER_TYPE_HARDWARE,
-		NULL, // dll handle for software rasterize
-		deviceFlags, // D3D11_CREATE_DEVICE_SINGLETHREADED, D3D11_CREATE_DEVICE_DEBUGGABLE, D3D11_CREATE_DEVICE_DEBUG
-		FEATURE_LEVELS,
-		ArrayCount(FEATURE_LEVELS),
-		D3D11_SDK_VERSION,
-		&swapChainDesc,
-		rs.swapChain.GetAddressOf(),
-		rs.device.GetAddressOf(),
-		&SelectedFeatureLevel,
-		rs.deviceCtx.GetAddressOf());
+	D3D_FEATURE_LEVEL selectedFeatureLevel;
 
-	if (result == E_INVALIDARG) { // if 11.1 failed, use 11.0
-		result = D3D11CreateDeviceAndSwapChain(
-			NULL, // defauld adapter
-			D3D_DRIVER_TYPE_HARDWARE,
-			NULL, // dll handle for software rasterize
-			deviceFlags, // D3D11_CREATE_DEVICE_SINGLETHREADED, D3D11_CREATE_DEVICE_DEBUGGABLE, DEBUG
-			&FEATURE_LEVELS[1],
-			ArrayCount(FEATURE_LEVELS)-1,
-			D3D11_SDK_VERSION,
-			&swapChainDesc,
-			rs.swapChain.GetAddressOf(),
-			rs.device.GetAddressOf(),
-			&SelectedFeatureLevel,
-			rs.deviceCtx.GetAddressOf());
+	ID3D11Device* device = nullptr;
+	ID3D11DeviceContext* deviceCtx = nullptr;
+	HRESULT result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, deviceFlags, FEATURE_LEVELS, ArrayCount(FEATURE_LEVELS), D3D11_SDK_VERSION, &device, &selectedFeatureLevel, &deviceCtx);
+	if (result == E_INVALIDARG) { // Create device with feature levels up to 11_0
+		result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, deviceFlags, &FEATURE_LEVELS[1], ArrayCount(FEATURE_LEVELS)-1, D3D11_SDK_VERSION, &device, &selectedFeatureLevel, &deviceCtx);
 	}
-
 	if (FAILED(result)) {
 		return -1;
 	}
 
-#ifdef _DEBUG
+	ID3D11Device1* device1 = nullptr;
+	result = device->QueryInterface<ID3D11Device1>(&device1);
+	if (FAILED(result)) {
+		return -1;
+	}
+
+	ID3D11DeviceContext1* deviceCtx1 = nullptr;
+	device1->GetImmediateContext1(&deviceCtx1);
+
+	rs.device = device1;
+	rs.deviceCtx = deviceCtx1;
+
+#if defined(_DEBUG)
 	// init debug layer
-	if( SUCCEEDED( rs.device->QueryInterface( __uuidof(ID3D11Debug), (void**)&rs.d3dDebug ) ) )
-	{
+	if (SUCCEEDED( rs.device->QueryInterface( __uuidof(ID3D11Debug), (void**)&rs.d3dDebug))) {
 		ID3D11InfoQueue *d3dInfoQueue = nullptr;
-		if( SUCCEEDED( rs.d3dDebug->QueryInterface( __uuidof(ID3D11InfoQueue), (void**)&d3dInfoQueue ) ) )
-		{
+		if (SUCCEEDED( rs.d3dDebug->QueryInterface( __uuidof(ID3D11InfoQueue), (void**)&d3dInfoQueue))) {
 
 			d3dInfoQueue->SetBreakOnSeverity( D3D11_MESSAGE_SEVERITY_CORRUPTION, true );
 			d3dInfoQueue->SetBreakOnSeverity( D3D11_MESSAGE_SEVERITY_ERROR, true );
 
-			D3D11_MESSAGE_ID hide [] =
-			{
+			D3D11_MESSAGE_ID hide [] = {
 				D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
 				// Add more message IDs here as needed
 			};
@@ -794,27 +766,77 @@ int WinMain(
 	}
 #endif
 
-	// swap chain stuff
-	ID3D11Texture2D* backBuffer;
-	result = rs.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
+	RECT clientRect;
+	GetClientRect(rs.g_WindowHandle, &clientRect);
+	unsigned int clientWidth = clientRect.right - clientRect.left;
+	unsigned int clientHeight = clientRect.bottom - clientRect.top;
+
+	assert(clientWidth == GLOBAL_WINDOW_WIDTH);
+	assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc1 = {0};
+
+	swapChainDesc1.Stereo = FALSE;
+	swapChainDesc1.BufferCount = 1; // 2;
+	swapChainDesc1.Width = clientWidth;
+	swapChainDesc1.Height = clientHeight;
+	swapChainDesc1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc1.SampleDesc.Count = MSAA_LEVEL;
+	swapChainDesc1.SampleDesc.Quality = GetHighestQualitySampleLevel(device1, DXGI_FORMAT_R8G8B8A8_UNORM);
+	swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD; // TODO: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+
+	DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc = {0};
+	swapChainFullscreenDesc.RefreshRate = QueryRefreshRate(clientWidth, clientHeight, false); // TODO vsync
+	swapChainFullscreenDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_CENTERED;
+	swapChainFullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	swapChainFullscreenDesc.Windowed = TRUE;
+
+	IDXGIFactory2 *pFactory;
+	UINT factoryFlags = 0;
+#if defined(_DEBUG)
+	factoryFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
+#endif
+	result = CreateDXGIFactory2(factoryFlags, __uuidof(IDXGIFactory2), (void**)(&pFactory));
 	if (FAILED(result)) {
 		return -1;
 	}
 
-	result = rs.device->CreateRenderTargetView(backBuffer, nullptr, &rs.defaultRenderTargetView);
+	IDXGISwapChain1* swapChain1 = nullptr;
+	result = pFactory->CreateSwapChainForHwnd(device1, rs.g_WindowHandle, &swapChainDesc1, &swapChainFullscreenDesc, nullptr, &swapChain1);
+	if (FAILED(result) || result == DXGI_ERROR_INVALID_CALL) {
+		return -1;
+	}
+	rs.swapChain = swapChain1;
+
+	// back buffer for swap chain
+	ID3D11Texture2D* backBufferTexture;
+	result = rs.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferTexture);
 	if (FAILED(result)) {
 		return -1;
 	}
 
-	SafeRelease(backBuffer);
+	// D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
+	result = device1->CreateRenderTargetView(backBufferTexture, NULL, &rs.defaultRenderTargetView);
+	if (FAILED(result)) {
+		return -1;
+	}
+	deviceCtx1->OMSetRenderTargets(1, &rs.defaultRenderTargetView, NULL); // test code
 
-	// Initialize the viewport to occupy the entire client area.
-	rs.g_Viewport.Width = static_cast<float>(GlobalWindowWidth);
-	rs.g_Viewport.Height = static_cast<float>(GlobalWindowHeight);
+	D3D11_TEXTURE2D_DESC backBufferDesc = { 0 };
+	backBufferTexture->GetDesc(&backBufferDesc);
+	SafeRelease(backBufferTexture);
+
+	rs.backbufferWidth = backBufferDesc.Width;
+	rs.backbufferHeight = backBufferDesc.Height;
+
 	rs.g_Viewport.TopLeftX = 0.0f;
 	rs.g_Viewport.TopLeftY = 0.0f;
-	rs.g_Viewport.MinDepth = 0.0f;
-	rs.g_Viewport.MaxDepth = 1.0f;
+	rs.g_Viewport.Width = static_cast<FLOAT>(backBufferDesc.Width);
+	rs.g_Viewport.Height = static_cast<FLOAT>(backBufferDesc.Height);
+	rs.g_Viewport.MinDepth = D3D11_MIN_DEPTH;
+	rs.g_Viewport.MaxDepth = D3D11_MAX_DEPTH;
+	deviceCtx1->RSSetViewports(1, &rs.g_Viewport);
 
 	//ZeroMemory(rs.zeroBuffer, ArrayCount(rs.zeroBuffer));
 	//ZeroMemory(rs.zeroSamplerStates, ArrayCount(rs.zeroSamplerStates));

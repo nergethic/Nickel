@@ -1,11 +1,21 @@
 #pragma once
+
+// Link library dependencies
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib") // TODO: check why this doesn't have stuff from dxgi1_3.h (CreateDXGIFactory2)
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "dxguid.lib")
+
 // DirectX includes
 #include "platform.h"
-#include <d3d11.h>
+#include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
 #include <WICTextureLoader.h>
+#include <dxgi.h>
+#include <dxgi1_3.h>
 
 #include <wrl/client.h>
 
@@ -14,12 +24,6 @@
 #include <iostream>
 #include <string>
 
-// Link library dependencies
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "winmm.lib")
-
 #include "Shaders/VertexShader.h"
 #include "Shaders/PixelShader.h"
 
@@ -27,6 +31,19 @@
 #include "Shaders/TexPixelShader.h"
 
 using namespace DirectX;
+
+struct PipelineState {
+	ID3D11RasterizerState* rasterizerState;
+	ID3D11DepthStencilState* depthStencilState;
+	ID3D11InputLayout* inputLayout;
+	ID3D11VertexShader* vertexShader;
+	ID3D11Buffer* vertexConstantBuffers;
+	short vertexConstantBuffersCount;
+	ID3D11PixelShader* pixelShader;
+	ID3D11Buffer* pixelConstantBuffers;
+	short pixelConstantBuffersCount;
+	D3D11_PRIMITIVE_TOPOLOGY topology;
+};
 
 struct PerFrameBufferData {
 	XMMATRIX viewMatrix;
@@ -48,9 +65,10 @@ struct RendererState {
 	HWND g_WindowHandle;
 
 	// Direct3D device and swap chain.
-	Microsoft::WRL::ComPtr<ID3D11Device> device = nullptr;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceCtx = nullptr;
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11Device1> device = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext1> deviceCtx = nullptr;
+
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain = nullptr;
 
 #ifdef _DEBUG
 	ID3D11Debug *d3dDebug = nullptr;
@@ -100,6 +118,12 @@ struct RendererState {
 	ID3D11Buffer* zeroBuffer[4]; // TODO: check Sokol defines max to be 4
 	ID3D11ShaderResourceView* zeroResourceViews[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
 	ID3D11SamplerState* zeroSamplerStates[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
+
+	PipelineState pip;
+	PipelineState pip2;
+
+	UINT backbufferWidth;
+	UINT backbufferHeight;
 };
 
 // Safely release a COM object.
@@ -116,7 +140,9 @@ inline void SafeRelease(T& ptr)
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
 void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
 i32 CreateVertexBuffer(RendererState* rs, u32 size);
-ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
-ID3D11RasterizerState* CreateRasterizerState(ID3D11Device* device);
-ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device* device, UINT width, UINT height);
-ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device* device, ID3D11Resource* depthStencilTexture);
+ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
+ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);
+ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels);
+ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height);
+ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture);
+UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format);

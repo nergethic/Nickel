@@ -13,13 +13,12 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 	DXGI_RATIONAL refreshRate = { 0, 1 };
 	if (vsync)
 	{
-		IDXGIFactory* factory;
+		IDXGIFactory2* factory;
 		IDXGIAdapter* adapter;
 		IDXGIOutput* adapterOutput;
 		DXGI_MODE_DESC* displayModeList;
 
-		// Create a DirectX graphics interface factory.
-		HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
+		HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&factory);
 		if (FAILED(hr))
 		{
 			MessageBox(0,
@@ -96,7 +95,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 	return refreshRate;
 }
 
-ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) {
+ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) {
 	assert(device != nullptr);
 	D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
 	ZeroMemory(&depthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
@@ -115,7 +114,7 @@ ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device* device, bool enab
 	return result;
 }
 
-ID3D11RasterizerState* CreateRasterizerState(ID3D11Device* device) {
+ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device) {
 	assert(device != nullptr);
 
 	D3D11_RASTERIZER_DESC rasterizerDesc;
@@ -141,21 +140,36 @@ ID3D11RasterizerState* CreateRasterizerState(ID3D11Device* device) {
 	return result;
 }
 
-ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device* device, UINT width, UINT height) {
+UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) {
+	assert(device != nullptr);
+
+	UINT maxQualityLevelPlusOne;
+	device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne);
+
+	return maxQualityLevelPlusOne - 1;
+}
+
+ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) {
 	assert(device != nullptr);
 	D3D11_TEXTURE2D_DESC depthStencilTextureDesc;
 	ZeroMemory(&depthStencilTextureDesc, sizeof(D3D11_TEXTURE2D_DESC));
 
 	depthStencilTextureDesc.ArraySize = 1;
-	depthStencilTextureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	depthStencilTextureDesc.BindFlags = bindFlags;
 	depthStencilTextureDesc.CPUAccessFlags = 0; // No CPU access required.
-	depthStencilTextureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilTextureDesc.Format = format;
 	depthStencilTextureDesc.Width = width;
 	depthStencilTextureDesc.Height = height;
-	depthStencilTextureDesc.MipLevels = 1;
-	depthStencilTextureDesc.SampleDesc.Count = 8;
-	depthStencilTextureDesc.SampleDesc.Quality = DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN;
-	depthStencilTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthStencilTextureDesc.MipLevels = mipLevels;
+	depthStencilTextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+
+	if (mipLevels == 1) {
+		depthStencilTextureDesc.SampleDesc.Count = 4; // TODO: match depth stencil count and quality with swap chain settings
+		depthStencilTextureDesc.SampleDesc.Quality = GetHighestQualitySampleLevel(device, format);
+	} else {
+		depthStencilTextureDesc.SampleDesc.Count = 1;
+		depthStencilTextureDesc.SampleDesc.Quality = 0;
+	}
 
 	ID3D11Texture2D* depthStencilBuffer = nullptr;
 	HRESULT hr = device->CreateTexture2D(&depthStencilTextureDesc, nullptr, &depthStencilBuffer);
@@ -166,12 +180,21 @@ ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device* device, UINT width, UIN
 	return depthStencilBuffer;
 }
 
-ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device* device, ID3D11Resource* depthStencilTexture) {
+ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) {
+	return CreateTexture(device, width, height, DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL);
+}
+
+ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) {
 	assert(device != nullptr);
 	assert(depthStencilTexture != nullptr);
-
+	
 	// D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 	// ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+
+	if (device->CreateDepthStencilView(depthStencilTexture, nullptr, nullptr) != S_FALSE) {
+		// TODO: report error
+		return nullptr;
+	}
 	
 	ID3D11DepthStencilView* result = nullptr;
 	device->CreateDepthStencilView(depthStencilTexture, nullptr, &result);
