@@ -8,93 +8,76 @@ template< class ShaderClass >
 std::string GetLatestProfile(RendererState* rs);
 
 template<>
-std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs)
-{
+std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs) {
 	assert(rs->device);
 
 	// Query the current feature level:
 	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
 
-	switch (featureLevel)
-	{
-	case D3D_FEATURE_LEVEL_11_1:
-	case D3D_FEATURE_LEVEL_11_0:
-	{
-		return "vs_5_0";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_10_1:
-	{
-		return "vs_4_1";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_10_0:
-	{
-		return "vs_4_0";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_9_3:
-	{
-		return "vs_4_0_level_9_3";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_9_2:
-	case D3D_FEATURE_LEVEL_9_1:
-	{
-		return "vs_4_0_level_9_1";
-	}
-	break;
+	switch (featureLevel) {
+		case D3D_FEATURE_LEVEL_11_1:
+		case D3D_FEATURE_LEVEL_11_0: {
+			return "vs_5_0";
+		} break;
+
+		case D3D_FEATURE_LEVEL_10_1: {
+			return "vs_4_1";
+		} break;
+
+		case D3D_FEATURE_LEVEL_10_0: {
+			return "vs_4_0";
+		} break;
+
+		case D3D_FEATURE_LEVEL_9_3: {
+			return "vs_4_0_level_9_3";
+		} break;
+
+		case D3D_FEATURE_LEVEL_9_2:
+		case D3D_FEATURE_LEVEL_9_1: {
+			return "vs_4_0_level_9_1";
+		} break;
 	}
 
 	return "";
 }
 
 template<>
-std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs)
-{
+std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs) {
 	assert(rs->device);
 
 	// Query the current feature level:
 	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
-	switch (featureLevel)
-	{
-	case D3D_FEATURE_LEVEL_11_1:
-	case D3D_FEATURE_LEVEL_11_0:
-	{
-		return "ps_5_0";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_10_1:
-	{
-		return "ps_4_1";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_10_0:
-	{
-		return "ps_4_0";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_9_3:
-	{
-		return "ps_4_0_level_9_3";
-	}
-	break;
-	case D3D_FEATURE_LEVEL_9_2:
-	case D3D_FEATURE_LEVEL_9_1:
-	{
-		return "ps_4_0_level_9_1";
-	}
-	break;
+	switch (featureLevel) {
+		case D3D_FEATURE_LEVEL_11_1:
+		case D3D_FEATURE_LEVEL_11_0: {
+			return "ps_5_0";
+		} break;
+
+		case D3D_FEATURE_LEVEL_10_1: {
+			return "ps_4_1";
+		} break;
+
+		case D3D_FEATURE_LEVEL_10_0: {
+			return "ps_4_0";
+		} break;
+
+		case D3D_FEATURE_LEVEL_9_3: {
+			return "ps_4_0_level_9_3";
+		} break;
+
+		case D3D_FEATURE_LEVEL_9_2:
+		case D3D_FEATURE_LEVEL_9_1: {
+			return "ps_4_0_level_9_1";
+		} break;
 	}
 	return "";
 }
 
-template< class ShaderClass >
+template<class ShaderClass>
 ShaderClass* CreateShader(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage);
 
 template<>
-ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage)
-{
+ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
 	assert(rs->device);
 	assert(pShaderBlob);
 
@@ -105,8 +88,7 @@ ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob
 }
 
 template<>
-ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage)
-{
+ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
 	assert(rs->device);
 	assert(pShaderBlob);
 
@@ -116,16 +98,14 @@ ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* 
 	return pPixelShader;
 }
 
-template< class ShaderClass >
-ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& _profile)
-{
+template<class ShaderClass>
+ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& _profile) {
 	ID3DBlob* pShaderBlob = nullptr;
 	ID3DBlob* pErrorBlob = nullptr;
 	ShaderClass* pShader = nullptr;
 
 	std::string profile = _profile;
-	if (profile == "latest")
-	{
+	if (profile == "latest") {
 		profile = GetLatestProfile<ShaderClass>();
 	}
 	UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -137,10 +117,8 @@ ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPo
 		D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), profile.c_str(),
 		flags, 0, &pShaderBlob, &pErrorBlob);
 
-	if (FAILED(hr))
-	{
-		if (pErrorBlob)
-		{
+	if (FAILED(hr)) {
+		if (pErrorBlob) {
 			std::string errorMessage = (char*)pErrorBlob->GetBufferPointer();
 			OutputDebugStringA(errorMessage.c_str());
 
@@ -195,164 +173,148 @@ struct ModelData {
 	std::vector<f32> uv;
 };
 
-bool LoadContent(RendererState* rs)
-{
-	assert(rs->device);
+void LoadBunnyModel(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
 
-	//std::vector<u32> allIndices;
-	
-	ModelData md1;
+	auto device = rs->device.Get();
+
+	ModelData bunnyModelData;
 	FileMemory objFile = debug_read_entire_file("Data/Models/bny.obj"); // Suzanne
-	loadObjModel(&objFile, &md1.v, &md1.i, &md1.n, &md1.uv);
+	loadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	rs->g_indexCount1 = md1.i.size();
+	rs->g_indexCount1 = bunnyModelData.i.size();
 
 	std::vector<VertexPosUV> v1;
 	f32 x, y, z;
-	for (u32 i = 0; i < md1.v.size() / 3; ++i) {
-		x = -md1.v[i*3];
-		y = md1.v[i*3+1];
-		z = -md1.v[i*3+2];
+	for (u32 i = 0; i < bunnyModelData.v.size() / 3; ++i) {
+		x = -bunnyModelData.v[i * 3];
+		y = bunnyModelData.v[i * 3 + 1];
+		z = -bunnyModelData.v[i * 3 + 2];
 
 		v1.push_back({
 			XMFLOAT3(x, y, z),
-			XMFLOAT3(-md1.n[i*3], md1.n[i*3+1], -md1.n[i*3+2]),
+			XMFLOAT3(-bunnyModelData.n[i * 3], bunnyModelData.n[i * 3 + 1], -bunnyModelData.n[i * 3 + 2]),
 			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
 			// XMFLOAT3(0.53333, 0.84705, 0.69019),
-			XMFLOAT2(md1.uv[i*2], md1.uv[i*2 + 1])
+			XMFLOAT2(bunnyModelData.uv[i * 2], bunnyModelData.uv[i * 2 + 1])
 			});
 	}
 	rs->g_vertexCount1 = v1.size();
 
 	// ------------------------------------------------
 	// Create and initialize the vertex buffer.
-	i32 bufferIndex = CreateVertexBuffer(rs, sizeof(v1[0]) * rs->g_vertexCount1);
+	i32 bufferIndex = CreateVertexBuffer(rs, (sizeof(v1[0]) * rs->g_vertexCount1));
 	D3D11_SUBRESOURCE_DATA resourceData1;
 	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
 	resourceData1.pSysMem = v1.data();
 	// fill the buffer
 	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
 
-//#ifdef _DEBUG
-//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
-//#endif // _DEBUG
-	
+	//#ifdef _DEBUG
+	//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL ); // TODO
+	//#endif // _DEBUG
 
-	// Create and initialize the index buffer.
-	D3D11_BUFFER_DESC indexBufferDesc1;
-	ZeroMemory(&indexBufferDesc1, sizeof(D3D11_BUFFER_DESC));
-	indexBufferDesc1.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc1.ByteWidth = sizeof(md1.i[0]) * rs->g_indexCount1;
-	indexBufferDesc1.CPUAccessFlags = 0;
-	indexBufferDesc1.Usage = D3D11_USAGE_DEFAULT;
+	D3D11_SUBRESOURCE_DATA resourceData2 = { 0 };
+	resourceData2.pSysMem = bunnyModelData.i.data();
 
-	D3D11_SUBRESOURCE_DATA resourceData2;
-	ZeroMemory(&resourceData2, sizeof(D3D11_SUBRESOURCE_DATA));
-	resourceData2.pSysMem = md1.i.data(); 
+	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * rs->g_indexCount1;
+	rs->g_d3dIndexBuffer1 = CreateIndexBuffer(device, byteWidthSize, &resourceData2);
+}
 
-	HRESULT hr = rs->device->CreateBuffer(&indexBufferDesc1, &resourceData2, &rs->g_d3dIndexBuffer1);
-	if (FAILED(hr))
-	{
-		return false;
-	}
+void LoadSuzanneModel(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
 
-	// ---------------- 2nd object -------------------
-	ModelData md2;
+	auto device = rs->device.Get();
+
+	ModelData suzanneModelData;
 	FileMemory objFile2 = debug_read_entire_file("Data/Models/Suzanne.obj");
-	loadObjModel(&objFile2, &md2.v, &md2.i, &md2.n, &md2.uv);
+	loadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	rs->g_indexCount2 = md2.i.size();
+	rs->g_indexCount2 = suzanneModelData.i.size();
 
 	std::vector<VertexPosColor> v2;
-	for (u32 i = 0; i < md2.v.size() / 3; ++i) {
-		x = -md2.v[i*3];
-		y = md2.v[i*3+1];
-		z = -md2.v[i*3+2];
+	f32 x, y, z;
+	for (u32 i = 0; i < suzanneModelData.v.size() / 3; ++i) {
+		x = -suzanneModelData.v[i * 3];
+		y = suzanneModelData.v[i * 3 + 1];
+		z = -suzanneModelData.v[i * 3 + 2];
 
 		v2.push_back({
 			XMFLOAT3(x, y, z),
-			XMFLOAT3(-md2.n[i*3], md2.n[i*3+1], -md2.n[i*3+2]),
+			XMFLOAT3(-suzanneModelData.n[i * 3], suzanneModelData.n[i * 3 + 1], -suzanneModelData.n[i * 3 + 2]),
 			XMFLOAT3(0.53333, 0.84705, 0.69019)
 			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
 			});
 	}
 	rs->g_vertexCount2 = v2.size();
 
-	bufferIndex = CreateVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
+	i32 bufferIndex = CreateVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
 
-	D3D11_SUBRESOURCE_DATA resourceData3;
-	ZeroMemory(&resourceData3, sizeof(D3D11_SUBRESOURCE_DATA));
+	D3D11_SUBRESOURCE_DATA resourceData3 = {0};
 	resourceData3.pSysMem = v2.data();
 	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
 
-	D3D11_BUFFER_DESC indexBufferDesc2;
-	ZeroMemory(&indexBufferDesc2, sizeof(D3D11_BUFFER_DESC));
-	indexBufferDesc2.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc2.ByteWidth = sizeof(md2.i[0]) * rs->g_indexCount2;
-	indexBufferDesc2.CPUAccessFlags = 0;
-	indexBufferDesc2.Usage = D3D11_USAGE_DEFAULT; 
+	D3D11_SUBRESOURCE_DATA resourceData4 = {0};
+	resourceData4.pSysMem = suzanneModelData.i.data();
 
-	D3D11_SUBRESOURCE_DATA resourceData4;
-	ZeroMemory(&resourceData4, sizeof(D3D11_SUBRESOURCE_DATA));
-	resourceData4.pSysMem = md2.i.data();
-	
-	hr = rs->device->CreateBuffer(&indexBufferDesc2, &resourceData4, &rs->g_d3dIndexBuffer2);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	// ------------------------------------------------
+	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * rs->g_indexCount2;
+	rs->g_d3dIndexBuffer2 = CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+}
+
+bool LoadContent(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
+
+	auto device = rs->device.Get();
+
+	//std::vector<u32> allIndices;
+
+	LoadBunnyModel(rs); // TODO: uncomment loading one model and fix renderer not displaying the rest of the loaded models
+	LoadSuzanneModel(rs);
 
 	// Create the constant buffers for the variables defined in the vertex shader.
-	D3D11_BUFFER_DESC constantBufferDesc;
-	ZeroMemory(&constantBufferDesc, sizeof(D3D11_BUFFER_DESC));
-
+	D3D11_BUFFER_DESC constantBufferDesc = {0};
 	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	constantBufferDesc.ByteWidth = sizeof(XMMATRIX);
 	constantBufferDesc.CPUAccessFlags = 0;
 	constantBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Appliation]);
-	if (FAILED(hr))
-	{
+	HRESULT hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Appliation]);
+	if (FAILED(hr)) {
 		return false;
 	}
 	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Object]);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 	constantBufferDesc.ByteWidth = sizeof(PerFrameBufferData);
 	hr = rs->device->CreateBuffer(&constantBufferDesc, nullptr, &rs->g_d3dConstantBuffers[CB_Frame]);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	// vertex shader
 	hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	// vertex shader2
 	hr = rs->device->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	// Load the compiled pixel shader.
 	hr = rs->device->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	hr = rs->device->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -360,8 +322,7 @@ bool LoadContent(RendererState* rs)
 	hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
 		L"Data/Textures/matcap.jpg", //tex.png
 		&rs->textureResource, &rs->textureView);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -381,8 +342,7 @@ bool LoadContent(RendererState* rs)
 	return true;
 }
 
-GameControllerInput *GetController(GameInput *input, int unsigned controllerIndex)
-{
+GameControllerInput *GetController(GameInput *input, int unsigned controllerIndex) {
 	Assert(controllerIndex < ArrayCount(input->controllers));
 
 	GameControllerInput *result = &input->controllers[controllerIndex];
@@ -392,15 +352,13 @@ GameControllerInput *GetController(GameInput *input, int unsigned controllerInde
 static bool running = true;
 static WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
 
-void ToggleFullscreen(HWND Window)
-{
+void ToggleFullscreen(HWND Window) {
 	// This follows Raymond Chen's prescription
 	// for fullscreen toggling, see:
 	// http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
 
 	DWORD Style = GetWindowLong(Window, GWL_STYLE);
-	if (Style & WS_OVERLAPPEDWINDOW)
-	{
+	if (Style & WS_OVERLAPPEDWINDOW) {
 		MONITORINFO MonitorInfo = { sizeof(MonitorInfo) };
 		if (GetWindowPlacement(Window, &GlobalWindowPosition) &&
 			GetMonitorInfo(MonitorFromWindow(Window, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo))
@@ -413,8 +371,7 @@ void ToggleFullscreen(HWND Window)
 				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 		}
 	}
-	else
-	{
+	else {
 		SetWindowLong(Window, GWL_STYLE, Style | WS_OVERLAPPEDWINDOW);
 		SetWindowPlacement(Window, &GlobalWindowPosition);
 		SetWindowPos(Window, 0, 0, 0, 0, 0,
@@ -423,8 +380,7 @@ void ToggleFullscreen(HWND Window)
 	}
 }
 
-void Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown)
-{
+void Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown) {
 	//if (newState->endedDown != isDown)
 	//{
 	//	NewState->EndedDown = isDown;
@@ -432,90 +388,69 @@ void Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown)
 	//}
 }
 
-void Win32ProcessPendingMessages(GameControllerInput *keyboardController)
-{
+void Win32ProcessPendingMessages(GameControllerInput *keyboardController) {
 	MSG message;
 	
-	while (PeekMessage(&message, 0, 0, 0, PM_REMOVE))
-	{
-		switch (message.message)
-		{
-			case WM_QUIT:
-			{
+	while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
+		switch (message.message) {
+			case WM_QUIT: {
 				running = false;
 			} break;
 
 			case WM_SYSKEYDOWN:
 			case WM_SYSKEYUP:
 			case WM_KEYDOWN:
-			case WM_KEYUP:
-			{
+			case WM_KEYUP: {
 				u32 VKCode = (u32)message.wParam;
 
 				bool32 wasDown = ((message.lParam & (1 << 30)) != 0);
 				bool32 isDown = ((message.lParam & (1 << 31)) == 0);
-				if (wasDown != isDown)
-				{
-					if (VKCode == 'W')
-					{
+				if (wasDown != isDown) {
+					if (VKCode == 'W') {
 						Win32ProcessKeyboardMessage(&keyboardController->up, isDown);
 					}
-					else if (VKCode == 'A')
-					{
+					else if (VKCode == 'A') {
 						Win32ProcessKeyboardMessage(&keyboardController->left, isDown);
 					}
-					else if (VKCode == 'S')
-					{
+					else if (VKCode == 'S') {
 						Win32ProcessKeyboardMessage(&keyboardController->down, isDown);
 					}
-					else if (VKCode == 'D')
-					{
+					else if (VKCode == 'D') {
 						Win32ProcessKeyboardMessage(&keyboardController->right, isDown);
 					}
-					else if (VKCode == 'Q')
-					{
+					else if (VKCode == 'Q') {
 						Win32ProcessKeyboardMessage(&keyboardController->leftShoulder, isDown);
 					}
-					else if (VKCode == 'E')
-					{
+					else if (VKCode == 'E') {
 						Win32ProcessKeyboardMessage(&keyboardController->rightShoulder, isDown);
 					}
-					else if (VKCode == VK_UP)
-					{
+					else if (VKCode == VK_UP) {
 						Win32ProcessKeyboardMessage(&keyboardController->actionUp, isDown);
 					}
-					else if (VKCode == VK_LEFT)
-					{
+					else if (VKCode == VK_LEFT) {
 						Win32ProcessKeyboardMessage(&keyboardController->actionLeft, isDown);
 					}
-					else if (VKCode == VK_DOWN)
-					{
+					else if (VKCode == VK_DOWN) {
 						Win32ProcessKeyboardMessage(&keyboardController->actionDown, isDown);
 					}
-					else if (VKCode == VK_RIGHT)
-					{
+					else if (VKCode == VK_RIGHT) {
 						Win32ProcessKeyboardMessage(&keyboardController->actionRight, isDown);
 					}
-					else if (VKCode == VK_ESCAPE)
-					{
+					else if (VKCode == VK_ESCAPE) {
 						Win32ProcessKeyboardMessage(&keyboardController->back, isDown);
 					}
-					else if (VKCode == VK_SPACE)
-					{
+					else if (VKCode == VK_SPACE) {
 						Win32ProcessKeyboardMessage(&keyboardController->start, isDown);
 					}
 
-					if (isDown)
-					{
+					if (isDown) {
 						bool32 altKeyWasDown = (message.lParam & (1 << 29));
-						if ((VKCode == VK_F4) && altKeyWasDown)
-						{
+						if ((VKCode == VK_F4) && altKeyWasDown) {
 							running = false;
 						}
-						if ((VKCode == VK_RETURN) && altKeyWasDown)
-						{
-							if (message.hwnd)
-							{
+
+						if ((VKCode == VK_RETURN) && altKeyWasDown) {
+							if (message.hwnd) {
 								ToggleFullscreen(message.hwnd);
 							}
 						}
@@ -524,8 +459,7 @@ void Win32ProcessPendingMessages(GameControllerInput *keyboardController)
 
 			} break;
 
-			default:
-			{
+			default: {
 				TranslateMessage(&message);
 				DispatchMessageA(&message);
 			} break;
@@ -539,16 +473,13 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 	PAINTSTRUCT paintStruct;
 	HDC hDC;
 
-	switch (Msg)
-	{
-		case WM_CLOSE:
-		{
+	switch (Msg) {
+		case WM_CLOSE: {
 			// TODO(casey): Handle this with a message to the user?
 			running = false;
 		} break;
 
-		case WM_SETCURSOR:
-		{
+		case WM_SETCURSOR: {
 			//if (DEBUGGlobalShowCursor)
 			//{
 			//	Result = DefWindowProcA(Window, Message, WParam, LParam);
@@ -559,8 +490,7 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 			//}
 		} break;
 
-		case WM_DESTROY:
-		{
+		case WM_DESTROY: {
 			running = false; // TODO
 			PostQuitMessage(0);
 		} break;
@@ -568,20 +498,17 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
 		case WM_KEYDOWN:
-		case WM_KEYUP:
-		{
+		case WM_KEYUP: {
 			// input comes through a non-dispatch message
 		} break;
 
-		case WM_PAINT:
-		{
+		case WM_PAINT: {
 			hDC = BeginPaint(Window, &paintStruct);
 			EndPaint(Window, &paintStruct);
 		}
 		break;
 
-		//case WM_PAINT:
-		//{
+		//case WM_PAINT: {
 			//PAINTSTRUCT Paint;
 			//HDC DeviceContext = BeginPaint(Window, &Paint);
 			//win32_window_dimension Dimension = Win32GetWindowDimension(Window);
@@ -590,8 +517,7 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 			//EndPaint(Window, &Paint);
 		//} break;
 
-		default:
-		{
+		default: {
 			return DefWindowProcA(Window, Msg, WParam, LParam);
 		} break;
 	}
@@ -599,14 +525,16 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 	return 0;
 }
 
-HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) {//HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
+HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) { //HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
+	assert(windowClass != nullptr);
+
 	windowClass->cbSize = sizeof(WNDCLASSEX);
 	windowClass->style = CS_HREDRAW | CS_VREDRAW;
 	windowClass->lpfnWndProc = (WNDPROC)WndProc;
 	windowClass->cbClsExtra = 0;
 	windowClass->cbWndExtra = 0;
 	windowClass->hInstance = hInstance;
-		// WindowClass.hIcon = LoadIcon((HINSTANCE)NULL, IDI_APPLICATION);
+	// WindowClass.hIcon = LoadIcon((HINSTANCE)NULL, IDI_APPLICATION);
 	windowClass->hCursor = LoadCursor(NULL, IDC_ARROW);
 	windowClass->hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // GetStockObject(WHITE_BRUSH);
 	windowClass->lpszMenuName = nullptr;

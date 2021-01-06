@@ -151,8 +151,7 @@ UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) {
 
 ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) {
 	assert(device != nullptr);
-	D3D11_TEXTURE2D_DESC depthStencilTextureDesc;
-	ZeroMemory(&depthStencilTextureDesc, sizeof(D3D11_TEXTURE2D_DESC));
+	D3D11_TEXTURE2D_DESC depthStencilTextureDesc = {0};
 
 	depthStencilTextureDesc.ArraySize = 1;
 	depthStencilTextureDesc.BindFlags = bindFlags;
@@ -205,22 +204,45 @@ ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Reso
 	return result;
 }
 
-i32 CreateVertexBuffer(RendererState* rs, u32 size) {
-	D3D11_BUFFER_DESC bufferDesc;
-	ZeroMemory(&bufferDesc, sizeof(D3D11_BUFFER_DESC));
-	bufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.ByteWidth = size;
-	bufferDesc.CPUAccessFlags = 0; // D3D11_CPU_ACCESS_FLAG;
-	bufferDesc.MiscFlags = 0; // D3D11_RESOURCE_MISC_FLAG
-	bufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData) {
+	assert(device != nullptr);
 
-	i32 bufferIndex = rs->vertexBuffersCount;
-	HRESULT hr = rs->device->CreateBuffer(&bufferDesc, NULL, &rs->vertexBuffers[bufferIndex]);
+	D3D11_BUFFER_DESC bufferDesc = {0};
+	bufferDesc.Usage = usage;
+	bufferDesc.BindFlags = bindFlags;
+	bufferDesc.ByteWidth = byteWidthSize;
+	bufferDesc.CPUAccessFlags = cpuAccessFlags; // D3D11_CPU_ACCESS_FLAG;
+	bufferDesc.MiscFlags = miscFlags;           // D3D11_RESOURCE_MISC_FLAG
+	// bufferDesc.StructureByteStride
+
+	ID3D11Buffer* newBuffer = nullptr;
+	HRESULT hr = device->CreateBuffer(&bufferDesc, initialData, &newBuffer);
 	if (!SUCCEEDED(hr)) {
-		bufferIndex = -1;
+		// TODO: report error
+		return nullptr;
 	}
 
-	rs->vertexBuffersCount++;
+	return newBuffer;
+}
 
-	return bufferIndex;
+i32 CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
+
+	auto device = rs->device.Get();
+	auto newVertexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, 0, 0, initialData);
+	i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
+	if (newVertexBuffer != nullptr) {
+		rs->vertexBuffers[newVertexBufferIndex] = newVertexBuffer;
+		rs->vertexBuffersCount++;
+	}
+
+	return newVertexBufferIndex;
+}
+
+ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+	assert(device != nullptr);
+	auto newIndexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER, size, 0, 0, initialData);
+
+	return newIndexBuffer;
 }

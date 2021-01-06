@@ -113,6 +113,11 @@ struct VertexBuffer {
 	UINT offset;
 };
 
+struct ShaderData {
+	const void* pShaderBytecodeWithInputSignature;
+	SIZE_T BytecodeLength;
+};
+
 void SetVertexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) {
 	deviceCtx->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 }

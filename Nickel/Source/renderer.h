@@ -128,18 +128,18 @@ struct RendererState {
 
 // Safely release a COM object.
 template<typename T>
-inline void SafeRelease(T& ptr)
-{
-	if (ptr != NULL)
-	{
+inline void SafeRelease(T& ptr) {
+	if (ptr != nullptr) {
 		ptr->Release();
-		ptr = NULL;
+		ptr = nullptr;
 	}
 };
 
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
 void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
-i32 CreateVertexBuffer(RendererState* rs, u32 size);
+ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+i32 CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
 ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
 ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);
 ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels);
