@@ -32,6 +32,32 @@
 
 using namespace DirectX;
 
+struct VertexBuffer {
+	ID3D11Buffer* buffer;
+	D3D11_INPUT_ELEMENT_DESC inputElementDescription;
+	UINT stride;
+	UINT offset;
+};
+
+struct IndexBuffer {
+	ID3D11Buffer* buffer;
+	UINT offset;
+};
+
+struct ShaderData {
+	const void* pShaderBytecodeWithInputSignature;
+	SIZE_T BytecodeLength;
+};
+
+struct Mesh {
+	VertexBuffer vertexBuffer;
+	u32 vertexCount;
+
+	ID3D11Buffer* indexBuffer;
+	u32 indexOffset;
+	u32 indexCount;
+};
+
 struct PipelineState {
 	ID3D11RasterizerState* rasterizerState;
 	ID3D11DepthStencilState* depthStencilState;
@@ -53,8 +79,7 @@ struct PerFrameBufferData {
 };
 
 // Shader resources
-enum ConstanBuffer
-{
+enum ConstanBuffer {
 	CB_Appliation,
 	CB_Frame,
 	CB_Object,
@@ -101,19 +126,11 @@ struct RendererState {
 	XMMATRIX g_ViewMatrix;
 	XMMATRIX g_ProjectionMatrix;
 
-	u32 g_indexCount1  = 0;
-	u32 g_vertexCount1 = 0;
-	u32 g_indexCount2  = 0;
-	u32 g_vertexCount2 = 0;
-
 	// ------- toto this probably should be separated
 	ID3D11Buffer* vertexBuffers[20];
 	ID3D11Buffer* indexBuffers[20];
 	u32 vertexBuffersCount = 0;
 	u32 indexBuffersCount = 0;
-
-	ID3D11Buffer* g_d3dIndexBuffer1 = nullptr;
-	ID3D11Buffer* g_d3dIndexBuffer2 = nullptr;
 
 	ID3D11Buffer* zeroBuffer[4]; // TODO: check Sokol defines max to be 4
 	ID3D11ShaderResourceView* zeroResourceViews[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
@@ -124,6 +141,8 @@ struct RendererState {
 
 	UINT backbufferWidth;
 	UINT backbufferHeight;
+
+	Mesh meshes[2];
 };
 
 // Safely release a COM object.
@@ -138,7 +157,7 @@ inline void SafeRelease(T& ptr) {
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
 void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
 ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-i32 CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+ID3D11Buffer* CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
 ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
 ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
 ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);

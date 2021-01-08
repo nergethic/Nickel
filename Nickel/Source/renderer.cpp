@@ -1,26 +1,22 @@
 #include "renderer.h"
 
-void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil)
-{
+void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) {
 	rs->deviceCtx->ClearRenderTargetView(rs->defaultRenderTargetView, clearColor);
 	rs->deviceCtx->ClearDepthStencilView(rs->defaultDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
 }
 
 // function inspired by:
 // http://www.rastertek.com/dx11tut03.html
-DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
-{
+DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) {
 	DXGI_RATIONAL refreshRate = { 0, 1 };
-	if (vsync)
-	{
+	if (vsync) {
 		IDXGIFactory2* factory;
 		IDXGIAdapter* adapter;
 		IDXGIOutput* adapterOutput;
 		DXGI_MODE_DESC* displayModeList;
 
 		HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&factory);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBox(0,
 				TEXT("Could not create DXGIFactory instance."),
 				TEXT("Query Refresh Rate"),
@@ -30,8 +26,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 		}
 
 		hr = factory->EnumAdapters(0, &adapter);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBox(0,
 				TEXT("Failed to enumerate adapters."),
 				TEXT("Query Refresh Rate"),
@@ -41,8 +36,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 		}
 
 		hr = adapter->EnumOutputs(0, &adapterOutput);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBox(0,
 				TEXT("Failed to enumerate adapter outputs."),
 				TEXT("Query Refresh Rate"),
@@ -53,8 +47,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 
 		UINT numDisplayModes;
 		hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, nullptr);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBox(0,
 				TEXT("Failed to query display mode list."),
 				TEXT("Query Refresh Rate"),
@@ -67,8 +60,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 		assert(displayModeList);
 
 		hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, displayModeList);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBox(0,
 				TEXT("Failed to query display mode list."),
 				TEXT("Query Refresh Rate"),
@@ -78,10 +70,8 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 		}
 
 		// Now store the refresh rate of the monitor that matches the width and height of the requested screen.
-		for (UINT i = 0; i < numDisplayModes; ++i)
-		{
-			if (displayModeList[i].Width == screenWidth && displayModeList[i].Height == screenHeight)
-			{
+		for (UINT i = 0; i < numDisplayModes; ++i) {
+			if (displayModeList[i].Width == screenWidth && displayModeList[i].Height == screenHeight) {
 				refreshRate = displayModeList[i].RefreshRate;
 			}
 		}
@@ -225,19 +215,19 @@ ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFl
 	return newBuffer;
 }
 
-i32 CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+ID3D11Buffer* CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
 	auto device = rs->device.Get();
 	auto newVertexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, 0, 0, initialData);
-	i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
-	if (newVertexBuffer != nullptr) {
-		rs->vertexBuffers[newVertexBufferIndex] = newVertexBuffer;
-		rs->vertexBuffersCount++;
-	}
+	//i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
+	//if (newVertexBuffer != nullptr) {
+		//rs->vertexBuffers[newVertexBufferIndex] = newVertexBuffer;
+		//rs->vertexBuffersCount++;
+	//}
 
-	return newVertexBufferIndex;
+	return newVertexBuffer;
 }
 
 ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {

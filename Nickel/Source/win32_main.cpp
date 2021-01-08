@@ -173,17 +173,18 @@ struct ModelData {
 	std::vector<f32> uv;
 };
 
-void LoadBunnyModel(RendererState* rs) {
+Mesh LoadBunnyModel(RendererState* rs) {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
 	auto device = rs->device.Get();
+	Mesh mesh = {0};
 
 	ModelData bunnyModelData;
 	FileMemory objFile = debug_read_entire_file("Data/Models/bny.obj"); // Suzanne
 	loadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	rs->g_indexCount1 = bunnyModelData.i.size();
+	mesh.indexCount = bunnyModelData.i.size();
 
 	std::vector<VertexPosUV> v1;
 	f32 x, y, z;
@@ -200,16 +201,15 @@ void LoadBunnyModel(RendererState* rs) {
 			XMFLOAT2(bunnyModelData.uv[i * 2], bunnyModelData.uv[i * 2 + 1])
 			});
 	}
-	rs->g_vertexCount1 = v1.size();
+	mesh.vertexCount = v1.size();
 
 	// ------------------------------------------------
 	// Create and initialize the vertex buffer.
-	i32 bufferIndex = CreateVertexBuffer(rs, (sizeof(v1[0]) * rs->g_vertexCount1));
-	D3D11_SUBRESOURCE_DATA resourceData1;
-	ZeroMemory(&resourceData1, sizeof(D3D11_SUBRESOURCE_DATA));
+	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, (sizeof(v1[0]) * mesh.vertexCount));
+	D3D11_SUBRESOURCE_DATA resourceData1 = {0};
 	resourceData1.pSysMem = v1.data();
 	// fill the buffer
-	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
+	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
 
 	//#ifdef _DEBUG
 	//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL ); // TODO
@@ -218,21 +218,24 @@ void LoadBunnyModel(RendererState* rs) {
 	D3D11_SUBRESOURCE_DATA resourceData2 = { 0 };
 	resourceData2.pSysMem = bunnyModelData.i.data();
 
-	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * rs->g_indexCount1;
-	rs->g_d3dIndexBuffer1 = CreateIndexBuffer(device, byteWidthSize, &resourceData2);
+	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * mesh.indexCount;
+	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData2);
+
+	return mesh;
 }
 
-void LoadSuzanneModel(RendererState* rs) {
+Mesh LoadSuzanneModel(RendererState* rs) {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
 	auto device = rs->device.Get();
+	Mesh mesh = {0};
 
 	ModelData suzanneModelData;
 	FileMemory objFile2 = debug_read_entire_file("Data/Models/Suzanne.obj");
 	loadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	rs->g_indexCount2 = suzanneModelData.i.size();
+	mesh.indexCount = suzanneModelData.i.size();
 
 	std::vector<VertexPosColor> v2;
 	f32 x, y, z;
@@ -248,19 +251,21 @@ void LoadSuzanneModel(RendererState* rs) {
 			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
 			});
 	}
-	rs->g_vertexCount2 = v2.size();
+	mesh.vertexCount = v2.size();
 
-	i32 bufferIndex = CreateVertexBuffer(rs, sizeof(v2[0]) * rs->g_vertexCount2);
+	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, sizeof(v2[0]) * mesh.vertexCount);
 
 	D3D11_SUBRESOURCE_DATA resourceData3 = {0};
 	resourceData3.pSysMem = v2.data();
-	rs->deviceCtx->UpdateSubresource1(rs->vertexBuffers[bufferIndex], 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
+	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
 
 	D3D11_SUBRESOURCE_DATA resourceData4 = {0};
 	resourceData4.pSysMem = suzanneModelData.i.data();
 
-	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * rs->g_indexCount2;
-	rs->g_d3dIndexBuffer2 = CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * mesh.indexCount;
+	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+
+	return mesh;
 }
 
 bool LoadContent(RendererState* rs) {
@@ -271,8 +276,11 @@ bool LoadContent(RendererState* rs) {
 
 	//std::vector<u32> allIndices;
 
-	LoadBunnyModel(rs); // TODO: uncomment loading one model and fix renderer not displaying the rest of the loaded models
-	LoadSuzanneModel(rs);
+	Mesh bunnyMesh = LoadBunnyModel(rs); // TODO: uncomment loading one model and fix renderer not displaying the rest of the loaded models
+	Mesh suzanneMesh = LoadSuzanneModel(rs);
+
+	rs->meshes[0] = bunnyMesh;
+	rs->meshes[1] = suzanneMesh;
 
 	// Create the constant buffers for the variables defined in the vertex shader.
 	D3D11_BUFFER_DESC constantBufferDesc = {0};

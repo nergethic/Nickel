@@ -106,18 +106,6 @@ void SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, Pipeli
 	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
 }
 
-struct VertexBuffer {
-	ID3D11Buffer* buffer;
-	D3D11_INPUT_ELEMENT_DESC inputElementDescription;
-	UINT stride;
-	UINT offset;
-};
-
-struct ShaderData {
-	const void* pShaderBytecodeWithInputSignature;
-	SIZE_T BytecodeLength;
-};
-
 void SetVertexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) {
 	deviceCtx->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 }
@@ -133,43 +121,49 @@ void DrawIndexed(ID3D11DeviceContext1* deviceCtx, UINT indexCount) {
 void DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
+	Mesh* mesh = &rs->meshes[0];
+
 	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
 	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
 
-	SetIndexBuffer(deviceCtx, rs->g_d3dIndexBuffer1);
-	SetVertexBuffer(deviceCtx, rs->vertexBuffers[0], texVertexStride, offset);
+	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
+	SetVertexBuffer(deviceCtx, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
+	deviceCtx->DrawIndexed(mesh->indexCount, 0, 0);
 }
 
 void DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
+	Mesh* mesh = &rs->meshes[0];
+
 	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
 	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
 
-	SetIndexBuffer(deviceCtx, rs->g_d3dIndexBuffer1);
-	SetVertexBuffer(deviceCtx, rs->vertexBuffers[0], texVertexStride, offset);
+	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
+	SetVertexBuffer(deviceCtx, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	deviceCtx->DrawIndexed(rs->g_indexCount1, 0, 0);
+	deviceCtx->DrawIndexed(mesh->indexCount, 0, 0);
 }
 
 void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
+	Mesh* mesh = &rs->meshes[1];
+
 	deviceCtx->PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
 	deviceCtx->PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
-	SetIndexBuffer(deviceCtx, rs->g_d3dIndexBuffer2);
-	SetVertexBuffer(deviceCtx, rs->vertexBuffers[1], vertexStride, offset);
+	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
+	SetVertexBuffer(deviceCtx, rs->meshes[1].vertexBuffer.buffer, vertexStride, offset);
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	DrawIndexed(deviceCtx, rs->g_indexCount2);
+	DrawIndexed(deviceCtx, mesh->indexCount);
 }
 
 ID3D11InputLayout* CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
@@ -198,7 +192,8 @@ void ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) {
 	assert(device != nullptr);
 	assert(pipeline != nullptr);
 
-	pipeline->inputLayout = CreateInputLayout(device, vertexPosUVLayoutDesc, ArrayCount(vertexPosUVLayoutDesc), g_TexVertexShader, ArrayCount(g_TexVertexShader));
+	// TODO
+	// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 }
 
 void Initialize(GameMemory* memory, RendererState* rs) {
