@@ -1,6 +1,8 @@
 #pragma once
 #include "platform.h"
 #include "renderer.h"
+#include "obj_loader.h"
+#include <vector>
 
 static u32 GLOBAL_WINDOW_WIDTH = 1080;
 static u32 GLOBAL_WINDOW_HEIGHT = 720;
@@ -14,6 +16,13 @@ struct VertexPosColor {
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
 	XMFLOAT3 Color;
+};
+
+struct ModelData {
+	std::vector<f64> v;
+	std::vector<u32> i;
+	std::vector<f64> n;
+	std::vector<f32> uv;
 };
 
 static D3D11_INPUT_ELEMENT_DESC vertexPosColorLayoutDesc[] = {

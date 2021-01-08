@@ -3,50 +3,37 @@
 u8* stream = nullptr;
 u8* endAddress = nullptr;
 
-FileMemory debug_read_entire_file(LPCSTR Filename) // todo move this to appropriate location
-{
+FileMemory debug_read_entire_file(LPCSTR Filename) { // todo move this to appropriate location
 	FileMemory result = {};
 
 	HANDLE FileHandle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-	if (FileHandle != INVALID_HANDLE_VALUE)
-	{
+	if (FileHandle != INVALID_HANDLE_VALUE) {
 		LARGE_INTEGER FileSize;
-		if (GetFileSizeEx(FileHandle, &FileSize))
-		{
+		if (GetFileSizeEx(FileHandle, &FileSize)) {
 			u64 FileSize32 = FileSize.QuadPart; // todo why was SafeTruncateUInt64(FileSize.QuadPart) on this?
 			result.data = VirtualAlloc(0, FileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-			if (result.data)
-			{
+			if (result.data) {
 				DWORD BytesRead;
 				if (ReadFile(FileHandle, result.data, FileSize32, &BytesRead, 0) &&
 					(FileSize32 == BytesRead))
 				{
 					// File read successfully
 					result.size = FileSize32;
-				}
-				else
-				{
-					if (result.data) // TODO is this proper code?
-					{
+				} else {
+					if (result.data) { // TODO is this proper code?
 						VirtualFree(result.data, 0, MEM_RELEASE);
 					}
 					result.data = nullptr;
 				}
-			}
-			else
-			{
+			} else {
 				// TODO: Logging
 			}
-		}
-		else
-		{
+		} else {
 			// TODO: Logging
 		}
 
 		CloseHandle(FileHandle);
-	}
-	else
-	{
+	} else {
 		// TODO: Logging
 	}
 
@@ -292,5 +279,5 @@ void loadObjModel(FileMemory* file, std::vector<f64>* vertices, std::vector<u32>
 		Assert(!"too small hash table!");
 	}
 	
-	delete table;
+	delete[] table;
 }

@@ -196,6 +196,187 @@ void ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) {
 	// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 }
 
+std::vector<VertexPosUV> GetVertexPosUVFromModelData(ModelData* data) {
+	assert(data != nullptr);
+
+	std::vector<VertexPosUV> result;
+	f32 x, y, z;
+	for (u32 i = 0; i < data->v.size() / 3; ++i) {
+		x = -data->v[i * 3];
+		y = data->v[i * 3 + 1];
+		z = -data->v[i * 3 + 2];
+
+		VertexPosUV vertexData = {
+			XMFLOAT3(x, y, z),
+			XMFLOAT3(-data->n[i * 3], data->n[i * 3 + 1], -data->n[i * 3 + 2]),
+			//XMFLOAT3(clamp(0.0f, 1.0f, x), clamp(0.0f, 1.0f, y), clamp(0.0f, 1.0f, z))
+			// XMFLOAT3(0.53333, 0.84705, 0.69019),
+			XMFLOAT2(data->uv[i * 2], data->uv[i * 2 + 1])
+		};
+
+		result.push_back(vertexData);
+	}
+
+	return result;
+}
+
+std::vector<VertexPosColor> GetVertexPosColorFromModelData(ModelData* data) {
+	assert(data != nullptr);
+
+	std::vector<VertexPosColor> result;
+	f32 x, y, z;
+	for (u32 i = 0; i < data->v.size() / 3; ++i) {
+		x = -data->v[i * 3];
+		y = data->v[i * 3 + 1];
+		z = -data->v[i * 3 + 2];
+
+		VertexPosColor vertexData = {
+			XMFLOAT3(x, y, z),
+			XMFLOAT3(-data->n[i * 3], data->n[i * 3 + 1], -data->n[i * 3 + 2]),
+			XMFLOAT3(0.53333f, 0.84705f, 0.69019f)
+		};
+
+		result.push_back(vertexData);
+	}
+
+	return result;
+}
+
+Mesh LoadBunnyModel(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
+
+	auto device = rs->device.Get();
+	Mesh mesh = {0};
+
+	ModelData bunnyModelData;
+	FileMemory objFile = debug_read_entire_file("Data/Models/bny.obj"); // Suzanne
+	loadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
+	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
+	mesh.indexCount = bunnyModelData.i.size();
+
+	auto vertexFormatData = GetVertexPosUVFromModelData(&bunnyModelData);
+	mesh.vertexCount = vertexFormatData.size();
+
+	// ------------------------------------------------
+	// Create and initialize the vertex buffer.
+	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, (sizeof(vertexFormatData[0]) * mesh.vertexCount));
+	D3D11_SUBRESOURCE_DATA resourceData1 = {0};
+	resourceData1.pSysMem = vertexFormatData.data();
+
+	// fill the buffer
+	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
+
+	//#ifdef _DEBUG
+	//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL ); // TODO
+	//#endif // _DEBUG
+
+	D3D11_SUBRESOURCE_DATA resourceData2 = {0};
+	resourceData2.pSysMem = bunnyModelData.i.data();
+
+	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * mesh.indexCount;
+	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData2);
+
+	return mesh;
+}
+
+Mesh LoadSuzanneModel(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
+
+	auto device = rs->device.Get();
+	Mesh mesh = {0};
+
+	ModelData suzanneModelData;
+	FileMemory objFile2 = debug_read_entire_file("Data/Models/Suzanne.obj");
+	loadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
+	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
+	mesh.indexCount = suzanneModelData.i.size();
+
+	auto vertexFormatData = GetVertexPosColorFromModelData(&suzanneModelData);
+	mesh.vertexCount = vertexFormatData.size();
+
+	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, sizeof(vertexFormatData[0]) * mesh.vertexCount);
+
+	D3D11_SUBRESOURCE_DATA resourceData3 = {0};
+	resourceData3.pSysMem = vertexFormatData.data();
+	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
+
+	D3D11_SUBRESOURCE_DATA resourceData4 = {0};
+	resourceData4.pSysMem = suzanneModelData.i.data();
+
+	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * mesh.indexCount;
+	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+
+	return mesh;
+}
+
+bool LoadContent(RendererState* rs) {
+	assert(rs != nullptr);
+	assert(rs->device != nullptr);
+
+	auto device = rs->device.Get();
+
+	//std::vector<u32> allIndices;
+
+	Mesh bunnyMesh   = LoadBunnyModel(rs); // TODO: uncomment loading one model and fix renderer not displaying the rest of the loaded models
+	Mesh suzanneMesh = LoadSuzanneModel(rs);
+
+	rs->meshes[0] = bunnyMesh;
+	rs->meshes[1] = suzanneMesh;
+
+	// Create the constant buffers for the variables defined in the vertex shader.
+	rs->g_d3dConstantBuffers[CB_Appliation] = CreateConstantBuffer(device, sizeof(XMMATRIX));
+	rs->g_d3dConstantBuffers[CB_Object]     = CreateConstantBuffer(device, sizeof(XMMATRIX));
+	rs->g_d3dConstantBuffers[CB_Frame]      = CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+
+	// vertex shader
+	HRESULT hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
+	if (FAILED(hr)) {
+		return false;
+	}
+
+	// vertex shader2
+	hr = rs->device->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
+	if (FAILED(hr)) {
+		return false;
+	}
+
+	// Load the compiled pixel shader.
+	hr = rs->device->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
+	if (FAILED(hr)) {
+		return false;
+	}
+
+	hr = rs->device->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
+	if (FAILED(hr)) {
+		return false;
+	}
+
+	// create Texture
+	hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
+		L"Data/Textures/matcap.jpg", //tex.png
+		&rs->textureResource, &rs->textureView);
+	if (FAILED(hr)) {
+		return false;
+	}
+
+	// Setup the projection matrix.
+	RECT clientRect;
+	GetClientRect(rs->g_WindowHandle, &clientRect);
+
+	// Compute the exact client dimensions.
+	// This is required for a correct projection matrix.
+	float clientWidth = static_cast<float>(clientRect.right - clientRect.left);
+	float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+
+	rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
+
+	rs->deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
+
+	return true;
+}
+
 void Initialize(GameMemory* memory, RendererState* rs) {
 	assert(memory != nullptr);
 	assert(rs != nullptr);
@@ -203,6 +384,10 @@ void Initialize(GameMemory* memory, RendererState* rs) {
 	assert(rs->deviceCtx);
 
 	ID3D11Device1* device = rs->device.Get();
+
+	if (!LoadContent(rs)) {
+		// TODO: log error
+	}
 
 	rs->defaultDepthStencilBuffer = CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 	assert(rs->defaultDepthStencilBuffer != nullptr);

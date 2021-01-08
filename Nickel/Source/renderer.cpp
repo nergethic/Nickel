@@ -236,3 +236,10 @@ ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOUR
 
 	return newIndexBuffer;
 }
+
+ID3D11Buffer* CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+	assert(device != nullptr);
+	auto newConstantBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER, size, 0, 0, initialData);
+
+	return newConstantBuffer;
+}
