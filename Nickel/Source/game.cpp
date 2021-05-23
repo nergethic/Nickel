@@ -100,7 +100,8 @@ void SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, Pipeli
 	else
 		deviceCtx->VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer *const*)pipeline.vertexConstantBuffers);
 
-	deviceCtx->PSSetShader(pipeline.pixelShader, nullptr, 0);
+	if (pipeline.pixelShader != nullptr)
+		deviceCtx->PSSetShader(pipeline.pixelShader, nullptr, 0);
 	// deviceCtx->PSSetConstantBuffers(); // TODO
 
 	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
@@ -131,7 +132,7 @@ void DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	deviceCtx->DrawIndexed(mesh->indexCount, 0, 0);
+	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
 void DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
@@ -147,7 +148,7 @@ void DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	deviceCtx->DrawIndexed(mesh->indexCount, 0, 0);
+	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
 void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
@@ -163,7 +164,7 @@ void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineSta
 
 	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	DrawIndexed(deviceCtx, mesh->indexCount);
+	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
 ID3D11InputLayout* CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
@@ -260,7 +261,7 @@ Mesh LoadBunnyModel(RendererState* rs) {
 
 	// ------------------------------------------------
 	// Create and initialize the vertex buffer.
-	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, (sizeof(vertexFormatData[0]) * mesh.vertexCount));
+	mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(rs, (sizeof(vertexFormatData[0]) * mesh.vertexCount));
 	D3D11_SUBRESOURCE_DATA resourceData1 = {0};
 	resourceData1.pSysMem = vertexFormatData.data();
 
@@ -275,7 +276,7 @@ Mesh LoadBunnyModel(RendererState* rs) {
 	resourceData2.pSysMem = bunnyModelData.i.data();
 
 	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * mesh.indexCount;
-	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData2);
+	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData2);
 
 	return mesh;
 }
@@ -296,7 +297,7 @@ Mesh LoadSuzanneModel(RendererState* rs) {
 	auto vertexFormatData = GetVertexPosColorFromModelData(&suzanneModelData);
 	mesh.vertexCount = vertexFormatData.size();
 
-	mesh.vertexBuffer.buffer = CreateVertexBuffer(rs, sizeof(vertexFormatData[0]) * mesh.vertexCount);
+	mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(rs, sizeof(vertexFormatData[0]) * mesh.vertexCount);
 
 	D3D11_SUBRESOURCE_DATA resourceData3 = {0};
 	resourceData3.pSysMem = vertexFormatData.data();
@@ -306,7 +307,7 @@ Mesh LoadSuzanneModel(RendererState* rs) {
 	resourceData4.pSysMem = suzanneModelData.i.data();
 
 	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * mesh.indexCount;
-	mesh.indexBuffer = CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData4);
 
 	return mesh;
 }
@@ -326,9 +327,9 @@ bool LoadContent(RendererState* rs) {
 	rs->meshes[1] = suzanneMesh;
 
 	// Create the constant buffers for the variables defined in the vertex shader.
-	rs->g_d3dConstantBuffers[CB_Appliation] = CreateConstantBuffer(device, sizeof(XMMATRIX));
-	rs->g_d3dConstantBuffers[CB_Object]     = CreateConstantBuffer(device, sizeof(XMMATRIX));
-	rs->g_d3dConstantBuffers[CB_Frame]      = CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+	rs->g_d3dConstantBuffers[CB_Appliation] = Renderer::CreateConstantBuffer(device, sizeof(XMMATRIX));
+	rs->g_d3dConstantBuffers[CB_Object]     = Renderer::CreateConstantBuffer(device, sizeof(XMMATRIX));
+	rs->g_d3dConstantBuffers[CB_Frame]      = Renderer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 	// vertex shader
 	HRESULT hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
@@ -389,12 +390,12 @@ void Initialize(GameMemory* memory, RendererState* rs) {
 		// TODO: log error
 	}
 
-	rs->defaultDepthStencilBuffer = CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
+	rs->defaultDepthStencilBuffer = Renderer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 	assert(rs->defaultDepthStencilBuffer != nullptr);
-	rs->defaultDepthStencilView   = CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
+	rs->defaultDepthStencilView   = Renderer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
-	auto depthStencilState = CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-	auto rasterizerState   = CreateDefaultRasterizerState(device);
+	auto depthStencilState = Renderer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+	auto rasterizerState   = Renderer::CreateDefaultRasterizerState(device);
 
 	auto pip = &rs->pip;
 	pip->depthStencilState          = depthStencilState;
@@ -464,7 +465,7 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	// RENDER ---------------------------
 	const FLOAT clearColor[4] = {0.13333f, 0.13333f, 0.13333f, 1.0f};
-	Clear(rs, clearColor, 1.0f, 0);
+	Renderer::Clear(rs, clearColor, 1.0f, 0);
 
 	SetDefaultPass(deviceCtx, rs);
 
@@ -484,3 +485,8 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	rs->swapChain->Present(1, 0);
 }
+
+// DrawMesh(mesh, material)
+struct RenderPassDescription {
+
+};

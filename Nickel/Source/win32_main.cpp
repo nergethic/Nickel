@@ -534,11 +534,11 @@ int WinMain(
 	swapChainDesc1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc1.SampleDesc.Count = MSAA_LEVEL;
-	swapChainDesc1.SampleDesc.Quality = GetHighestQualitySampleLevel(device1, DXGI_FORMAT_R8G8B8A8_UNORM);
+	swapChainDesc1.SampleDesc.Quality = Renderer::GetHighestQualitySampleLevel(device1, DXGI_FORMAT_R8G8B8A8_UNORM);
 	swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD; // TODO: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc = {0};
-	swapChainFullscreenDesc.RefreshRate = QueryRefreshRate(clientWidth, clientHeight, false); // TODO vsync
+	swapChainFullscreenDesc.RefreshRate = Renderer::QueryRefreshRate(clientWidth, clientHeight, false); // TODO vsync
 	swapChainFullscreenDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_CENTERED;
 	swapChainFullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swapChainFullscreenDesc.Windowed = TRUE;

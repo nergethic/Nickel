@@ -59,16 +59,20 @@ struct Mesh {
 };
 
 struct PipelineState {
-	ID3D11RasterizerState* rasterizerState;
-	ID3D11DepthStencilState* depthStencilState;
-	ID3D11InputLayout* inputLayout;
-	ID3D11VertexShader* vertexShader;
-	ID3D11Buffer* vertexConstantBuffers;
-	short vertexConstantBuffersCount;
-	ID3D11PixelShader* pixelShader;
-	ID3D11Buffer* pixelConstantBuffers;
-	short pixelConstantBuffersCount;
+	ID3D11InputLayout* inputLayout = nullptr;
+
+	ID3D11VertexShader* vertexShader = nullptr;
+	ID3D11Buffer* vertexConstantBuffers = nullptr;
+
+	ID3D11PixelShader* pixelShader = nullptr;
+	ID3D11Buffer* pixelConstantBuffers = nullptr;
+
+	ID3D11RasterizerState* rasterizerState = nullptr;
+	ID3D11DepthStencilState* depthStencilState = nullptr;
+	
 	D3D11_PRIMITIVE_TOPOLOGY topology;
+	short vertexConstantBuffersCount = 0;
+	short pixelConstantBuffersCount = 0;
 };
 
 struct PerFrameBufferData {
@@ -154,15 +158,18 @@ inline void SafeRelease(T& ptr) {
 	}
 };
 
-DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
-void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
-ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-ID3D11Buffer* CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-ID3D11Buffer* CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
-ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);
-ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels);
-ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height);
-ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture);
-UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format);
+namespace Renderer {
+	DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
+	void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
+	ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+	ID3D11Buffer* CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+	ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+	ID3D11Buffer* CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
+	ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
+	ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);
+	ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels);
+	ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height);
+	ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture);
+	UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format);
+	void DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex);
+}
