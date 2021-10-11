@@ -1,5 +1,118 @@
 #include "renderer.h"
 
+static UINT MSAA_LEVEL = 4;
+
+D3D11_VIEWPORT Renderer::CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) {
+	return {
+		.TopLeftX = minX,
+		.TopLeftY = minY,
+		.Width  = static_cast<FLOAT>(maxX),
+		.Height = static_cast<FLOAT>(maxY),
+		.MinDepth = D3D11_MIN_DEPTH,
+		.MaxDepth = D3D11_MAX_DEPTH
+	};
+}
+
+ID3D11Debug* Renderer::EnableDebug(const ID3D11Device1& device1) {
+	ID3D11Debug* d3dDebug {};
+
+	auto d = const_cast<ID3D11Device1*>(&device1);
+	auto result = d->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&d3dDebug));
+	if (SUCCEEDED(result)) {
+		ID3D11InfoQueue* d3dInfoQueue = nullptr;
+		if (SUCCEEDED(d3dDebug->QueryInterface(__uuidof(ID3D11InfoQueue), reinterpret_cast<void**>(&d3dInfoQueue)))) {
+
+			d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+			d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+
+			D3D11_MESSAGE_ID hide[] = {
+				D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
+				// Add more message IDs here as needed
+			};
+
+			D3D11_INFO_QUEUE_FILTER filter;
+			memset(&filter, 0, sizeof(filter));
+			filter.DenyList.NumIDs = _countof(hide);
+			filter.DenyList.pIDList = hide;
+			d3dInfoQueue->AddStorageFilterEntries(&filter);
+			// d3dInfoQueue->Release();
+		}
+
+		// d3dDebug->Release();
+	}
+
+	return d3dDebug;
+}
+
+RendererState Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) {
+	if (!XMVerifyCPUSupport()) {
+		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
+		//return -1; // TODO: logger
+	}
+
+	auto [device, deviceCtx] = Renderer::DXLayer::CreateDevice();
+
+	ID3D11Device1* device1 = nullptr;
+	HRESULT result = device->QueryInterface(&device1);
+	if (FAILED(result)) {
+		int x = 4;
+		//return -1; // TODO: logger
+	}
+
+	ID3D11DeviceContext1* deviceCtx1 = nullptr;
+	device1->GetImmediateContext1(&deviceCtx1);
+
+	ID3D11Debug* d3dDebug = nullptr;
+#if defined(_DEBUG)
+	//d3dDebug = EnableDebug(*device1);
+#endif
+
+	auto swapChain1 = Renderer::DXLayer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
+
+	// back buffer for swap chain
+	ID3D11Texture2D* backBufferTexture;
+	result = swapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferTexture);
+	if (FAILED(result)) {
+		int x = 4;
+		//return -1; // TODO: logger
+	}
+
+	// D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
+	ID3D11RenderTargetView* renderTargetView;
+	result = device1->CreateRenderTargetView(backBufferTexture, NULL, &renderTargetView);
+	if (FAILED(result)) {
+		int x = 4;
+		//return -1; // TODO: logger
+	}
+	deviceCtx1->OMSetRenderTargets(1, &renderTargetView, NULL); // test code
+
+	D3D11_TEXTURE2D_DESC backBufferDesc = { 0 };
+	backBufferTexture->GetDesc(&backBufferDesc);
+	SafeRelease(backBufferTexture);
+
+	D3D11_VIEWPORT viewport = CreateViewPort(0.0f, 0.0f, backBufferDesc.Width, backBufferDesc.Height);
+	deviceCtx1->RSSetViewports(1, &viewport);
+
+	RendererState rs = {
+		.g_WindowHandle = wndHandle,
+		.device = device1,
+		.deviceCtx = deviceCtx1,
+		.swapChain = swapChain1,
+		.defaultRenderTargetView = renderTargetView,
+		.g_Viewport = viewport,
+
+		.backbufferWidth = backBufferDesc.Width,
+		.backbufferHeight = backBufferDesc.Height,
+		.d3dDebug = d3dDebug
+	};
+
+	ZeroMemory(rs.zeroBuffer,        ArrayCount(rs.zeroBuffer));
+	ZeroMemory(rs.zeroSamplerStates, ArrayCount(rs.zeroSamplerStates));
+	ZeroMemory(rs.zeroResourceViews, ArrayCount(rs.zeroBuffer));
+
+	return rs;
+}
+
 void Renderer::Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) {
 	rs->deviceCtx->ClearRenderTargetView(rs->defaultRenderTargetView, clearColor);
 	rs->deviceCtx->ClearDepthStencilView(rs->defaultDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
@@ -131,10 +244,8 @@ ID3D11RasterizerState* Renderer::CreateDefaultRasterizerState(ID3D11Device1* dev
 }
 
 UINT Renderer::GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) {
-	assert(device != nullptr);
-
 	UINT maxQualityLevelPlusOne;
-	device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne);
+	device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne); // const_cast<ID3D11Device1&>(
 
 	return maxQualityLevelPlusOne - 1;
 }
@@ -246,4 +357,114 @@ ID3D11Buffer* Renderer::CreateConstantBuffer(ID3D11Device1* device, u32 size, D3
 
 void Renderer::DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) {
 	deviceCtx->DrawIndexed(indexCount, startIndex, startVertex);
+}
+
+ID3D11InputLayout* Renderer::CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
+	assert(device != nullptr);
+	assert(vertexLayoutDesc != nullptr);
+	assert(shaderBytecodeWithInputSignature != nullptr);
+
+	ID3D11InputLayout* result = nullptr;
+
+	HRESULT hr = device->CreateInputLayout(
+		vertexLayoutDesc,
+		vertexLayoutDescLength,
+		shaderBytecodeWithInputSignature,
+		shaderBytecodeSize,
+		&result);
+
+	if (FAILED(hr)) {
+		// TODO: log error
+		assert(nullptr);
+	}
+
+	return result;
+}
+
+template<>
+std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs) {
+	assert(rs->device);
+
+	// Query the current feature level:
+	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
+
+	switch (featureLevel) {
+	case D3D_FEATURE_LEVEL_11_1:
+	case D3D_FEATURE_LEVEL_11_0: {
+		return "vs_5_0";
+	} break;
+
+	case D3D_FEATURE_LEVEL_10_1: {
+		return "vs_4_1";
+	} break;
+
+	case D3D_FEATURE_LEVEL_10_0: {
+		return "vs_4_0";
+	} break;
+
+	case D3D_FEATURE_LEVEL_9_3: {
+		return "vs_4_0_level_9_3";
+	} break;
+
+	case D3D_FEATURE_LEVEL_9_2:
+	case D3D_FEATURE_LEVEL_9_1: {
+		return "vs_4_0_level_9_1";
+	} break;
+	}
+
+	return "";
+}
+
+template<>
+std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs) {
+	assert(rs->device);
+
+	// Query the current feature level:
+	D3D_FEATURE_LEVEL featureLevel = rs->device->GetFeatureLevel();
+	switch (featureLevel) {
+	case D3D_FEATURE_LEVEL_11_1:
+	case D3D_FEATURE_LEVEL_11_0: {
+		return "ps_5_0";
+	} break;
+
+	case D3D_FEATURE_LEVEL_10_1: {
+		return "ps_4_1";
+	} break;
+
+	case D3D_FEATURE_LEVEL_10_0: {
+		return "ps_4_0";
+	} break;
+
+	case D3D_FEATURE_LEVEL_9_3: {
+		return "ps_4_0_level_9_3";
+	} break;
+
+	case D3D_FEATURE_LEVEL_9_2:
+	case D3D_FEATURE_LEVEL_9_1: {
+		return "ps_4_0_level_9_1";
+	} break;
+	}
+	return "";
+}
+
+template<>
+ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
+	assert(rs->device);
+	assert(pShaderBlob);
+
+	ID3D11VertexShader* pVertexShader = nullptr;
+	rs->device->CreateVertexShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pVertexShader);
+
+	return pVertexShader;
+}
+
+template<>
+ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
+	assert(rs->device);
+	assert(pShaderBlob);
+
+	ID3D11PixelShader* pPixelShader = nullptr;
+	rs->device->CreatePixelShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pPixelShader);
+
+	return pPixelShader;
 }

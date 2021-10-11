@@ -15,7 +15,7 @@ cbuffer PerObject : register( b2 )
     matrix worldMatrix;
 }
 
-struct AppData
+struct VertexData
 {
     float3 position : POSITION;
 	float3 normal: NORMAL;
@@ -32,7 +32,7 @@ struct VertexShaderOutput
 	float4 position : SV_POSITION;
 };
 
-VertexShaderOutput SimpleVertexShader( AppData IN )
+VertexShaderOutput SimpleVertexShader(VertexData IN )
 {
     VertexShaderOutput OUT;
 

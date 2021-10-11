@@ -1,6 +1,8 @@
 #include "game.h"
 #include "renderer.h"
 
+using namespace Nickel;
+
 /*
 struct renderer_state {
 	Device,
@@ -167,28 +169,6 @@ void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineSta
 	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
-ID3D11InputLayout* CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
-	assert(device != nullptr);
-	assert(vertexLayoutDesc != nullptr);
-	assert(shaderBytecodeWithInputSignature != nullptr);
-
-	ID3D11InputLayout* result = nullptr;
-
-	HRESULT hr = device->CreateInputLayout(
-		vertexLayoutDesc,
-		vertexLayoutDescLength,
-		shaderBytecodeWithInputSignature,
-		shaderBytecodeSize,
-		&result);
-
-	if (FAILED(hr)) {
-		// TODO: log error
-		assert(nullptr);
-	}
-
-	return result;
-}
-
 void ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) {
 	assert(device != nullptr);
 	assert(pipeline != nullptr);
@@ -251,8 +231,9 @@ Mesh LoadBunnyModel(RendererState* rs) {
 	Mesh mesh = {0};
 
 	ModelData bunnyModelData;
-	FileMemory objFile = debug_read_entire_file("Data/Models/bny.obj"); // Suzanne
-	loadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
+	auto loader = new ObjLoader();
+	ObjFileMemory objFile = loader->DEBUG_ReadEntireFile("Data/Models/bny.obj"); // Suzanne
+	loader->LoadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
 	mesh.indexCount = bunnyModelData.i.size();
 
@@ -278,6 +259,8 @@ Mesh LoadBunnyModel(RendererState* rs) {
 	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * mesh.indexCount;
 	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData2);
 
+	delete loader;
+
 	return mesh;
 }
 
@@ -288,9 +271,11 @@ Mesh LoadSuzanneModel(RendererState* rs) {
 	auto device = rs->device.Get();
 	Mesh mesh = {0};
 
+	auto loader = new ObjLoader();
 	ModelData suzanneModelData;
-	FileMemory objFile2 = debug_read_entire_file("Data/Models/Suzanne.obj");
-	loadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
+	ObjFileMemory objFile2 = loader->DEBUG_ReadEntireFile("Data/Models/Suzanne.obj");
+	
+	loader->LoadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
 	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
 	mesh.indexCount = suzanneModelData.i.size();
 
@@ -309,6 +294,7 @@ Mesh LoadSuzanneModel(RendererState* rs) {
 	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * mesh.indexCount;
 	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData4);
 
+	delete loader;
 	return mesh;
 }
 
@@ -397,10 +383,10 @@ void Initialize(GameMemory* memory, RendererState* rs) {
 	auto depthStencilState = Renderer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 	auto rasterizerState   = Renderer::CreateDefaultRasterizerState(device);
 
-	auto pip = &rs->pip;
+	auto pip = &rs->pipelineStates[0];
 	pip->depthStencilState          = depthStencilState;
 	pip->rasterizerState            = rasterizerState;
-	pip->inputLayout                = CreateInputLayout(device, vertexPosUVLayoutDesc, ArrayCount(vertexPosUVLayoutDesc), g_TexVertexShader, ArrayCount(g_TexVertexShader));
+	pip->inputLayout                = Renderer::CreateInputLayout(device, vertexPosUVLayoutDesc, ArrayCount(vertexPosUVLayoutDesc), g_TexVertexShader, ArrayCount(g_TexVertexShader));
 	pip->vertexShader               = rs->g_d3dTexVertexShader;
 	pip->vertexConstantBuffers      = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 	pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
@@ -409,10 +395,10 @@ void Initialize(GameMemory* memory, RendererState* rs) {
 
 	// ApplyPipeline(device, &pip); // TODO
 
-	auto pip2 = &rs->pip2;
+	auto pip2 = &rs->pipelineStates[1];
 	pip2->depthStencilState          = depthStencilState;
 	pip2->rasterizerState            = rasterizerState;
-	pip2->inputLayout                = CreateInputLayout(device, vertexPosColorLayoutDesc, ArrayCount(vertexPosColorLayoutDesc), g_SimpleVertexShader, ArrayCount(g_SimpleVertexShader));
+	pip2->inputLayout                = Renderer::CreateInputLayout(device, vertexPosColorLayoutDesc, ArrayCount(vertexPosColorLayoutDesc), g_SimpleVertexShader, ArrayCount(g_SimpleVertexShader));
 	pip2->vertexShader               = rs->g_d3dSimpleVertexShader;
 	pip2->vertexConstantBuffers      = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 	pip2->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
@@ -471,15 +457,15 @@ void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
 
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
-	DrawBunny(deviceCtx, rs, rs->pip);
+	DrawBunny(deviceCtx, rs, rs->pipelineStates[0]);
 
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
-	DrawLight(deviceCtx, rs, rs->pip);
+	DrawLight(deviceCtx, rs, rs->pipelineStates[0]);
 	
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
-	DrawSuzanne(deviceCtx, rs, rs->pip2);
+	DrawSuzanne(deviceCtx, rs, rs->pipelineStates[1]);
 
 	//deviceCtx->Draw(g_vertexCount, 0);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma warning(push, 0) // ignores warnings from external headers
 // Link library dependencies
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib") // TODO: check why this doesn't have stuff from dxgi1_3.h (CreateDXGIFactory2)
@@ -18,6 +19,9 @@
 #include <dxgi1_3.h>
 
 #include <wrl/client.h>
+#pragma warning(pop)
+
+#include "DX11Layer.h"
 
 // STL includes
 #include <algorithm>
@@ -99,10 +103,6 @@ struct RendererState {
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain = nullptr;
 
-#ifdef _DEBUG
-	ID3D11Debug *d3dDebug = nullptr;
-#endif // _DEBUG
-
 	// Render target view for the back buffer of the swap chain.
 	ID3D11RenderTargetView* defaultRenderTargetView = nullptr;
 	// Depth/stencil view for use as a depth buffer.
@@ -140,13 +140,14 @@ struct RendererState {
 	ID3D11ShaderResourceView* zeroResourceViews[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
 	ID3D11SamplerState* zeroSamplerStates[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
 
-	PipelineState pip;
-	PipelineState pip2;
+	PipelineState pipelineStates[10];
 
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
 	Mesh meshes[2];
+
+	ID3D11Debug* d3dDebug = nullptr;
 };
 
 // Safely release a COM object.
@@ -159,6 +160,7 @@ inline void SafeRelease(T& ptr) {
 };
 
 namespace Renderer {
+	RendererState Initialize(HWND handle, u32 clientWidth, u32 clientHeight);
 	DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
 	void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
 	ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
@@ -172,4 +174,52 @@ namespace Renderer {
 	ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture);
 	UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format);
 	void DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex);
+	ID3D11InputLayout* CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize);
+	D3D11_VIEWPORT CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY);
+	ID3D11Debug* EnableDebug(const ID3D11Device1& device1);
+}
+
+template<class ShaderClass>
+std::string GetLatestProfile(RendererState* rs);
+
+template<class ShaderClass>
+ShaderClass* CreateShader(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage);
+
+template<class ShaderClass>
+ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& _profile) {
+	ID3DBlob* pShaderBlob = nullptr;
+	ID3DBlob* pErrorBlob = nullptr;
+	ShaderClass* pShader = nullptr;
+
+	std::string profile = _profile;
+	if (profile == "latest") {
+		profile = GetLatestProfile<ShaderClass>();
+	}
+	UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if _DEBUG
+	flags |= D3DCOMPILE_DEBUG;
+#endif
+
+	HRESULT hr = D3DCompileFromFile(fileName.c_str(), nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), profile.c_str(),
+		flags, 0, &pShaderBlob, &pErrorBlob);
+
+	if (FAILED(hr)) {
+		if (pErrorBlob) {
+			std::string errorMessage = (char*)pErrorBlob->GetBufferPointer();
+			OutputDebugStringA(errorMessage.c_str());
+
+			SafeRelease(pShaderBlob);
+			SafeRelease(pErrorBlob);
+		}
+
+		return false;
+	}
+
+	pShader = CreateShader<ShaderClass>(pShaderBlob, nullptr);
+
+	SafeRelease(pShaderBlob);
+	SafeRelease(pErrorBlob);
+
+	return pShader;
 }

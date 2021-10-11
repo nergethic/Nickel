@@ -1,12 +1,12 @@
 #pragma once
+
 #include "platform.h"
 #include "renderer.h"
-#include "obj_loader.h"
+#include "ObjLoader.h"
 #include <vector>
 
 static u32 GLOBAL_WINDOW_WIDTH = 1080;
 static u32 GLOBAL_WINDOW_HEIGHT = 720;
-static UINT MSAA_LEVEL = 4;
 
 struct GameState {
 	RendererState* rs;
