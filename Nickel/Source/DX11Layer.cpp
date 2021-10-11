@@ -2,6 +2,92 @@
 
 namespace Renderer {
 	namespace DXLayer {
+		// function inspired by: http://www.rastertek.com/dx11tut03.html
+		auto QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL {
+			DXGI_RATIONAL refreshRate = { 0, 1 };
+			if (vsync) {
+				IDXGIFactory2* factory;
+				IDXGIAdapter* adapter;
+				IDXGIOutput* adapterOutput;
+				DXGI_MODE_DESC* displayModeList;
+
+				HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&factory);
+				if (FAILED(hr)) {
+					MessageBox(0,
+						TEXT("Could not create DXGIFactory instance."),
+						TEXT("Query Refresh Rate"),
+						MB_OK);
+
+					//throw new std::exception("Failed to create DXGIFactory.");
+				}
+
+				hr = factory->EnumAdapters(0, &adapter);
+				if (FAILED(hr)) {
+					MessageBox(0,
+						TEXT("Failed to enumerate adapters."),
+						TEXT("Query Refresh Rate"),
+						MB_OK);
+
+					//throw new std::exception("Failed to enumerate adapters.");
+				}
+
+				hr = adapter->EnumOutputs(0, &adapterOutput);
+				if (FAILED(hr)) {
+					MessageBox(0,
+						TEXT("Failed to enumerate adapter outputs."),
+						TEXT("Query Refresh Rate"),
+						MB_OK);
+
+					//throw new std::exception("Failed to enumerate adapter outputs.");
+				}
+
+				UINT numDisplayModes;
+				hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, nullptr);
+				if (FAILED(hr)) {
+					MessageBox(0,
+						TEXT("Failed to query display mode list."),
+						TEXT("Query Refresh Rate"),
+						MB_OK);
+
+					//throw new std::exception("Failed to query display mode list.");
+				}
+
+				displayModeList = new DXGI_MODE_DESC[numDisplayModes];
+				assert(displayModeList);
+
+				hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, displayModeList);
+				if (FAILED(hr)) {
+					MessageBox(0,
+						TEXT("Failed to query display mode list."),
+						TEXT("Query Refresh Rate"),
+						MB_OK);
+
+					//throw new std::exception("Failed to query display mode list.");
+				}
+
+				// Now store the refresh rate of the monitor that matches the width and height of the requested screen.
+				for (UINT i = 0; i < numDisplayModes; ++i) {
+					if (displayModeList[i].Width == screenWidth && displayModeList[i].Height == screenHeight) {
+						refreshRate = displayModeList[i].RefreshRate;
+					}
+				}
+
+				delete[] displayModeList;
+				SafeRelease(adapterOutput);
+				SafeRelease(adapter);
+				SafeRelease(factory);
+			}
+
+			return refreshRate;
+		}
+
+		auto GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) -> UINT {
+			UINT maxQualityLevelPlusOne;
+			device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne); // const_cast<ID3D11Device1&>(
+
+			return maxQualityLevelPlusOne - 1;
+		}
+
 		auto CreateDevice() -> std::pair<ID3D11Device*, ID3D11DeviceContext*> {
 			// Buffer Desc
 			/*
@@ -68,11 +154,11 @@ namespace Renderer {
 			swapChainDesc1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			swapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 			swapChainDesc1.SampleDesc.Count = 4; // TODO use MSAA_LEVEL;
-			swapChainDesc1.SampleDesc.Quality = Renderer::GetHighestQualitySampleLevel(device, DXGI_FORMAT_R8G8B8A8_UNORM);
+			swapChainDesc1.SampleDesc.Quality = GetHighestQualitySampleLevel(device, DXGI_FORMAT_R8G8B8A8_UNORM);
 			swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD; // TODO: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
 			DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc = { 0 };
-			swapChainFullscreenDesc.RefreshRate = Renderer::QueryRefreshRate(clientWidth, clientHeight, false);
+			swapChainFullscreenDesc.RefreshRate = QueryRefreshRate(clientWidth, clientHeight, false);
 			swapChainFullscreenDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_CENTERED;
 			swapChainFullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 			swapChainFullscreenDesc.Windowed = TRUE;

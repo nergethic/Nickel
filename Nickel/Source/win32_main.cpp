@@ -276,7 +276,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	GameInput *oldInput = &input[1];
 
 	if (!gameMemory.isInitialized) {
-		Initialize(&gameMemory, &rs);
+		Nickel::Initialize(&gameMemory, &rs);
 		gameMemory.isInitialized = true;
 	}
 
@@ -295,7 +295,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 		}
 
 		Win32ProcessPendingMessages(newKeyboardController);
-		UpdateAndRender(&gameMemory, &rs, newInput);
+		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);
 	}

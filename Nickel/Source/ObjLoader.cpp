@@ -71,9 +71,9 @@ namespace Nickel {
 		return val;
 	}
 
-	auto ObjLoader::LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uvs) -> void {
-
+	auto ObjLoader::LoadObjMesh(const ObjFileMemory& file, MeshData& modelData) -> void {
 		using namespace std;
+
 		vector<array<f64, 3>> packedVertices;
 		vector<array<f32, 2>> packedUVs;
 		vector<array<f32, 3>> packedNormals;
@@ -81,8 +81,8 @@ namespace Nickel {
 		HashEntry* table = new HashEntry[300000]; // TODO think about size, make it dynamic?
 		u32 indexCount = 0;
 
-		stream = (u8*)file->data;
-		endAddress = (u8*)file->data + file->size;
+		stream = reinterpret_cast<u8*>(file.data);
+		endAddress = reinterpret_cast<u8*>(file.data) + file.size;
 
 		u32 vCount = 0;
 		ObjFormat dataFormat = ObjFormat::Format_Unknown;
@@ -176,7 +176,7 @@ namespace Nickel {
 					for (;;) {
 
 						if (vertexIdx == e->vertexIndex && normalIdx == e->normalIndex && UVIdx == e->UVIndex) {
-							indices->push_back(e->index);
+							modelData.i.push_back(e->index);
 							break;
 						}
 						else {
@@ -186,19 +186,19 @@ namespace Nickel {
 								e->UVIndex = UVIdx;
 								e->index = indexCount++;
 
-								indices->push_back(e->index);
+								modelData.i.push_back(e->index);
 
-								vertices->push_back(packedVertices[vertexIdx][0]);
-								vertices->push_back(packedVertices[vertexIdx][1]);
-								vertices->push_back(packedVertices[vertexIdx][2]);
+								modelData.v.push_back(packedVertices[vertexIdx][0]);
+								modelData.v.push_back(packedVertices[vertexIdx][1]);
+								modelData.v.push_back(packedVertices[vertexIdx][2]);
 
-								normals->push_back(packedNormals[normalIdx][0]);
-								normals->push_back(packedNormals[normalIdx][1]);
-								normals->push_back(packedNormals[normalIdx][2]);
+								modelData.n.push_back(packedNormals[normalIdx][0]);
+								modelData.n.push_back(packedNormals[normalIdx][1]);
+								modelData.n.push_back(packedNormals[normalIdx][2]);
 
 								if (dataFormat == ObjFormat::Vertex_UV_Normal) { // todo bake it
-									uvs->push_back(packedUVs[UVIdx][0]);
-									uvs->push_back(packedUVs[UVIdx][1]);
+									modelData.uv.push_back(packedUVs[UVIdx][0]);
+									modelData.uv.push_back(packedUVs[UVIdx][1]);
 								}
 								break;
 							}
@@ -217,9 +217,7 @@ namespace Nickel {
 			}
 		}
 
-		u64 x = indices->size();
-
-		if (indices->size() >= 500000) { // TODO figure out hash table size, maybe make it's size dynamic?
+		if (modelData.i.size() >= 500000) { // TODO figure out hash table size, maybe make it's size dynamic?
 			Assert(!"too small hash table!");
 		}
 

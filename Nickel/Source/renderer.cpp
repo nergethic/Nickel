@@ -64,7 +64,8 @@ auto Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> 
 
 	ID3D11Debug* d3dDebug = nullptr;
 #if defined(_DEBUG)
-	//d3dDebug = EnableDebug(*device1);
+	d3dDebug = EnableDebug(*device1);
+	d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
 #endif
 
 	auto swapChain1 = Renderer::DXLayer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
@@ -96,14 +97,16 @@ auto Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> 
 	RendererState rs = {
 		.g_WindowHandle = wndHandle,
 		.device = device1,
-		.deviceCtx = deviceCtx1,
 		.swapChain = swapChain1,
+		.cmdQueue = CmdQueue {
+			.queue = deviceCtx1,
+			.debug = d3dDebug
+		},
 		.defaultRenderTargetView = renderTargetView,
 		.g_Viewport = viewport,
 
 		.backbufferWidth = backBufferDesc.Width,
-		.backbufferHeight = backBufferDesc.Height,
-		.d3dDebug = d3dDebug
+		.backbufferHeight = backBufferDesc.Height
 	};
 
 	ZeroMemory(rs.zeroBuffer,        ArrayCount(rs.zeroBuffer));
@@ -113,89 +116,9 @@ auto Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> 
 	return rs;
 }
 
-auto Renderer::Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void {
-	rs->deviceCtx->ClearRenderTargetView(rs->defaultRenderTargetView, clearColor);
-	rs->deviceCtx->ClearDepthStencilView(rs->defaultDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
-}
-
-// function inspired by:
-// http://www.rastertek.com/dx11tut03.html
-auto Renderer::QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL {
-	DXGI_RATIONAL refreshRate = { 0, 1 };
-	if (vsync) {
-		IDXGIFactory2* factory;
-		IDXGIAdapter* adapter;
-		IDXGIOutput* adapterOutput;
-		DXGI_MODE_DESC* displayModeList;
-
-		HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&factory);
-		if (FAILED(hr)) {
-			MessageBox(0,
-				TEXT("Could not create DXGIFactory instance."),
-				TEXT("Query Refresh Rate"),
-				MB_OK);
-
-			throw new std::exception("Failed to create DXGIFactory.");
-		}
-
-		hr = factory->EnumAdapters(0, &adapter);
-		if (FAILED(hr)) {
-			MessageBox(0,
-				TEXT("Failed to enumerate adapters."),
-				TEXT("Query Refresh Rate"),
-				MB_OK);
-
-			throw new std::exception("Failed to enumerate adapters.");
-		}
-
-		hr = adapter->EnumOutputs(0, &adapterOutput);
-		if (FAILED(hr)) {
-			MessageBox(0,
-				TEXT("Failed to enumerate adapter outputs."),
-				TEXT("Query Refresh Rate"),
-				MB_OK);
-
-			throw new std::exception("Failed to enumerate adapter outputs.");
-		}
-
-		UINT numDisplayModes;
-		hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, nullptr);
-		if (FAILED(hr)) {
-			MessageBox(0,
-				TEXT("Failed to query display mode list."),
-				TEXT("Query Refresh Rate"),
-				MB_OK);
-
-			throw new std::exception("Failed to query display mode list.");
-		}
-
-		displayModeList = new DXGI_MODE_DESC[numDisplayModes];
-		assert(displayModeList);
-
-		hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, displayModeList);
-		if (FAILED(hr)) {
-			MessageBox(0,
-				TEXT("Failed to query display mode list."),
-				TEXT("Query Refresh Rate"),
-				MB_OK);
-
-			throw new std::exception("Failed to query display mode list.");
-		}
-
-		// Now store the refresh rate of the monitor that matches the width and height of the requested screen.
-		for (UINT i = 0; i < numDisplayModes; ++i) {
-			if (displayModeList[i].Width == screenWidth && displayModeList[i].Height == screenHeight) {
-				refreshRate = displayModeList[i].RefreshRate;
-			}
-		}
-
-		delete[] displayModeList;
-		SafeRelease(adapterOutput);
-		SafeRelease(adapter);
-		SafeRelease(factory);
-	}
-
-	return refreshRate;
+auto Renderer::Clear(const CmdQueue& cmd, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void {
+	cmd.queue->ClearRenderTargetView(renderTargetView, clearColor);
+	cmd.queue->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
 }
 
 auto Renderer::CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState* {
@@ -241,13 +164,6 @@ auto Renderer::CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11Rast
 	}
 
 	return result;
-}
-
-auto Renderer::GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) -> UINT {
-	UINT maxQualityLevelPlusOne;
-	device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne); // const_cast<ID3D11Device1&>(
-
-	return maxQualityLevelPlusOne - 1;
 }
 
 auto Renderer::CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) -> ID3D11Texture2D* {
@@ -326,11 +242,9 @@ auto Renderer::CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindF
 	return newBuffer;
 }
 
-auto Renderer::CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
-	assert(rs != nullptr);
-	assert(rs->device != nullptr);
+auto Renderer::CreateVertexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
+	assert(device != nullptr);
 
-	auto device = rs->device.Get();
 	auto newVertexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, 0, 0, initialData);
 	//i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
 	//if (newVertexBuffer != nullptr) {
@@ -355,8 +269,12 @@ auto Renderer::CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRE
 	return newConstantBuffer;
 }
 
-auto Renderer::DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) -> void {
-	deviceCtx->DrawIndexed(indexCount, startIndex, startVertex);
+// this only needs ID3D11DeviceContext1* and debug
+auto Renderer::DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void {
+#if defined(_DEBUG)
+	cmd.debug->ValidateContext(cmd.queue.Get());
+#endif
+	cmd.queue->DrawIndexed(indexCount, startIndex, startVertex);
 }
 
 auto Renderer::CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout* {

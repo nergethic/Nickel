@@ -1,26 +1,5 @@
 #pragma once
 
-#pragma warning(push, 0) // ignores warnings from external headers
-// Link library dependencies
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib") // TODO: check why this doesn't have stuff from dxgi1_3.h (CreateDXGIFactory2)
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "winmm.lib")
-#pragma comment(lib, "dxguid.lib")
-
-// DirectX includes
-#include "platform.h"
-#include <d3d11_1.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-#include <DirectXColors.h>
-#include <WICTextureLoader.h>
-#include <dxgi.h>
-#include <dxgi1_3.h>
-
-#include <wrl/client.h>
-#pragma warning(pop)
-
 #include "DX11Layer.h"
 
 // STL includes
@@ -35,6 +14,8 @@
 #include "Shaders/TexPixelShader.h"
 
 using namespace DirectX;
+using namespace Renderer::DXLayer;
+using namespace Microsoft::WRL;
 
 struct VertexBuffer {
 	ID3D11Buffer* buffer;
@@ -53,7 +34,7 @@ struct ShaderData {
 	SIZE_T BytecodeLength;
 };
 
-struct Mesh {
+struct GPUMeshData {
 	VertexBuffer vertexBuffer;
 	u32 vertexCount;
 
@@ -98,11 +79,10 @@ struct RendererState {
 	HWND g_WindowHandle;
 
 	// Direct3D device and swap chain.
-	Microsoft::WRL::ComPtr<ID3D11Device1> device = nullptr;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext1> deviceCtx = nullptr;
-
-	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain = nullptr;
-
+	ComPtr<ID3D11Device1> device = nullptr;
+	ComPtr<IDXGISwapChain1> swapChain = nullptr;
+	CmdQueue cmdQueue = {};
+	
 	// Render target view for the back buffer of the swap chain.
 	ID3D11RenderTargetView* defaultRenderTargetView = nullptr;
 	// Depth/stencil view for use as a depth buffer.
@@ -145,26 +125,14 @@ struct RendererState {
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
-	Mesh meshes[2];
-
-	ID3D11Debug* d3dDebug = nullptr;
-};
-
-// Safely release a COM object.
-template<typename T>
-inline auto SafeRelease(T& ptr) -> void {
-	if (ptr != nullptr) {
-		ptr->Release();
-		ptr = nullptr;
-	}
+	GPUMeshData GPUMeshData[2];
 };
 
 namespace Renderer {
 	auto Initialize(HWND handle, u32 clientWidth, u32 clientHeight) -> RendererState;
-	auto QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL;
-	auto Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
+	auto Clear(const CmdQueue& cmd, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
 	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
-	auto CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
+	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) ->ID3D11Buffer*;
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) ->ID3D11DepthStencilState*;
@@ -172,8 +140,7 @@ namespace Renderer {
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels) ->ID3D11Texture2D*;
 	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D*;
 	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView*;
-	auto GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) -> UINT;
-	auto DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) -> void;
+	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void;
 	auto CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout*;
 	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) -> D3D11_VIEWPORT;
 	auto EnableDebug(const ID3D11Device1& device1) -> ID3D11Debug*;

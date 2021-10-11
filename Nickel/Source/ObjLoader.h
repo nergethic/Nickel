@@ -2,12 +2,11 @@
 
 //#include <iostream>
 //#include <string>
-#include <vector>
 #include <array>
 #include <Windows.h>
-#include "platform.h"
 #include <clocale>  /* tolower */
 #include <stdlib.h> /* strtod */
+#include "Mesh.h"
 
 // TODO Implement Sean Barrets stretchy buffer
 
@@ -45,6 +44,6 @@ namespace Nickel {
 		public:
 			ObjLoader() {}
 			auto DEBUG_ReadEntireFile(LPCSTR Filename) -> ObjFileMemory;
-			auto LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uv) -> void;
+			auto LoadObjMesh(const ObjFileMemory& file, MeshData& modelData) -> void;
 	};
 }

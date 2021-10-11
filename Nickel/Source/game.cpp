@@ -75,98 +75,95 @@ const UINT vertexStride = sizeof(VertexPosColor);
 const UINT texVertexStride = sizeof(VertexPosUV);
 const UINT offset = 0;
 
-auto SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) -> void {
-	assert(deviceCtx != nullptr);
-	assert(rs != nullptr);
-	assert(rs->defaultRenderTargetView != nullptr);
-	assert(rs->defaultDepthStencilView != nullptr);
-
-	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+auto Nickel::SetDefaultPass(const CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
+	assert(cmd.queue != nullptr);
+	cmd.queue->OMSetRenderTargets(1, renderTargetView, &depthStencilView);
 }
 
-auto SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState& pipeline) -> void {
-	assert(deviceCtx != nullptr);
-	assert(rs != nullptr);
-
-	deviceCtx->RSSetState(pipeline.rasterizerState);
-	deviceCtx->OMSetDepthStencilState(pipeline.depthStencilState, 1);
+auto SetPipelineState(const ID3D11DeviceContext1& cmd, RendererState* rs, PipelineState& pipeline) -> void {
+	ID3D11DeviceContext1& cmdQueue = const_cast<ID3D11DeviceContext1&>(cmd);
+	cmdQueue.RSSetState(pipeline.rasterizerState);
+	cmdQueue.OMSetDepthStencilState(pipeline.depthStencilState, 1);
 
 	// deviceCtx->OMSetBlendState(); // TODO
 
-	deviceCtx->IASetPrimitiveTopology(pipeline.topology);
-	deviceCtx->IASetInputLayout(pipeline.inputLayout);
-	deviceCtx->VSSetShader(pipeline.vertexShader, nullptr, 0);
+	cmdQueue.IASetPrimitiveTopology(pipeline.topology);
+	cmdQueue.IASetInputLayout(pipeline.inputLayout);
+	cmdQueue.VSSetShader(pipeline.vertexShader, nullptr, 0);
 
 	if (pipeline.vertexConstantBuffersCount == 0)
-		deviceCtx->VSSetConstantBuffers(0, ArrayCount(rs->zeroBuffer), rs->zeroBuffer);
+		cmdQueue.VSSetConstantBuffers(0, ArrayCount(rs->zeroBuffer), rs->zeroBuffer);
 	else
-		deviceCtx->VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer *const*)pipeline.vertexConstantBuffers);
+		cmdQueue.VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer *const*)pipeline.vertexConstantBuffers);
 
 	if (pipeline.pixelShader != nullptr)
-		deviceCtx->PSSetShader(pipeline.pixelShader, nullptr, 0);
-	// deviceCtx->PSSetConstantBuffers(); // TODO
+		cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
+	// cmdQueue->PSSetConstantBuffers(); // TODO
 
-	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
+	cmdQueue.RSSetViewports(1, &rs->g_Viewport);
 }
 
-auto SetVertexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
-	deviceCtx->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
+	NoConst(cmdQueue).IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 }
 
-auto SetIndexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void {
-	deviceCtx->IASetIndexBuffer(indexBuffer, format, offset);
+auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void {
+	NoConst(cmdQueue).IASetIndexBuffer(indexBuffer, format, offset);
 }
 
-auto DrawIndexed(ID3D11DeviceContext1* deviceCtx, UINT indexCount) -> void {
-	deviceCtx->DrawIndexed(indexCount, 0, 0);
+auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void {
+	NoConst(cmdQueue).DrawIndexed(indexCount, 0, 0);
 }
 
-auto DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
-	SetPipelineState(deviceCtx, rs, pipelineState);
+auto DrawBunny(const CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
+	auto& cmdQueue = *cmd.queue.Get();
+	SetPipelineState(cmdQueue, rs, pipelineState);
 
-	Mesh* mesh = &rs->meshes[0];
+	GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
-	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
+	cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
+	cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
 
-	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
-	SetVertexBuffer(deviceCtx, mesh->vertexBuffer.buffer, texVertexStride, offset);
+	SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+	SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
-	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+	cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
+	Renderer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 }
 
-auto DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
-	SetPipelineState(deviceCtx, rs, pipelineState);
+auto DrawLight(const CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
+	auto& cmdQueue = *cmd.queue.Get();
+	SetPipelineState(cmdQueue, rs, pipelineState);
 
-	Mesh* mesh = &rs->meshes[0];
+	GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-	deviceCtx->PSSetShaderResources(0, 1, &rs->textureView);
-	deviceCtx->PSSetSamplers(0, 1, &rs->texSamplerState);
+	cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
+	cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
 
-	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
-	SetVertexBuffer(deviceCtx, mesh->vertexBuffer.buffer, texVertexStride, offset);
+	SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+	SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
-	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+	cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
+	Renderer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 }
 
-auto DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
-	SetPipelineState(deviceCtx, rs, pipelineState);
+auto DrawSuzanne(const CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
+	auto& cmdQueue = *cmd.queue.Get();
+	SetPipelineState(cmdQueue, rs, pipelineState);
 
-	Mesh* mesh = &rs->meshes[1];
+	GPUMeshData* mesh = &rs->GPUMeshData[1];
 
-	deviceCtx->PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
-	deviceCtx->PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
+	cmdQueue.PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
+	cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
-	SetIndexBuffer(deviceCtx, mesh->indexBuffer);
-	SetVertexBuffer(deviceCtx, rs->meshes[1].vertexBuffer.buffer, vertexStride, offset);
+	SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+	SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, vertexStride, offset);
 
-	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+	cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
-	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
+	Renderer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 }
 
 auto ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) -> void {
@@ -177,7 +174,7 @@ auto ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) -> void {
 	// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 }
 
-auto GetVertexPosUVFromModelData(ModelData* data) -> std::vector<VertexPosUV> {
+auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
 	assert(data != nullptr);
 
 	std::vector<VertexPosUV> result;
@@ -201,7 +198,7 @@ auto GetVertexPosUVFromModelData(ModelData* data) -> std::vector<VertexPosUV> {
 	return result;
 }
 
-auto GetVertexPosColorFromModelData(ModelData* data) -> std::vector<VertexPosColor> {
+auto GetVertexPosColorFromModelData(MeshData* data) -> std::vector<VertexPosColor> {
 	assert(data != nullptr);
 
 	std::vector<VertexPosColor> result;
@@ -223,94 +220,102 @@ auto GetVertexPosColorFromModelData(ModelData* data) -> std::vector<VertexPosCol
 	return result;
 }
 
-auto LoadBunnyModel(RendererState* rs) -> Mesh {
-	assert(rs != nullptr);
-	assert(rs->device != nullptr);
-
-	auto device = rs->device.Get();
-	Mesh mesh = {0};
-
-	ModelData bunnyModelData;
-	auto loader = new ObjLoader();
-	ObjFileMemory objFile = loader->DEBUG_ReadEntireFile("Data/Models/bny.obj"); // Suzanne
-	loader->LoadObjModel(&objFile, &bunnyModelData.v, &bunnyModelData.i, &bunnyModelData.n, &bunnyModelData.uv);
-	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	mesh.indexCount = bunnyModelData.i.size();
-
-	auto vertexFormatData = GetVertexPosUVFromModelData(&bunnyModelData);
-	mesh.vertexCount = vertexFormatData.size();
-
-	// ------------------------------------------------
-	// Create and initialize the vertex buffer.
-	mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(rs, (sizeof(vertexFormatData[0]) * mesh.vertexCount));
-	D3D11_SUBRESOURCE_DATA resourceData1 = {0};
-	resourceData1.pSysMem = vertexFormatData.data();
-
-	// fill the buffer
-	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData1.pSysMem, 0, 0, 0);
-
-	//#ifdef _DEBUG
-	//	rs->d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL ); // TODO
-	//#endif // _DEBUG
-
-	D3D11_SUBRESOURCE_DATA resourceData2 = {0};
-	resourceData2.pSysMem = bunnyModelData.i.data();
-
-	auto byteWidthSize = sizeof(bunnyModelData.i[0]) * mesh.indexCount;
-	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData2);
-
-	delete loader;
-
-	return mesh;
+auto Nickel::LoadObjMeshData(MeshData& meshData, const std::string& path) -> void {
+	auto loader = ObjLoader();
+	ObjFileMemory objFile = loader.DEBUG_ReadEntireFile(path.c_str());
+	loader.LoadObjMesh(objFile, meshData);
 }
 
-auto LoadSuzanneModel(RendererState* rs) -> Mesh {
-	assert(rs != nullptr);
-	assert(rs->device != nullptr);
+auto LoadBunnyMesh(MeshData& meshData) -> void {
+	LoadObjMeshData(meshData, "Data/Models/bny.obj");
+}
 
+auto LoadSuzanneModel(MeshData& meshData) -> void {
+	LoadObjMeshData(meshData, "Data/Models/Suzanne.obj");
+
+	/*
 	auto device = rs->device.Get();
-	Mesh mesh = {0};
 
-	auto loader = new ObjLoader();
-	ModelData suzanneModelData;
-	ObjFileMemory objFile2 = loader->DEBUG_ReadEntireFile("Data/Models/Suzanne.obj");
+	auto meshData = MeshData();
+	LoadObjMeshData(meshData, "Data/Models/Suzanne.obj");
+	auto vertexFormatData = GetVertexPosColorFromModelData(&meshData);
 	
-	loader->LoadObjModel(&objFile2, &suzanneModelData.v, &suzanneModelData.i, &suzanneModelData.n, &suzanneModelData.uv);
-	//addMesh(&v, &allIndices, &md.v, &md.i, &md.n);
-	mesh.indexCount = suzanneModelData.i.size();
+	GPUMeshData mesh = {
 
-	auto vertexFormatData = GetVertexPosColorFromModelData(&suzanneModelData);
+	};
+	mesh.indexCount = meshData.i.size();
+
+	
 	mesh.vertexCount = vertexFormatData.size();
 
-	mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(rs, sizeof(vertexFormatData[0]) * mesh.vertexCount);
+	mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(device, sizeof(vertexFormatData[0]) * mesh.vertexCount);
 
 	D3D11_SUBRESOURCE_DATA resourceData3 = {0};
 	resourceData3.pSysMem = vertexFormatData.data();
 	rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
 
 	D3D11_SUBRESOURCE_DATA resourceData4 = {0};
-	resourceData4.pSysMem = suzanneModelData.i.data();
+	resourceData4.pSysMem = meshData.i.data();
 
-	u32 byteWidthSize = sizeof(suzanneModelData.i[0]) * mesh.indexCount;
-	mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData4);
+	u32 byteWidthSize = sizeof(meshData.i[0]) * mesh.indexCount;
+	// mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData4);
 
-	delete loader;
 	return mesh;
+	*/
 }
 
 auto LoadContent(RendererState* rs) -> bool {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
+	assert(rs->cmdQueue.queue != nullptr);
 
 	auto device = rs->device.Get();
 
-	//std::vector<u32> allIndices;
+	{ // Bunny
+		MeshData meshData;
+		LoadBunnyMesh(meshData);
 
-	Mesh bunnyMesh   = LoadBunnyModel(rs); // TODO: uncomment loading one model and fix renderer not displaying the rest of the loaded models
-	Mesh suzanneMesh = LoadSuzanneModel(rs);
+		auto vertexFormatData = GetVertexPosUVFromModelData(&meshData);
+		GPUMeshData gpuMeshData{
+			.vertexCount = static_cast<u32>(vertexFormatData.size()),
+			.indexCount  = static_cast<u32>(meshData.i.size())
+		};
 
-	rs->meshes[0] = bunnyMesh;
-	rs->meshes[1] = suzanneMesh;
+		D3D11_SUBRESOURCE_DATA vertexSubresource = { 0 };
+		vertexSubresource.pSysMem = vertexFormatData.data();
+		gpuMeshData.vertexBuffer.buffer = Renderer::CreateVertexBuffer(device, (sizeof(vertexFormatData[0]) * gpuMeshData.vertexCount), &vertexSubresource);
+
+		D3D11_SUBRESOURCE_DATA indexSubresource = {0};
+		indexSubresource.pSysMem = meshData.i.data();
+
+		auto byteWidthSize = sizeof(meshData.i[0]) * gpuMeshData.indexCount;
+		gpuMeshData.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &indexSubresource);
+
+		rs->GPUMeshData[0] = gpuMeshData;
+	}
+
+	{ // Suzanne
+		MeshData meshData;
+		LoadSuzanneModel(meshData);
+
+		auto vertexFormatData = GetVertexPosColorFromModelData(&meshData); // TODO: change this to GetVertexPosUVFromModelData and make easy to debug
+		GPUMeshData gpuMeshData{
+			.vertexCount = static_cast<u32>(vertexFormatData.size()),
+			.indexCount  = static_cast<u32>(meshData.i.size())
+		};
+
+		D3D11_SUBRESOURCE_DATA vertexSubresource = { 0 };
+		vertexSubresource.pSysMem = vertexFormatData.data();
+		gpuMeshData.vertexBuffer.buffer = Renderer::CreateVertexBuffer(device, (sizeof(vertexFormatData[0]) * gpuMeshData.vertexCount), &vertexSubresource);
+
+		D3D11_SUBRESOURCE_DATA indexSubresource = {0};
+		indexSubresource.pSysMem = meshData.i.data();
+
+		auto byteWidthSize = sizeof(meshData.i[0]) * gpuMeshData.indexCount;
+		gpuMeshData.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &indexSubresource);
+
+		rs->GPUMeshData[1] = gpuMeshData;
+	}
 
 	// Create the constant buffers for the variables defined in the vertex shader.
 	rs->g_d3dConstantBuffers[CB_Appliation] = Renderer::CreateConstantBuffer(device, sizeof(XMMATRIX));
@@ -359,16 +364,16 @@ auto LoadContent(RendererState* rs) -> bool {
 
 	rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
 
-	rs->deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
+	rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
 
 	return true;
 }
 
-auto Initialize(GameMemory* memory, RendererState* rs) -> void {
+auto Nickel::Initialize(GameMemory* memory, RendererState* rs) -> void {
 	assert(memory != nullptr);
 	assert(rs != nullptr);
 	assert(rs->device);
-	assert(rs->deviceCtx);
+	assert(rs->cmdQueue.queue);
 
 	ID3D11Device1* device = rs->device.Get();
 
@@ -419,12 +424,12 @@ auto Initialize(GameMemory* memory, RendererState* rs) -> void {
 	const FLOAT blendFactor[4] = {0};
 	// rs->deviceCtx->OMSetBlendState(state, blendFactor, 0);
 
-	ID3D11DeviceContext1* deviceCtx = rs->deviceCtx.Get();
-	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, nullptr);
-	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+	ID3D11DeviceContext1* cmdQueue = rs->cmdQueue.queue.Get();
+	cmdQueue->OMSetRenderTargets(1, &rs->defaultRenderTargetView, nullptr);
+	cmdQueue->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 }
 
-auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
+auto Nickel::UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 	// GameState* gs = (GameState*)memory;
 
 	Vec3 cameraPos;
@@ -445,27 +450,28 @@ auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) ->
 	frameData.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 	frameData.lightPosition = lightPos;
 
-	ID3D11DeviceContext1* deviceCtx = rs->deviceCtx.Get();
+	auto& cmdQueue = rs->cmdQueue;
 
-	deviceCtx->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
+	cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
 
 	// RENDER ---------------------------
 	const FLOAT clearColor[4] = {0.13333f, 0.13333f, 0.13333f, 1.0f};
-	Renderer::Clear(rs, clearColor, 1.0f, 0);
+	Renderer::Clear(cmdQueue, rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
-	SetDefaultPass(deviceCtx, rs);
+	assert(rs->defaultDepthStencilView != nullptr);
+	SetDefaultPass(cmdQueue, &rs->defaultRenderTargetView, *rs->defaultDepthStencilView);
 
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
-	DrawBunny(deviceCtx, rs, rs->pipelineStates[0]);
+	DrawBunny(cmdQueue, rs, rs->pipelineStates[0]);
 
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
-	DrawLight(deviceCtx, rs, rs->pipelineStates[0]);
+	DrawLight(cmdQueue, rs, rs->pipelineStates[0]);
 	
 	rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
 	rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
-	DrawSuzanne(deviceCtx, rs, rs->pipelineStates[1]);
+	DrawSuzanne(cmdQueue, rs, rs->pipelineStates[1]);
 
 	//deviceCtx->Draw(g_vertexCount, 0);
 

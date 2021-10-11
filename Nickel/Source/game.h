@@ -18,13 +18,6 @@ struct VertexPosColor {
 	XMFLOAT3 Color;
 };
 
-struct ModelData {
-	std::vector<f64> v;
-	std::vector<u32> i;
-	std::vector<f64> n;
-	std::vector<f32> uv;
-};
-
 static D3D11_INPUT_ELEMENT_DESC vertexPosColorLayoutDesc[] = {
 	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Position), D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPosColor, Normal),   D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -43,6 +36,9 @@ static D3D11_INPUT_ELEMENT_DESC vertexPosUVLayoutDesc[] = {
 	{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
 };
 
-auto Initialize(GameMemory* memory, RendererState* rs) -> void;
-auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
-auto SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) -> void;
+namespace Nickel {
+	auto Initialize(GameMemory* memory, RendererState* rs) -> void;
+	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
+	auto SetDefaultPass(const CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void;
+	auto LoadObjMeshData(MeshData& modelData, const std::string& path) -> void;
+}
