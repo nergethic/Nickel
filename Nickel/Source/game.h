@@ -43,6 +43,6 @@ static D3D11_INPUT_ELEMENT_DESC vertexPosUVLayoutDesc[] = {
 	{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
 };
 
-void Initialize(GameMemory* memory, RendererState* rs);
-void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input);
-void SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs);
+auto Initialize(GameMemory* memory, RendererState* rs) -> void;
+auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
+auto SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) -> void;

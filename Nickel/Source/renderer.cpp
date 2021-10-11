@@ -2,7 +2,7 @@
 
 static UINT MSAA_LEVEL = 4;
 
-D3D11_VIEWPORT Renderer::CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) {
+auto Renderer::CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) -> D3D11_VIEWPORT {
 	return {
 		.TopLeftX = minX,
 		.TopLeftY = minY,
@@ -13,7 +13,7 @@ D3D11_VIEWPORT Renderer::CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) 
 	};
 }
 
-ID3D11Debug* Renderer::EnableDebug(const ID3D11Device1& device1) {
+auto Renderer::EnableDebug(const ID3D11Device1& device1) -> ID3D11Debug* {
 	ID3D11Debug* d3dDebug {};
 
 	auto d = const_cast<ID3D11Device1*>(&device1);
@@ -44,7 +44,7 @@ ID3D11Debug* Renderer::EnableDebug(const ID3D11Device1& device1) {
 	return d3dDebug;
 }
 
-RendererState Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) {
+auto Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {
 	if (!XMVerifyCPUSupport()) {
 		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
 		//return -1; // TODO: logger
@@ -113,14 +113,14 @@ RendererState Renderer::Initialize(HWND wndHandle, u32 clientWidth, u32 clientHe
 	return rs;
 }
 
-void Renderer::Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) {
+auto Renderer::Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void {
 	rs->deviceCtx->ClearRenderTargetView(rs->defaultRenderTargetView, clearColor);
 	rs->deviceCtx->ClearDepthStencilView(rs->defaultDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
 }
 
 // function inspired by:
 // http://www.rastertek.com/dx11tut03.html
-DXGI_RATIONAL Renderer::QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) {
+auto Renderer::QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL {
 	DXGI_RATIONAL refreshRate = { 0, 1 };
 	if (vsync) {
 		IDXGIFactory2* factory;
@@ -198,7 +198,7 @@ DXGI_RATIONAL Renderer::QueryRefreshRate(UINT screenWidth, UINT screenHeight, BO
 	return refreshRate;
 }
 
-ID3D11DepthStencilState* Renderer::CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) {
+auto Renderer::CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState* {
 	assert(device != nullptr);
 	D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
 	ZeroMemory(&depthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
@@ -217,7 +217,7 @@ ID3D11DepthStencilState* Renderer::CreateDepthStencilState(ID3D11Device1* device
 	return result;
 }
 
-ID3D11RasterizerState* Renderer::CreateDefaultRasterizerState(ID3D11Device1* device) {
+auto Renderer::CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState* {
 	assert(device != nullptr);
 
 	D3D11_RASTERIZER_DESC rasterizerDesc;
@@ -243,14 +243,14 @@ ID3D11RasterizerState* Renderer::CreateDefaultRasterizerState(ID3D11Device1* dev
 	return result;
 }
 
-UINT Renderer::GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) {
+auto Renderer::GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) -> UINT {
 	UINT maxQualityLevelPlusOne;
 	device->CheckMultisampleQualityLevels(format, 8, &maxQualityLevelPlusOne); // const_cast<ID3D11Device1&>(
 
 	return maxQualityLevelPlusOne - 1;
 }
 
-ID3D11Texture2D* Renderer::CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) {
+auto Renderer::CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) -> ID3D11Texture2D* {
 	assert(device != nullptr);
 	D3D11_TEXTURE2D_DESC depthStencilTextureDesc = {0};
 
@@ -280,11 +280,11 @@ ID3D11Texture2D* Renderer::CreateTexture(ID3D11Device1* device, UINT width, UINT
 	return depthStencilBuffer;
 }
 
-ID3D11Texture2D* Renderer::CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) {
+auto Renderer::CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D* {
 	return CreateTexture(device, width, height, DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL);
 }
 
-ID3D11DepthStencilView* Renderer::CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) {
+auto Renderer::CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView* {
 	assert(device != nullptr);
 	assert(depthStencilTexture != nullptr);
 	
@@ -305,7 +305,7 @@ ID3D11DepthStencilView* Renderer::CreateDepthStencilView(ID3D11Device1* device, 
 	return result;
 }
 
-ID3D11Buffer* Renderer::CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData) {
+auto Renderer::CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
 	assert(device != nullptr);
 
 	D3D11_BUFFER_DESC bufferDesc = {0};
@@ -326,7 +326,7 @@ ID3D11Buffer* Renderer::CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, U
 	return newBuffer;
 }
 
-ID3D11Buffer* Renderer::CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+auto Renderer::CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
@@ -341,25 +341,25 @@ ID3D11Buffer* Renderer::CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SU
 	return newVertexBuffer;
 }
 
-ID3D11Buffer* Renderer::CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+auto Renderer::CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
 	assert(device != nullptr);
 	auto newIndexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER, size, 0, 0, initialData);
 
 	return newIndexBuffer;
 }
 
-ID3D11Buffer* Renderer::CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) {
+auto Renderer::CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
 	assert(device != nullptr);
 	auto newConstantBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER, size, 0, 0, initialData);
 
 	return newConstantBuffer;
 }
 
-void Renderer::DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) {
+auto Renderer::DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) -> void {
 	deviceCtx->DrawIndexed(indexCount, startIndex, startVertex);
 }
 
-ID3D11InputLayout* Renderer::CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) {
+auto Renderer::CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout* {
 	assert(device != nullptr);
 	assert(vertexLayoutDesc != nullptr);
 	assert(shaderBytecodeWithInputSignature != nullptr);
@@ -382,7 +382,7 @@ ID3D11InputLayout* Renderer::CreateInputLayout(ID3D11Device1* device, D3D11_INPU
 }
 
 template<>
-std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs) {
+auto GetLatestProfile<ID3D11VertexShader>(RendererState* rs) -> std::string {
 	assert(rs->device);
 
 	// Query the current feature level:
@@ -416,7 +416,7 @@ std::string GetLatestProfile<ID3D11VertexShader>(RendererState* rs) {
 }
 
 template<>
-std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs) {
+auto GetLatestProfile<ID3D11PixelShader>(RendererState* rs) -> std::string {
 	assert(rs->device);
 
 	// Query the current feature level:
@@ -448,7 +448,7 @@ std::string GetLatestProfile<ID3D11PixelShader>(RendererState* rs) {
 }
 
 template<>
-ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
+auto CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) -> ID3D11VertexShader* {
 	assert(rs->device);
 	assert(pShaderBlob);
 
@@ -459,7 +459,7 @@ ID3D11VertexShader* CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob
 }
 
 template<>
-ID3D11PixelShader* CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) {
+auto CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) -> ID3D11PixelShader* {
 	assert(rs->device);
 	assert(pShaderBlob);
 

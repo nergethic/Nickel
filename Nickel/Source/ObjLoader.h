@@ -35,16 +35,16 @@ namespace Nickel {
 		u8* stream;
 		u8* endAddress;
 
-		inline u32 ParseInt(u8* start);
-		u32 ParseIntAndAdvance();
-		double ParseFloatAndAdvance();
-		inline void EatWhitespace();
-		inline void SkipToWhitespace();
-		void Hash(u32 vertexId, u32 normalId);
+		inline auto ParseInt(u8* start) -> u32;
+		auto ParseIntAndAdvance() -> u32;
+		auto ParseFloatAndAdvance() -> f64;
+		inline auto EatWhitespace() -> void;
+		inline auto SkipToWhitespace() -> void;
+		auto Hash(u32 vertexId, u32 normalId) -> void;
 
 		public:
 			ObjLoader() {}
-			ObjFileMemory DEBUG_ReadEntireFile(LPCSTR Filename);
-			void LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uv);
+			auto DEBUG_ReadEntireFile(LPCSTR Filename) -> ObjFileMemory;
+			auto LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uv) -> void;
 	};
 }

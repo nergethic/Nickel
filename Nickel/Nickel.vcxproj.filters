@@ -49,7 +49,7 @@
     <ClCompile Include="Source\game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\obj_loader.cpp">
+    <ClCompile Include="Source\ObjLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\renderer.cpp">
@@ -58,18 +58,24 @@
     <ClCompile Include="Source\win32_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ShaderProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DX11Layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\obj_loader.h">
+    <ClInclude Include="Source\ObjLoader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\platform.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\renderer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Shaders\PixelShader.h">
@@ -83,6 +89,21 @@
     </ClInclude>
     <ClInclude Include="Source\Shaders\VertexShader.h">
       <Filter>Source Files\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DX11Layer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ShaderProgram.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

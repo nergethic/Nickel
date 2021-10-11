@@ -21,7 +21,7 @@ struct Vec3 {
 };
 
 /*
-void CreateCubeMap() {
+auto CreateCubeMap() -> void {
 	D3D11_TEXTURE2D_DESC texDesc;
 	texDesc.Width = description.width;
 	texDesc.Height = description.height;
@@ -75,7 +75,7 @@ const UINT vertexStride = sizeof(VertexPosColor);
 const UINT texVertexStride = sizeof(VertexPosUV);
 const UINT offset = 0;
 
-void SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) {
+auto SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) -> void {
 	assert(deviceCtx != nullptr);
 	assert(rs != nullptr);
 	assert(rs->defaultRenderTargetView != nullptr);
@@ -84,7 +84,7 @@ void SetDefaultPass(ID3D11DeviceContext1* deviceCtx, RendererState* rs) {
 	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 }
 
-void SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState& pipeline) {
+auto SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState& pipeline) -> void {
 	assert(deviceCtx != nullptr);
 	assert(rs != nullptr);
 
@@ -109,19 +109,19 @@ void SetPipelineState(ID3D11DeviceContext1* deviceCtx, RendererState* rs, Pipeli
 	deviceCtx->RSSetViewports(1, &rs->g_Viewport);
 }
 
-void SetVertexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) {
+auto SetVertexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
 	deviceCtx->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 }
 
-void SetIndexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) {
+auto SetIndexBuffer(ID3D11DeviceContext1* deviceCtx, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void {
 	deviceCtx->IASetIndexBuffer(indexBuffer, format, offset);
 }
 
-void DrawIndexed(ID3D11DeviceContext1* deviceCtx, UINT indexCount) {
+auto DrawIndexed(ID3D11DeviceContext1* deviceCtx, UINT indexCount) -> void {
 	deviceCtx->DrawIndexed(indexCount, 0, 0);
 }
 
-void DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
+auto DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
 	Mesh* mesh = &rs->meshes[0];
@@ -137,7 +137,7 @@ void DrawBunny(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState
 	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
-void DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
+auto DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
 	Mesh* mesh = &rs->meshes[0];
@@ -153,7 +153,7 @@ void DrawLight(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState
 	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
-void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) {
+auto DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineState pipelineState) -> void {
 	SetPipelineState(deviceCtx, rs, pipelineState);
 
 	Mesh* mesh = &rs->meshes[1];
@@ -169,7 +169,7 @@ void DrawSuzanne(ID3D11DeviceContext1* deviceCtx, RendererState* rs, PipelineSta
 	Renderer::DrawIndexed(deviceCtx, mesh->indexCount, 0, 0);
 }
 
-void ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) {
+auto ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) -> void {
 	assert(device != nullptr);
 	assert(pipeline != nullptr);
 
@@ -177,7 +177,7 @@ void ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) {
 	// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 }
 
-std::vector<VertexPosUV> GetVertexPosUVFromModelData(ModelData* data) {
+auto GetVertexPosUVFromModelData(ModelData* data) -> std::vector<VertexPosUV> {
 	assert(data != nullptr);
 
 	std::vector<VertexPosUV> result;
@@ -201,7 +201,7 @@ std::vector<VertexPosUV> GetVertexPosUVFromModelData(ModelData* data) {
 	return result;
 }
 
-std::vector<VertexPosColor> GetVertexPosColorFromModelData(ModelData* data) {
+auto GetVertexPosColorFromModelData(ModelData* data) -> std::vector<VertexPosColor> {
 	assert(data != nullptr);
 
 	std::vector<VertexPosColor> result;
@@ -223,7 +223,7 @@ std::vector<VertexPosColor> GetVertexPosColorFromModelData(ModelData* data) {
 	return result;
 }
 
-Mesh LoadBunnyModel(RendererState* rs) {
+auto LoadBunnyModel(RendererState* rs) -> Mesh {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
@@ -264,7 +264,7 @@ Mesh LoadBunnyModel(RendererState* rs) {
 	return mesh;
 }
 
-Mesh LoadSuzanneModel(RendererState* rs) {
+auto LoadSuzanneModel(RendererState* rs) -> Mesh {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
@@ -298,7 +298,7 @@ Mesh LoadSuzanneModel(RendererState* rs) {
 	return mesh;
 }
 
-bool LoadContent(RendererState* rs) {
+auto LoadContent(RendererState* rs) -> bool {
 	assert(rs != nullptr);
 	assert(rs->device != nullptr);
 
@@ -364,7 +364,7 @@ bool LoadContent(RendererState* rs) {
 	return true;
 }
 
-void Initialize(GameMemory* memory, RendererState* rs) {
+auto Initialize(GameMemory* memory, RendererState* rs) -> void {
 	assert(memory != nullptr);
 	assert(rs != nullptr);
 	assert(rs->device);
@@ -424,7 +424,7 @@ void Initialize(GameMemory* memory, RendererState* rs) {
 	deviceCtx->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 }
 
-void UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) {
+auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 	// GameState* gs = (GameState*)memory;
 
 	Vec3 cameraPos;

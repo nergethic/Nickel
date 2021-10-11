@@ -35,14 +35,12 @@ typedef double f64;
 // #define PushStruct(s) (size_of(s))
 // entity = PushStruct(Arena, Entity);
 
-struct Win32State
-{
+struct Win32State {
 	u64 TotalSize;
 	void *GameMemoryBlock;
 };
 
-typedef struct GameMemory
-{
+typedef struct GameMemory {
 	bool32 isInitialized;
 
 	u64 permanentStorageSize;
@@ -52,24 +50,20 @@ typedef struct GameMemory
 	void *temporaryStorage; // NOTE: REQUIRED to be cleared to zero at startup
 } GameMemory;
 
-typedef struct GameButtonState
-{
+typedef struct GameButtonState {
 	int halfTransitionCount;
 	bool endedDown;
 } GameButtonState;
 
-typedef struct GameControllerInput
-{
+typedef struct GameControllerInput {
 	bool isConnected;
 	bool isAnalog;
 	bool stickAverageX;
 	bool stickAverageY;
 
-	union
-	{
+	union {
 		GameButtonState buttons[12];
-		struct
-		{
+		struct {
 			GameButtonState up;
 			GameButtonState down;
 			GameButtonState left;
@@ -92,8 +86,7 @@ typedef struct GameControllerInput
 	};
 } GameControllerInput;
 
-typedef struct GameInput
-{
+typedef struct GameInput {
 	GameButtonState mouseButtons[5];
 	i32 mouseX, mouseY, mouseZ;
 

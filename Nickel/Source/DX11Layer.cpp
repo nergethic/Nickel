@@ -2,7 +2,7 @@
 
 namespace Renderer {
 	namespace DXLayer {
-		std::pair<ID3D11Device*, ID3D11DeviceContext*> CreateDevice() {
+		auto CreateDevice() -> std::pair<ID3D11Device*, ID3D11DeviceContext*> {
 			// Buffer Desc
 			/*
 			DXGI_MODE_DESC bufferDesc;
@@ -58,7 +58,7 @@ namespace Renderer {
 			return { device, deviceCtx };
 		}
 
-		IDXGISwapChain1* CreateSwapChain(HWND windowHandle, ID3D11Device1* device, int clientWidth, int clientHeight) {
+		auto CreateSwapChain(HWND windowHandle, ID3D11Device1* device, int clientWidth, int clientHeight) -> IDXGISwapChain1* {
 			DXGI_SWAP_CHAIN_DESC1 swapChainDesc1 = { 0 };
 
 			swapChainDesc1.Stereo = FALSE;

@@ -3,7 +3,7 @@
 using namespace Nickel;
 
 namespace Nickel {
-	ObjFileMemory ObjLoader::DEBUG_ReadEntireFile(LPCSTR Filename) { // todo move this to appropriate location
+	auto ObjLoader::DEBUG_ReadEntireFile(LPCSTR Filename) -> ObjFileMemory { // todo move this to appropriate location
 		ObjFileMemory result = {};
 
 		HANDLE FileHandle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -44,7 +44,7 @@ namespace Nickel {
 		return result;
 	}
 
-	inline u32 ObjLoader::ParseInt(u8* start) {
+	inline auto ObjLoader::ParseInt(u8* start) -> u32 {
 		u32 base = 10;
 		u32 val = 0;
 
@@ -57,7 +57,7 @@ namespace Nickel {
 		return val;
 	}
 
-	inline u32 ObjLoader::ParseIntAndAdvance() {
+	inline auto ObjLoader::ParseIntAndAdvance() -> u32 {
 
 		u32 base = 10;
 		u32 val = 0;
@@ -71,7 +71,7 @@ namespace Nickel {
 		return val;
 	}
 
-	void ObjLoader::LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uvs) {
+	auto ObjLoader::LoadObjModel(ObjFileMemory* file, std::vector<f64>* vertices, std::vector<u32>* indices, std::vector<f64>* normals, std::vector<f32>* uvs) -> void {
 
 		using namespace std;
 		vector<array<f64, 3>> packedVertices;
@@ -226,7 +226,7 @@ namespace Nickel {
 		delete[] table;
 	}
 
-	double ObjLoader::ParseFloatAndAdvance() {
+	auto ObjLoader::ParseFloatAndAdvance() -> f64 {
 
 		const char* start = (char*)stream;
 
@@ -270,19 +270,19 @@ namespace Nickel {
 		return val;
 	}
 
-	inline void ObjLoader::EatWhitespace() {
+	inline auto ObjLoader::EatWhitespace() -> void {
 		while ((*stream == ' ' || *stream == '\n') && stream + 1 < endAddress) { // TODO this is madness
 			stream++;
 		}
 	}
 
-	inline void ObjLoader::SkipToWhitespace() {
+	inline auto ObjLoader::SkipToWhitespace() -> void {
 		while (*stream != ' ' && *stream != '\n' && stream + 1 < endAddress) { // TODO this is madness
 			stream++;
 		}
 	}
 
-	void ObjLoader::Hash(u32 vertexId, u32 normalId) {
+	auto ObjLoader::Hash(u32 vertexId, u32 normalId) -> void {
 
 	}
 }

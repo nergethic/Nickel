@@ -3,17 +3,17 @@
 #include "game.h"
 #include "renderer.h"
 
-GameControllerInput *GetController(GameInput *input, int unsigned controllerIndex) {
+static bool running = true;
+static WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
+
+auto GetController(GameInput *input, u32 controllerIndex) -> GameControllerInput* {
 	Assert(controllerIndex < ArrayCount(input->controllers));
 
 	GameControllerInput *result = &input->controllers[controllerIndex];
 	return(result);
 }
 
-static bool running = true;
-static WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
-
-void ToggleFullscreen(HWND Window) {
+auto ToggleFullscreen(HWND Window) -> void {
 	// Raymond Chen's article: http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
 
 	DWORD Style = GetWindowLong(Window, GWL_STYLE);
@@ -39,7 +39,7 @@ void ToggleFullscreen(HWND Window) {
 	}
 }
 
-void Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown) {
+auto Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown) -> void {
 	//if (newState->endedDown != isDown)
 	//{
 	//	NewState->EndedDown = isDown;
@@ -47,7 +47,7 @@ void Win32ProcessKeyboardMessage(GameButtonState *newState, bool isDown) {
 	//}
 }
 
-void Win32ProcessPendingMessages(GameControllerInput *keyboardController) {
+auto Win32ProcessPendingMessages(GameControllerInput *keyboardController) -> void {
 	MSG message;
 	
 	while (PeekMessage(&message, 0, 0, 0, PM_REMOVE)) {
@@ -127,7 +127,7 @@ void Win32ProcessPendingMessages(GameControllerInput *keyboardController) {
 }
 
 // invoked by DispatchMessageA
-LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
+auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LRESULT {
 
 	PAINTSTRUCT paintStruct;
 	HDC hDC;
@@ -184,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) {
 	return 0;
 }
 
-HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) { //HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
+auto InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) -> HWND { //HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
 	assert(windowClass != nullptr);
 
 	windowClass->cbSize = sizeof(WNDCLASSEX);
@@ -227,7 +227,7 @@ HWND InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) { //HINSTAN
 	return wndHandle;
 }
 
-std::pair<u32, u32> GetClientResolution(HWND wndHandle) {
+auto GetClientResolution(HWND wndHandle) -> std::pair<u32, u32> {
 	RECT clientRect;
 	GetClientRect(wndHandle, &clientRect);
 
@@ -237,7 +237,7 @@ std::pair<u32, u32> GetClientResolution(HWND wndHandle) {
 	};
 }
 
-void AllocateGameMemory(GameMemory& gameMemory, Win32State& win32State) {
+auto AllocateGameMemory(GameMemory& gameMemory, Win32State& win32State) -> void {
 	gameMemory.permanentStorageSize = Megabytes(256);
 	gameMemory.temporaryStorageSize = Gigabytes(1);
 
@@ -248,12 +248,7 @@ void AllocateGameMemory(GameMemory& gameMemory, Win32State& win32State) {
 	gameMemory.temporaryStorage = (reinterpret_cast<u8*>(gameMemory.permanentStorage) + gameMemory.permanentStorageSize);
 }
 
-int WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR     lpCmdLine,
-	int       nShowCmd
-) {
+auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) -> int {
 	//if (!InitializeWinMain(hInstance, "Title", "MyWndClassName", 800, 600))
 	//	return -1;
 

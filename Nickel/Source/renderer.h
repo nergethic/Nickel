@@ -152,7 +152,7 @@ struct RendererState {
 
 // Safely release a COM object.
 template<typename T>
-inline void SafeRelease(T& ptr) {
+inline auto SafeRelease(T& ptr) -> void {
 	if (ptr != nullptr) {
 		ptr->Release();
 		ptr = nullptr;
@@ -160,33 +160,33 @@ inline void SafeRelease(T& ptr) {
 };
 
 namespace Renderer {
-	RendererState Initialize(HWND handle, u32 clientWidth, u32 clientHeight);
-	DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync);
-	void Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil);
-	ID3D11Buffer* CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-	ID3D11Buffer* CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-	ID3D11Buffer* CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-	ID3D11Buffer* CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-	ID3D11DepthStencilState* CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest);
-	ID3D11RasterizerState* CreateDefaultRasterizerState(ID3D11Device1* device);
-	ID3D11Texture2D* CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels);
-	ID3D11Texture2D* CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height);
-	ID3D11DepthStencilView* CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture);
-	UINT GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format);
-	void DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex);
-	ID3D11InputLayout* CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize);
-	D3D11_VIEWPORT CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY);
-	ID3D11Debug* EnableDebug(const ID3D11Device1& device1);
+	auto Initialize(HWND handle, u32 clientWidth, u32 clientHeight) -> RendererState;
+	auto QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL;
+	auto Clear(RendererState* rs, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
+	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
+	auto CreateVertexBuffer(RendererState* rs, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
+	auto CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
+	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) ->ID3D11Buffer*;
+	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) ->ID3D11DepthStencilState*;
+	auto CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState*;
+	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels) ->ID3D11Texture2D*;
+	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D*;
+	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView*;
+	auto GetHighestQualitySampleLevel(ID3D11Device1* device, DXGI_FORMAT format) -> UINT;
+	auto DrawIndexed(ID3D11DeviceContext1* deviceCtx, int indexCount, int startIndex, int startVertex) -> void;
+	auto CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout*;
+	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) -> D3D11_VIEWPORT;
+	auto EnableDebug(const ID3D11Device1& device1) -> ID3D11Debug*;
 }
 
 template<class ShaderClass>
-std::string GetLatestProfile(RendererState* rs);
+auto GetLatestProfile(RendererState* rs) -> std::string;
 
 template<class ShaderClass>
-ShaderClass* CreateShader(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage);
+auto CreateShader(RendererState* rs, ID3DBlob* pShaderBlob, ID3D11ClassLinkage* pClassLinkage) -> ShaderClass*;
 
 template<class ShaderClass>
-ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& _profile) {
+auto LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& _profile) -> ShaderClass* {
 	ID3DBlob* pShaderBlob = nullptr;
 	ID3DBlob* pErrorBlob = nullptr;
 	ShaderClass* pShader = nullptr;
