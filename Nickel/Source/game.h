@@ -39,6 +39,7 @@ static D3D11_INPUT_ELEMENT_DESC vertexPosUVLayoutDesc[] = {
 namespace Nickel {
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void;
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
-	auto SetDefaultPass(const CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void;
+	auto SetDefaultPass(const DXLayer::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void;
 	auto LoadObjMeshData(MeshData& modelData, const std::string& path) -> void;
+	auto LoadContent(RendererState* rs) -> bool;
 }

@@ -262,7 +262,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
 	assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
-	RendererState rs = Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
 
 	GameMemory gameMemory{};
 	Win32State win32State{};
