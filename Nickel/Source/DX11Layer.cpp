@@ -40,7 +40,7 @@ namespace Nickel::Renderer::DXLayer {
 				//throw new std::exception("Failed to enumerate adapter outputs.");
 			}
 
-			UINT numDisplayModes;
+			UINT numDisplayModes{};
 			hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, nullptr);
 			if (FAILED(hr)) {
 				MessageBox(0,
@@ -52,7 +52,7 @@ namespace Nickel::Renderer::DXLayer {
 			}
 
 			displayModeList = new DXGI_MODE_DESC[numDisplayModes];
-			assert(displayModeList);
+			Assert(displayModeList);
 
 			hr = adapterOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numDisplayModes, displayModeList);
 			if (FAILED(hr)) {
@@ -230,7 +230,7 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 		D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
 		ZeroMemory(&depthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
 
@@ -249,7 +249,7 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 
 		D3D11_RASTERIZER_DESC rasterizerDesc;
 		ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
@@ -275,7 +275,7 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) -> ID3D11Texture2D* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 		D3D11_TEXTURE2D_DESC depthStencilTextureDesc = { 0 };
 
 		depthStencilTextureDesc.ArraySize = 1;
@@ -310,8 +310,8 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView* {
-		assert(device != nullptr);
-		assert(depthStencilTexture != nullptr);
+		Assert(device != nullptr);
+		Assert(depthStencilTexture != nullptr);
 
 		// D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 		// ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
@@ -331,7 +331,7 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.Usage = usage;
@@ -360,9 +360,9 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout* {
-		assert(device != nullptr);
-		assert(vertexLayoutDesc != nullptr);
-		assert(shaderBytecodeWithInputSignature != nullptr);
+		Assert(device != nullptr);
+		Assert(vertexLayoutDesc != nullptr);
+		Assert(shaderBytecodeWithInputSignature != nullptr);
 
 		ID3D11InputLayout* result = nullptr;
 
@@ -375,14 +375,14 @@ namespace Nickel::Renderer::DXLayer {
 
 		if (FAILED(hr)) {
 			// TODO: log error
-			assert(nullptr);
+			Assert(nullptr);
 		}
 
 		return result;
 	}
 
 	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 
 		auto newVertexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, 0, 0, initialData);
 		//i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
@@ -395,14 +395,14 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 		auto newIndexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER, size, 0, 0, initialData);
 
 		return newIndexBuffer;
 	}
 
 	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
-		assert(device != nullptr);
+		Assert(device != nullptr);
 		auto newConstantBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER, size, 0, 0, initialData);
 
 		return newConstantBuffer;

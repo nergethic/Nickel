@@ -3,8 +3,28 @@
 #include <stddef.h>
 #include <utility>
 #include <type_traits>
+#include <intrin.h>
+#include <source_location>
+#include <string>
 
-#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+import Logger;
+
+#define _DEBUG 1;
+
+// TODO: change to normal procedure - make a platform universal MessageBox
+#if defined(_DEBUG)
+	#define Assert(expr) {  \
+		if (!(expr)) {      \
+			MessageBox(nullptr, Logger::GetSourceLocation(std::source_location::current()).c_str(), TEXT("Assertion Failed"), MB_OK); \
+			__debugbreak(); \
+			*(int *)0 = 0;  \
+		}                   \
+	}
+#else
+	#define Assert(expr) {}
+#endif
+
+
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 #define Kilobytes(Value) ((Value)*1024LL)
@@ -25,8 +45,6 @@ typedef uint64_t u64;
 
 typedef float f32;
 typedef double f64;
-
-#define _DEBUG 1;
 
 //struct MemoryPool {
 //	size_t base;

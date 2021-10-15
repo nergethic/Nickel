@@ -185,7 +185,7 @@ auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LR
 }
 
 auto InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) -> HWND { //HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
-	assert(windowClass != nullptr);
+	Assert(windowClass != nullptr);
 
 	windowClass->cbSize = sizeof(WNDCLASSEX);
 	windowClass->style = CS_HREDRAW | CS_VREDRAW;
@@ -259,8 +259,8 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	UpdateWindow(wndHandle);
 
 	auto [clientWidth, clientHeight] = GetClientResolution(wndHandle);
-	assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
-	assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
+	Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
+	Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
 	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
 

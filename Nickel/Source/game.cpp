@@ -60,11 +60,11 @@ auto CreateCubeMap() -> void {
 
 	HRESULT hr = renderer->getDevice()->CreateTexture2D(&texDesc,
 		description.data[0] ? &pData[0] : nullptr, &m_pCubeTexture);
-	assert(hr == S_OK);
+	Assert(hr == S_OK);
 
 	hr = renderer->getDevice()->CreateShaderResourceView(
 		m_pCubeTexture, &SMViewDesc, &m_pShaderResourceView);
-	assert(hr == S_OK);
+	Assert(hr == S_OK);
 }
 */
 
@@ -112,7 +112,7 @@ namespace Nickel {
 	}
 
 	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		assert(cmd.queue != nullptr);
+		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
 		SetPipelineState(cmdQueue, rs, pipelineState);
 
@@ -130,7 +130,7 @@ namespace Nickel {
 	}
 
 	auto DrawLight(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		assert(cmd.queue != nullptr);
+		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
 		SetPipelineState(cmdQueue, rs, pipelineState);
 
@@ -148,7 +148,7 @@ namespace Nickel {
 	}
 
 	auto DrawSuzanne(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		assert(cmd.queue != nullptr);
+		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
 		SetPipelineState(cmdQueue, rs, pipelineState);
 
@@ -166,15 +166,15 @@ namespace Nickel {
 	}
 
 	auto ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) -> void {
-		assert(device != nullptr);
-		assert(pipeline != nullptr);
+		Assert(device != nullptr);
+		Assert(pipeline != nullptr);
 
 		// TODO
 		// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 	}
 
 	auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
-		assert(data != nullptr);
+		Assert(data != nullptr);
 
 		std::vector<VertexPosUV> result;
 		f32 x, y, z;
@@ -198,7 +198,7 @@ namespace Nickel {
 	}
 
 	auto GetVertexPosColorFromModelData(MeshData* data) -> std::vector<VertexPosColor> {
-		assert(data != nullptr);
+		Assert(data != nullptr);
 
 		std::vector<VertexPosColor> result;
 		f32 x, y, z;
@@ -271,10 +271,10 @@ namespace Nickel {
 	//
 
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void {
-		assert(memory != nullptr);
-		assert(rs != nullptr);
-		assert(rs->device);
-		assert(rs->cmdQueue.queue);
+		Assert(memory != nullptr);
+		Assert(rs != nullptr);
+		Assert(rs->device);
+		Assert(rs->cmdQueue.queue);
 
 		ID3D11Device1* device = rs->device.Get();
 
@@ -283,7 +283,7 @@ namespace Nickel {
 		}
 
 		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
-		assert(rs->defaultDepthStencilBuffer != nullptr);
+		Assert(rs->defaultDepthStencilBuffer != nullptr);
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
 		auto depthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
@@ -359,7 +359,7 @@ namespace Nickel {
 		const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
 		DXLayer::Clear(cmdQueue, rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
-		assert(rs->defaultDepthStencilView != nullptr);
+		Assert(rs->defaultDepthStencilView != nullptr);
 		SetDefaultPass(cmdQueue, &rs->defaultRenderTargetView, *rs->defaultDepthStencilView);
 
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
@@ -380,9 +380,9 @@ namespace Nickel {
 	}
 
 	auto LoadContent(RendererState* rs) -> bool {
-		assert(rs != nullptr);
-		assert(rs->device != nullptr);
-		assert(rs->cmdQueue.queue != nullptr);
+		Assert(rs != nullptr);
+		Assert(rs->device != nullptr);
+		Assert(rs->cmdQueue.queue != nullptr);
 
 		auto device = rs->device.Get();
 
@@ -499,7 +499,7 @@ namespace Nickel {
 	}
 
 	auto SetDefaultPass(const DXLayer::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
-		assert(cmd.queue != nullptr);
+		Assert(cmd.queue != nullptr);
 		cmd.queue->OMSetRenderTargets(1, renderTargetView, &depthStencilView);
 	}
 }
