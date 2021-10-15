@@ -1,6 +1,6 @@
 #include "renderer.h"
 
-static UINT MSAA_LEVEL = 4; 
+static UINT MSAA_LEVEL = 4; // TODO: move this to config file
 
 namespace Nickel::Renderer {
 	auto Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {
@@ -12,38 +12,26 @@ namespace Nickel::Renderer {
 		auto [device, deviceCtx] = DXLayer::CreateDevice();
 
 		ID3D11Device1* device1 = nullptr;
-		HRESULT result = device->QueryInterface(&device1);
-		if (FAILED(result)) {
-			int x = 4;
-			//return -1; // TODO: logger
-		}
+		ASSERT_ERROR_RESULT(device->QueryInterface(&device1));
 
 		ID3D11DeviceContext1* deviceCtx1 = nullptr;
 		device1->GetImmediateContext1(&deviceCtx1);
 
 		ID3D11Debug* d3dDebug = nullptr;
-#if defined(_DEBUG)
-		d3dDebug = DXLayer::EnableDebug(*device1);
-		d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
-#endif
+		if constexpr (_DEBUG) {
+			d3dDebug = DXLayer::EnableDebug(*device1, false);
+			ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL));
+		}
 
 		auto swapChain1 = Renderer::DXLayer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
 
 		// back buffer for swap chain
 		ID3D11Texture2D* backBufferTexture;
-		result = swapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferTexture);
-		if (FAILED(result)) {
-			int x = 4;
-			//return -1; // TODO: logger
-		}
+		ASSERT_ERROR_RESULT(swapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferTexture));
 
 		// D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
 		ID3D11RenderTargetView* renderTargetView;
-		result = device1->CreateRenderTargetView(backBufferTexture, NULL, &renderTargetView);
-		if (FAILED(result)) {
-			int x = 4;
-			//return -1; // TODO: logger
-		}
+		ASSERT_ERROR_RESULT(device1->CreateRenderTargetView(backBufferTexture, NULL, &renderTargetView));
 		deviceCtx1->OMSetRenderTargets(1, &renderTargetView, NULL); // test code
 
 		D3D11_TEXTURE2D_DESC backBufferDesc = { 0 };
@@ -73,66 +61,6 @@ namespace Nickel::Renderer {
 		ZeroMemory(rs.zeroResourceViews, ArrayCount(rs.zeroBuffer));
 
 		return rs;
-	}
-
-	auto GetHResultString(HRESULT errCode) -> std::string {
-		switch (errCode) {
-			// Windows
-			case S_OK:           return "S_OK";
-			case E_NOTIMPL:      return "E_NOTIMPL";
-			case E_NOINTERFACE:  return "E_NOINTERFACE";
-			case E_POINTER:      return "E_POINTER";
-			case E_ABORT:        return "E_ABORT";
-			case E_FAIL:         return "E_FAIL";
-			case E_UNEXPECTED:   return "E_UNEXPECTED";
-			case E_ACCESSDENIED: return "E_ACCESSDENIED";
-			case E_HANDLE:       return "E_HANDLE";
-			case E_OUTOFMEMORY:  return "E_OUTOFMEMORY";
-			case E_INVALIDARG:   return "E_INVALIDARG";
-
-			// DX11
-			case D3D11_ERROR_FILE_NOT_FOUND:                return "D3D11_ERROR_FILE_NOT_FOUND";
-			case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS: return "D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
-
-			// DXGI
-			case DXGI_ERROR_ACCESS_DENIED:                return "DXGI_ERROR_ACCESS_DENIED";
-			case DXGI_ERROR_ACCESS_LOST:                  return "DXGI_ERROR_ACCESS_LOST";
-			case DXGI_ERROR_ALREADY_EXISTS:               return "DXGI_ERROR_ALREADY_EXISTS";
-			case DXGI_ERROR_CANNOT_PROTECT_CONTENT:       return "DXGI_ERROR_CANNOT_PROTECT_CONTENT";
-			case DXGI_ERROR_DEVICE_HUNG:                  return "DXGI_ERROR_DEVICE_HUNG";
-			case DXGI_ERROR_DEVICE_REMOVED:               return "DXGI_ERROR_DEVICE_REMOVED";
-			case DXGI_ERROR_DEVICE_RESET:                 return "DXGI_ERROR_DEVICE_RESET";
-			case DXGI_ERROR_DRIVER_INTERNAL_ERROR:        return "DXGI_ERROR_DRIVER_INTERNAL_ERROR";
-			case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:    return "DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
-			case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
-			case DXGI_ERROR_INVALID_CALL:                 return "DXGI_ERROR_INVALID_CALL";
-			case DXGI_ERROR_MORE_DATA:                    return "DXGI_ERROR_MORE_DATA";
-			case DXGI_ERROR_NAME_ALREADY_EXISTS:          return "DXGI_ERROR_NAME_ALREADY_EXISTS";
-			case DXGI_ERROR_NONEXCLUSIVE:                 return "DXGI_ERROR_NONEXCLUSIVE";
-			case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:      return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
-			case DXGI_ERROR_NOT_FOUND:                    return "DXGI_ERROR_NOT_FOUND";
-			case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:   return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
-			case DXGI_ERROR_REMOTE_OUTOFMEMORY:           return "DXGI_ERROR_REMOTE_OUTOFMEMORY";
-			case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:     return "DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
-			case DXGI_ERROR_SDK_COMPONENT_MISSING:        return "DXGI_ERROR_SDK_COMPONENT_MISSING";
-			case DXGI_ERROR_SESSION_DISCONNECTED:         return "DXGI_ERROR_SESSION_DISCONNECTED";
-			case DXGI_ERROR_UNSUPPORTED:                  return "DXGI_ERROR_UNSUPPORTED";
-			case DXGI_ERROR_WAIT_TIMEOUT:                 return "DXGI_ERROR_WAIT_TIMEOUT";
-			case DXGI_ERROR_WAS_STILL_DRAWING:            return "DXGI_ERROR_WAS_STILL_DRAWING";
-
-			default: return "Unhandled HRESULT code: " + std::to_string(static_cast<u32>(errCode));
-		}
-
-		return "";
-	}
-
-	auto GetHResultErrorMessage(HRESULT errCode) -> std::string {
-		std::string result = GetHResultString(errCode);
-		// TODO: add additional checks for robustness
-		// if DXGI_ERROR_DEVICE_REMOVED, DXGI_ERROR_DEVICE_RESET or DXGI_ERROR_DRIVER_INTERNAL_ERROR 
-		// ID3D11Device device - GetDeviceRemovedReason();
-
-		return result;
 	}
 }
 
@@ -208,7 +136,7 @@ auto CreateShader<ID3D11VertexShader>(RendererState* rs, ID3DBlob* pShaderBlob, 
 	Assert(pShaderBlob);
 
 	ID3D11VertexShader* pVertexShader = nullptr;
-	rs->device->CreateVertexShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pVertexShader);
+	ASSERT_ERROR_RESULT(rs->device->CreateVertexShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pVertexShader));
 
 	return pVertexShader;
 }
@@ -219,7 +147,7 @@ auto CreateShader<ID3D11PixelShader>(RendererState* rs, ID3DBlob* pShaderBlob, I
 	Assert(pShaderBlob);
 
 	ID3D11PixelShader* pPixelShader = nullptr;
-	rs->device->CreatePixelShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pPixelShader);
+	ASSERT_ERROR_RESULT(rs->device->CreatePixelShader(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pClassLinkage, &pPixelShader));
 
 	return pPixelShader;
 }

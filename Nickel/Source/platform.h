@@ -6,22 +6,28 @@
 #include <intrin.h>
 #include <source_location>
 #include <string>
+#include <sstream>
 
-import Logger;
+inline auto GetSourceLocation(const std::source_location& loc) -> std::string {
+	std::ostringstream result("file: ", std::ios_base::ate);
+	result << loc.file_name() << std::endl
+		<< "function: '" << loc.function_name() << "'" << std::endl
+		<< "line: " << loc.line();
 
-#define _DEBUG 1;
+	return result.str();
+}
 
 // TODO: change to normal procedure - make a platform universal MessageBox
 #if defined(_DEBUG)
-	#define Assert(expr) {  \
+#define Assert(expr) {  \
 		if (!(expr)) {      \
-			MessageBox(nullptr, Logger::GetSourceLocation(std::source_location::current()).c_str(), TEXT("Assertion Failed"), MB_OK); \
+			MessageBox(nullptr, GetSourceLocation(std::source_location::current()).c_str(), TEXT("Assertion Failed"), MB_OK); \
 			__debugbreak(); \
 			*(int *)0 = 0;  \
 		}                   \
 	}
 #else
-	#define Assert(expr) {}
+#define Assert(expr) {}
 #endif
 
 

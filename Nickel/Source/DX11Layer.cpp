@@ -122,10 +122,10 @@ namespace Nickel::Renderer::DXLayer {
 
 		UINT deviceFlags = D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-#if defined(_DEBUG)
-		deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
-		// deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUGGABLE; // this shit just gave up and refuses to work (but be sure to have Graphics Tools feature installed on Win 10!)
-#endif
+		if constexpr(_DEBUG) {
+			deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
+			// deviceFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUGGABLE; // this shit just gave up and refuses to work (but be sure to have Graphics Tools feature installed on Win 10!)
+		}
 
 		D3D_FEATURE_LEVEL selectedFeatureLevel;
 
@@ -164,19 +164,16 @@ namespace Nickel::Renderer::DXLayer {
 
 		IDXGIFactory2* pFactory;
 		UINT factoryFlags = 0;
-#if defined(_DEBUG)
-		factoryFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
-#endif
+		if constexpr(_DEBUG) {
+			factoryFlags |= D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
+		}
 		HRESULT result = CreateDXGIFactory2(factoryFlags, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&pFactory));
 		if (FAILED(result)) {
 			//return -1; // TODO: logger
 		}
 
 		IDXGISwapChain1* swapChain1 = nullptr;
-		result = pFactory->CreateSwapChainForHwnd(device, windowHandle, &swapChainDesc1, &swapChainFullscreenDesc, nullptr, &swapChain1);
-		if (FAILED(result) || result == DXGI_ERROR_INVALID_CALL) {
-			//return -1; // TODO: logger
-		}
+		ASSERT_ERROR_RESULT(pFactory->CreateSwapChainForHwnd(device, windowHandle, &swapChainDesc1, &swapChainFullscreenDesc, nullptr, &swapChain1));
 
 		// SafeRelease(pFactory); // TODO
 		return swapChain1;
@@ -193,7 +190,7 @@ namespace Nickel::Renderer::DXLayer {
 		};
 	}
 
-	auto EnableDebug(const ID3D11Device1& device1) -> ID3D11Debug* {
+	auto EnableDebug(const ID3D11Device1& device1, bool shouldBeVerbose) -> ID3D11Debug* {
 		ID3D11Debug* d3dDebug{};
 
 		auto d = const_cast<ID3D11Device1*>(&device1);
@@ -202,8 +199,10 @@ namespace Nickel::Renderer::DXLayer {
 			ID3D11InfoQueue* d3dInfoQueue = nullptr;
 			if (SUCCEEDED(d3dDebug->QueryInterface(__uuidof(ID3D11InfoQueue), reinterpret_cast<void**>(&d3dInfoQueue)))) {
 
-				d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-				d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+				d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY::D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+				d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY::D3D11_MESSAGE_SEVERITY_ERROR, true);
+				if (shouldBeVerbose)
+					d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY::D3D11_MESSAGE_SEVERITY_WARNING, true);
 
 				D3D11_MESSAGE_ID hide[] = {
 					D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
@@ -242,6 +241,7 @@ namespace Nickel::Renderer::DXLayer {
 		ID3D11DepthStencilState* result = nullptr;
 		HRESULT hr = device->CreateDepthStencilState(&depthStencilStateDesc, &result);
 		if (!SUCCEEDED(hr)) {
+			Assert(false);
 			// TODO: report error
 		}
 
@@ -267,7 +267,8 @@ namespace Nickel::Renderer::DXLayer {
 
 		ID3D11RasterizerState* result = nullptr;
 		HRESULT hr = device->CreateRasterizerState(&rasterizerDesc, &result);
-		if (FAILED(result)) {
+		if (FAILED(hr)) {
+			Assert(false);
 			// TODO: report error
 		}
 
@@ -299,6 +300,7 @@ namespace Nickel::Renderer::DXLayer {
 		ID3D11Texture2D* depthStencilBuffer = nullptr;
 		HRESULT hr = device->CreateTexture2D(&depthStencilTextureDesc, nullptr, &depthStencilBuffer);
 		if (FAILED(hr)) {
+			Assert(false);
 			// TODO: report error
 		}
 
@@ -351,11 +353,15 @@ namespace Nickel::Renderer::DXLayer {
 		return newBuffer;
 	}
 
-	// this only needs ID3D11DeviceContext1* and debug
+	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void {
+		if constexpr (_DEBUG)
+			cmd.debug->ValidateContext(cmd.queue.Get());
+		cmd.queue->Draw(indexCount, startVertex);
+	}
+
 	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void {
-#if defined(_DEBUG)
-		cmd.debug->ValidateContext(cmd.queue.Get());
-#endif
+		if constexpr(_DEBUG)
+			cmd.debug->ValidateContext(cmd.queue.Get());
 		cmd.queue->DrawIndexed(indexCount, startIndex, startVertex);
 	}
 
@@ -406,5 +412,65 @@ namespace Nickel::Renderer::DXLayer {
 		auto newConstantBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER, size, 0, 0, initialData);
 
 		return newConstantBuffer;
+	}
+
+	auto GetHResultString(HRESULT errCode) -> std::string {
+		switch (errCode) {
+			// Windows
+		case S_OK:           return "S_OK";
+		case E_NOTIMPL:      return "E_NOTIMPL";
+		case E_NOINTERFACE:  return "E_NOINTERFACE";
+		case E_POINTER:      return "E_POINTER";
+		case E_ABORT:        return "E_ABORT";
+		case E_FAIL:         return "E_FAIL";
+		case E_UNEXPECTED:   return "E_UNEXPECTED";
+		case E_ACCESSDENIED: return "E_ACCESSDENIED";
+		case E_HANDLE:       return "E_HANDLE";
+		case E_OUTOFMEMORY:  return "E_OUTOFMEMORY";
+		case E_INVALIDARG:   return "E_INVALIDARG";
+
+			// DX11
+		case D3D11_ERROR_FILE_NOT_FOUND:                return "D3D11_ERROR_FILE_NOT_FOUND";
+		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS: return "D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+
+			// DXGI
+		case DXGI_ERROR_ACCESS_DENIED:                return "DXGI_ERROR_ACCESS_DENIED";
+		case DXGI_ERROR_ACCESS_LOST:                  return "DXGI_ERROR_ACCESS_LOST";
+		case DXGI_ERROR_ALREADY_EXISTS:               return "DXGI_ERROR_ALREADY_EXISTS";
+		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:       return "DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+		case DXGI_ERROR_DEVICE_HUNG:                  return "DXGI_ERROR_DEVICE_HUNG";
+		case DXGI_ERROR_DEVICE_REMOVED:               return "DXGI_ERROR_DEVICE_REMOVED";
+		case DXGI_ERROR_DEVICE_RESET:                 return "DXGI_ERROR_DEVICE_RESET";
+		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:        return "DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:    return "DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
+		case DXGI_ERROR_INVALID_CALL:                 return "DXGI_ERROR_INVALID_CALL";
+		case DXGI_ERROR_MORE_DATA:                    return "DXGI_ERROR_MORE_DATA";
+		case DXGI_ERROR_NAME_ALREADY_EXISTS:          return "DXGI_ERROR_NAME_ALREADY_EXISTS";
+		case DXGI_ERROR_NONEXCLUSIVE:                 return "DXGI_ERROR_NONEXCLUSIVE";
+		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:      return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
+		case DXGI_ERROR_NOT_FOUND:                    return "DXGI_ERROR_NOT_FOUND";
+		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:   return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+		case DXGI_ERROR_REMOTE_OUTOFMEMORY:           return "DXGI_ERROR_REMOTE_OUTOFMEMORY";
+		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:     return "DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+		case DXGI_ERROR_SDK_COMPONENT_MISSING:        return "DXGI_ERROR_SDK_COMPONENT_MISSING";
+		case DXGI_ERROR_SESSION_DISCONNECTED:         return "DXGI_ERROR_SESSION_DISCONNECTED";
+		case DXGI_ERROR_UNSUPPORTED:                  return "DXGI_ERROR_UNSUPPORTED";
+		case DXGI_ERROR_WAIT_TIMEOUT:                 return "DXGI_ERROR_WAIT_TIMEOUT";
+		case DXGI_ERROR_WAS_STILL_DRAWING:            return "DXGI_ERROR_WAS_STILL_DRAWING";
+
+		default: return "Unhandled HRESULT code: " + std::to_string(static_cast<u32>(errCode));
+		}
+
+		return "";
+	}
+
+	auto GetHResultErrorMessage(HRESULT errCode) -> std::string {
+		std::string result = GetHResultString(errCode);
+		// TODO: add additional checks for robustness
+		// if DXGI_ERROR_DEVICE_REMOVED, DXGI_ERROR_DEVICE_RESET or DXGI_ERROR_DRIVER_INTERNAL_ERROR 
+		// ID3D11Device device - GetDeviceRemovedReason();
+
+		return result;
 	}
 }

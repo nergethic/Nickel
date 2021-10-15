@@ -17,15 +17,6 @@ using namespace DirectX;
 using namespace Nickel::Renderer;
 using namespace Microsoft::WRL;
 
-#if defined(_DEBUG)
-	#define ASSERT_ERROR_RESULT(res) { HRESULT result = res; if (FAILED(result)) AssertD3DResult(result, __FILE__, __LINE__); }
-	#define LOG_ERROR_RESULT(res)    { HRESULT result = res; if (FAILED(result)) LogD3DResult(result, __FILE__, __LINE__); }
-#else
-	#define ASSERT_ERROR_RESULT(res) {}
-	#define LOG_ERROR_RESULT(res) {}
-#endif
-
-
 struct VertexBuffer {
 	ID3D11Buffer* buffer;
 	D3D11_INPUT_ELEMENT_DESC inputElementDescription;
@@ -140,14 +131,6 @@ struct RendererState {
 namespace Nickel {
 	namespace Renderer {
 		auto Initialize(HWND handle, u32 clientWidth, u32 clientHeight) -> RendererState;
-		auto GetHResultString(HRESULT errCode) -> std::string;
-		auto GetHResultErrorMessage(HRESULT errCode) -> std::string;
-
-		inline auto AssertD3DResult(HRESULT result, const char* file = "", u32 line = 0) -> void {
-			Assert(FAILED(result));
-			const std::string& errorString = GetHResultErrorMessage(result);
-			// TODO: Log file, line
-		}
 	}
 }
 

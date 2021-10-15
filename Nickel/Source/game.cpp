@@ -99,14 +99,17 @@ namespace Nickel {
 		cmdQueue.RSSetViewports(1, &rs->g_Viewport);
 	}
 
+	// TODO: move to renderer
 	inline auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
 		NoConst(cmdQueue).IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	}
 
+	// TODO: move to renderer
 	inline auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void {
 		NoConst(cmdQueue).IASetIndexBuffer(indexBuffer, format, offset);
 	}
 
+	// TODO: move to renderer
 	inline auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void {
 		NoConst(cmdQueue).DrawIndexed(indexCount, 0, 0);
 	}
