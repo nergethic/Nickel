@@ -279,6 +279,8 @@ namespace Nickel {
 		Assert(rs->device);
 		Assert(rs->cmdQueue.queue);
 
+		InitLogger();
+
 		ID3D11Device1* device = rs->device.Get();
 
 		if (!LoadContent(rs)) {
@@ -378,7 +380,7 @@ namespace Nickel {
 		DrawSuzanne(cmdQueue, rs, rs->pipelineStates[1]);
 
 		//deviceCtx->Draw(g_vertexCount, 0);
-
+		Log();
 		rs->swapChain->Present(1, 0);
 	}
 

@@ -8,6 +8,8 @@
 #include <string>
 #include <sstream>
 
+#include "Logger.h"
+
 inline auto GetSourceLocation(const std::source_location& loc) -> std::string {
 	std::ostringstream result("file: ", std::ios_base::ate);
 	result << loc.file_name() << std::endl

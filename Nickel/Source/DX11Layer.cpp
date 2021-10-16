@@ -355,13 +355,13 @@ namespace Nickel::Renderer::DXLayer {
 
 	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void {
 		if constexpr (_DEBUG)
-			cmd.debug->ValidateContext(cmd.queue.Get());
+			if (cmd.debug != nullptr) cmd.debug->ValidateContext(cmd.queue.Get());
 		cmd.queue->Draw(indexCount, startVertex);
 	}
 
 	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void {
 		if constexpr(_DEBUG)
-			cmd.debug->ValidateContext(cmd.queue.Get());
+			if (cmd.debug != nullptr) cmd.debug->ValidateContext(cmd.queue.Get());
 		cmd.queue->DrawIndexed(indexCount, startIndex, startVertex);
 	}
 

@@ -19,8 +19,8 @@ namespace Nickel::Renderer {
 
 		ID3D11Debug* d3dDebug = nullptr;
 		if constexpr (_DEBUG) {
-			d3dDebug = DXLayer::EnableDebug(*device1, false);
-			ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL));
+			//d3dDebug = DXLayer::EnableDebug(*device1, false);
+			//ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL));
 		}
 
 		auto swapChain1 = Renderer::DXLayer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);

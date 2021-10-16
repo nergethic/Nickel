@@ -299,4 +299,6 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 
 		std::swap(newInput, oldInput);
 	}
+
+	spdlog::drop_all(); // Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 }
