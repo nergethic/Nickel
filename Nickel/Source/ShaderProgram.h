@@ -16,10 +16,18 @@ namespace Nickel::Renderer::DXLayer {
 	};
 
 	class ShaderProgram {
+		public:
+		ShaderProgram() = default;
+		~ShaderProgram() = default;
+
+		auto Create(ID3D11Device1* device, const void* vertexShaderBytecode, const void* pixelShaderBytecode) -> void;
+		auto Bind(ID3D11DeviceContext1* ctx) -> void;
+		auto Unbind(ID3D11DeviceContext1* ctx) -> void;
+
 		ID3D11VertexShader* vertexShader = nullptr;
 		ID3D11PixelShader* pixelShader = nullptr;
 
-		ID3D11ComputeShader* computeShader = nullptr;
+		private:
 
 		template<typename T>
 		static auto CreateShaderFromBytecode(ID3D11Device1* device, ShaderStage shaderType, const void* shaderBytecode) -> decltype(auto) {
@@ -54,24 +62,5 @@ namespace Nickel::Renderer::DXLayer {
 
 			return result;
 		}
-
-		inline auto Create(ID3D11Device1* device, const void* vertexShaderBytecode, const void* pixelShaderBytecode) {
-			Assert(vertexShaderBytecode != nullptr);
-			Assert(pixelShaderBytecode != nullptr);
-			auto vertexShader = CreateShaderFromBytecode<ID3D11VertexShader>(device, ShaderStage::Vertex, vertexShaderBytecode);
-			auto pixelShader = CreateShaderFromBytecode<ID3D11PixelShader>(device, ShaderStage::Pixel, pixelShaderBytecode);
-		}
-
-		inline auto Bind(ID3D11DeviceContext1*) -> void {
-
-		}
-
-		inline auto Unbind(ID3D11DeviceContext1*) -> void {
-
-		}
-
-		public:
-			ShaderProgram();
-			~ShaderProgram();
 	};
 }

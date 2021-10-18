@@ -69,7 +69,7 @@ struct PerFrameBufferData {
 };
 
 // Shader resources
-enum ConstanBuffer {
+enum class ConstantBuffer {
 	CB_Appliation,
 	CB_Frame,
 	CB_Object,
@@ -97,7 +97,7 @@ struct RendererState {
 	ID3D11ShaderResourceView* textureView = nullptr;
 	ID3D11SamplerState* texSamplerState = nullptr;
 
-	ID3D11Buffer* g_d3dConstantBuffers[NumConstantBuffers];
+	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
 	// Shader data
 	ID3D11VertexShader* g_d3dSimpleVertexShader = nullptr;

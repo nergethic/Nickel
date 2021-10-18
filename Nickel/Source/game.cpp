@@ -112,7 +112,7 @@ namespace Nickel {
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
 		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 	}
@@ -130,7 +130,7 @@ namespace Nickel {
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
 		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 	}
@@ -148,7 +148,7 @@ namespace Nickel {
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, vertexStride, offset);
 
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
+		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
 		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 	}
@@ -357,7 +357,7 @@ namespace Nickel {
 		auto cmd = rs->cmdQueue;
 		auto& queue = *cmd.queue.Get();
 
-		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
+		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
 
 		// RENDER ---------------------------
 		Assert(rs->defaultRenderTargetView != nullptr);
@@ -370,7 +370,6 @@ namespace Nickel {
 
 		/*
 		DescribedMesh meshes[5];
-		ShaderProgram* currentProgram; // take out of scope
 		for (int i = 0; i < 5; i++) { // rs->sceneMeshes
 			auto mesh = meshes[i];
 
@@ -471,9 +470,9 @@ namespace Nickel {
 		}
 
 		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
-		rs->g_d3dConstantBuffers[CB_Object] = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
-		rs->g_d3dConstantBuffers[CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// vertex shader
 		HRESULT hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
@@ -517,7 +516,7 @@ namespace Nickel {
 
 		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
 
-		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
+		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
 
 		return true;
 	}
