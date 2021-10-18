@@ -135,9 +135,10 @@ namespace Nickel::Renderer::DXLayer {
 		if (result == E_INVALIDARG) { // Create device with feature levels up to 11_0
 			result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, deviceFlags, &FEATURE_LEVELS[1], ArrayCount(FEATURE_LEVELS) - 1, D3D11_SDK_VERSION, &device, &selectedFeatureLevel, &deviceCtx);
 		}
+
 		if (FAILED(result)) {
-			//return -1;
-			// TODO: Logger
+			Logger::Error("D3D11Device creation failed");
+			Assert(false);
 		}
 
 		return { device, deviceCtx };
@@ -169,7 +170,8 @@ namespace Nickel::Renderer::DXLayer {
 		}
 		HRESULT result = CreateDXGIFactory2(factoryFlags, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&pFactory));
 		if (FAILED(result)) {
-			//return -1; // TODO: logger
+			Logger::Error("DXGIFactory2 creation failed");
+			Assert(false);
 		}
 
 		IDXGISwapChain1* swapChain1 = nullptr;
@@ -223,9 +225,25 @@ namespace Nickel::Renderer::DXLayer {
 		return d3dDebug;
 	}
 
-	auto Clear(const CmdQueue& cmd, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void {
-		cmd.queue->ClearRenderTargetView(renderTargetView, clearColor);
-		cmd.queue->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clearDepth, clearStencil);
+	auto Clear(const CmdQueue& cmd, u32 clearFlag, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void {
+		const bool shouldClearColor   = clearFlag & static_cast<u32>(ClearFlag::CLEAR_COLOR);
+		const bool shouldClearDepth   = clearFlag & static_cast<u32>(ClearFlag::CLEAR_DEPTH);
+		const bool shouldClearStencil = clearFlag & static_cast<u32>(ClearFlag::CLEAR_STENCIL);
+
+		if (shouldClearColor) {
+			if (renderTargetView != nullptr)
+				cmd.queue->ClearRenderTargetView(renderTargetView, clearColor);
+			else
+				Logger::Error("clear flag has CLEAR_COLOR bit but passed renderTargetView is null");
+		}
+
+		if (shouldClearDepth || shouldClearStencil) {
+			const u32 depthStencilClearFlag = (shouldClearDepth ? D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH : 0) | (shouldClearStencil ? D3D11_CLEAR_FLAG::D3D11_CLEAR_STENCIL : 0);
+			if (depthStencilView != nullptr)
+				cmd.queue->ClearDepthStencilView(depthStencilView, depthStencilClearFlag, clearDepth, clearStencil);
+			else
+				Logger::Error("clear flag has CLEAR_DEPTH or CLEAR_STENCIL bit but passed depthStencilView is null");
+		}
 	}
 
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState* {
@@ -242,7 +260,7 @@ namespace Nickel::Renderer::DXLayer {
 		HRESULT hr = device->CreateDepthStencilState(&depthStencilStateDesc, &result);
 		if (!SUCCEEDED(hr)) {
 			Assert(false);
-			// TODO: report error
+			Logger::Error("Depth Stencil State creation failed");
 		}
 
 		return result;
@@ -355,13 +373,15 @@ namespace Nickel::Renderer::DXLayer {
 
 	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void {
 		if constexpr (_DEBUG)
-			if (cmd.debug != nullptr) cmd.debug->ValidateContext(cmd.queue.Get());
+			if (cmd.debug != nullptr)
+				cmd.debug->ValidateContext(cmd.queue.Get());
 		cmd.queue->Draw(indexCount, startVertex);
 	}
 
 	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void {
 		if constexpr(_DEBUG)
-			if (cmd.debug != nullptr) cmd.debug->ValidateContext(cmd.queue.Get());
+			if (cmd.debug != nullptr)
+				cmd.debug->ValidateContext(cmd.queue.Get());
 		cmd.queue->DrawIndexed(indexCount, startIndex, startVertex);
 	}
 
@@ -414,52 +434,74 @@ namespace Nickel::Renderer::DXLayer {
 		return newConstantBuffer;
 	}
 
+	auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
+		NoConst(cmdQueue).IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	}
+
+	auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format, u32 offset) -> void {
+		NoConst(cmdQueue).IASetIndexBuffer(indexBuffer, format, offset);
+	}
+
+	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void {
+		NoConst(cmdQueue).DrawIndexed(indexCount, 0, 0);
+	}
+
+	auto SetRenderTargets(const ID3D11DeviceContext1& cmdQueue, std::span<ID3D11RenderTargetView* const*> colorTargets, ID3D11DepthStencilView* depthTarget) -> void {
+		const u32 size = colorTargets.size();
+		Assert(size <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+		NoConst(cmdQueue).OMSetRenderTargets(size, colorTargets[0], depthTarget);
+	}
+
+	auto SetRenderTarget(const ID3D11DeviceContext1& cmdQueue, ID3D11RenderTargetView* const* colorTarget, ID3D11DepthStencilView* depthTarget) -> void {
+		NoConst(cmdQueue).OMSetRenderTargets(1, colorTarget, depthTarget);
+	}
+
 	auto GetHResultString(HRESULT errCode) -> std::string {
 		switch (errCode) {
 			// Windows
-		case S_OK:           return "S_OK";
-		case E_NOTIMPL:      return "E_NOTIMPL";
-		case E_NOINTERFACE:  return "E_NOINTERFACE";
-		case E_POINTER:      return "E_POINTER";
-		case E_ABORT:        return "E_ABORT";
-		case E_FAIL:         return "E_FAIL";
-		case E_UNEXPECTED:   return "E_UNEXPECTED";
-		case E_ACCESSDENIED: return "E_ACCESSDENIED";
-		case E_HANDLE:       return "E_HANDLE";
-		case E_OUTOFMEMORY:  return "E_OUTOFMEMORY";
-		case E_INVALIDARG:   return "E_INVALIDARG";
+			case S_OK:           return "S_OK";
+			case E_NOTIMPL:      return "E_NOTIMPL";
+			case E_NOINTERFACE:  return "E_NOINTERFACE";
+			case E_POINTER:      return "E_POINTER";
+			case E_ABORT:        return "E_ABORT";
+			case E_FAIL:         return "E_FAIL";
+			case E_UNEXPECTED:   return "E_UNEXPECTED";
+			case E_ACCESSDENIED: return "E_ACCESSDENIED";
+			case E_HANDLE:       return "E_HANDLE";
+			case E_OUTOFMEMORY:  return "E_OUTOFMEMORY";
+			case E_INVALIDARG:   return "E_INVALIDARG";
 
 			// DX11
-		case D3D11_ERROR_FILE_NOT_FOUND:                return "D3D11_ERROR_FILE_NOT_FOUND";
-		case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS: return "D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
+			case D3D11_ERROR_FILE_NOT_FOUND:                return "D3D11_ERROR_FILE_NOT_FOUND";
+			case D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS: return "D3D11_ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS";
 
 			// DXGI
-		case DXGI_ERROR_ACCESS_DENIED:                return "DXGI_ERROR_ACCESS_DENIED";
-		case DXGI_ERROR_ACCESS_LOST:                  return "DXGI_ERROR_ACCESS_LOST";
-		case DXGI_ERROR_ALREADY_EXISTS:               return "DXGI_ERROR_ALREADY_EXISTS";
-		case DXGI_ERROR_CANNOT_PROTECT_CONTENT:       return "DXGI_ERROR_CANNOT_PROTECT_CONTENT";
-		case DXGI_ERROR_DEVICE_HUNG:                  return "DXGI_ERROR_DEVICE_HUNG";
-		case DXGI_ERROR_DEVICE_REMOVED:               return "DXGI_ERROR_DEVICE_REMOVED";
-		case DXGI_ERROR_DEVICE_RESET:                 return "DXGI_ERROR_DEVICE_RESET";
-		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:        return "DXGI_ERROR_DRIVER_INTERNAL_ERROR";
-		case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:    return "DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
-		case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
-		case DXGI_ERROR_INVALID_CALL:                 return "DXGI_ERROR_INVALID_CALL";
-		case DXGI_ERROR_MORE_DATA:                    return "DXGI_ERROR_MORE_DATA";
-		case DXGI_ERROR_NAME_ALREADY_EXISTS:          return "DXGI_ERROR_NAME_ALREADY_EXISTS";
-		case DXGI_ERROR_NONEXCLUSIVE:                 return "DXGI_ERROR_NONEXCLUSIVE";
-		case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:      return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
-		case DXGI_ERROR_NOT_FOUND:                    return "DXGI_ERROR_NOT_FOUND";
-		case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:   return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
-		case DXGI_ERROR_REMOTE_OUTOFMEMORY:           return "DXGI_ERROR_REMOTE_OUTOFMEMORY";
-		case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:     return "DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
-		case DXGI_ERROR_SDK_COMPONENT_MISSING:        return "DXGI_ERROR_SDK_COMPONENT_MISSING";
-		case DXGI_ERROR_SESSION_DISCONNECTED:         return "DXGI_ERROR_SESSION_DISCONNECTED";
-		case DXGI_ERROR_UNSUPPORTED:                  return "DXGI_ERROR_UNSUPPORTED";
-		case DXGI_ERROR_WAIT_TIMEOUT:                 return "DXGI_ERROR_WAIT_TIMEOUT";
-		case DXGI_ERROR_WAS_STILL_DRAWING:            return "DXGI_ERROR_WAS_STILL_DRAWING";
+			case DXGI_ERROR_ACCESS_DENIED:                return "DXGI_ERROR_ACCESS_DENIED";
+			case DXGI_ERROR_ACCESS_LOST:                  return "DXGI_ERROR_ACCESS_LOST";
+			case DXGI_ERROR_ALREADY_EXISTS:               return "DXGI_ERROR_ALREADY_EXISTS";
+			case DXGI_ERROR_CANNOT_PROTECT_CONTENT:       return "DXGI_ERROR_CANNOT_PROTECT_CONTENT";
+			case DXGI_ERROR_DEVICE_HUNG:                  return "DXGI_ERROR_DEVICE_HUNG";
+			case DXGI_ERROR_DEVICE_REMOVED:               return "DXGI_ERROR_DEVICE_REMOVED";
+			case DXGI_ERROR_DEVICE_RESET:                 return "DXGI_ERROR_DEVICE_RESET";
+			case DXGI_ERROR_DRIVER_INTERNAL_ERROR:        return "DXGI_ERROR_DRIVER_INTERNAL_ERROR";
+			case DXGI_ERROR_FRAME_STATISTICS_DISJOINT:    return "DXGI_ERROR_FRAME_STATISTICS_DISJOINT";
+			case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE";
+			case DXGI_ERROR_INVALID_CALL:                 return "DXGI_ERROR_INVALID_CALL";
+			case DXGI_ERROR_MORE_DATA:                    return "DXGI_ERROR_MORE_DATA";
+			case DXGI_ERROR_NAME_ALREADY_EXISTS:          return "DXGI_ERROR_NAME_ALREADY_EXISTS";
+			case DXGI_ERROR_NONEXCLUSIVE:                 return "DXGI_ERROR_NONEXCLUSIVE";
+			case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:      return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE";
+			case DXGI_ERROR_NOT_FOUND:                    return "DXGI_ERROR_NOT_FOUND";
+			case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:   return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED";
+			case DXGI_ERROR_REMOTE_OUTOFMEMORY:           return "DXGI_ERROR_REMOTE_OUTOFMEMORY";
+			case DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE:     return "DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE";
+			case DXGI_ERROR_SDK_COMPONENT_MISSING:        return "DXGI_ERROR_SDK_COMPONENT_MISSING";
+			case DXGI_ERROR_SESSION_DISCONNECTED:         return "DXGI_ERROR_SESSION_DISCONNECTED";
+			case DXGI_ERROR_UNSUPPORTED:                  return "DXGI_ERROR_UNSUPPORTED";
+			case DXGI_ERROR_WAIT_TIMEOUT:                 return "DXGI_ERROR_WAIT_TIMEOUT";
+			case DXGI_ERROR_WAS_STILL_DRAWING:            return "DXGI_ERROR_WAS_STILL_DRAWING";
 
-		default: return "Unhandled HRESULT code: " + std::to_string(static_cast<u32>(errCode));
+			default: return "Unhandled HRESULT code: " + std::to_string(static_cast<u32>(errCode));
 		}
 
 		return "";

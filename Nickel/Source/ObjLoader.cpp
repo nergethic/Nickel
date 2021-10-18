@@ -6,39 +6,35 @@ namespace Nickel {
 	auto ObjLoader::DEBUG_ReadEntireFile(LPCSTR Filename) -> ObjFileMemory { // todo move this to appropriate location
 		ObjFileMemory result = {};
 
-		HANDLE FileHandle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-		if (FileHandle != INVALID_HANDLE_VALUE) {
+		HANDLE fileHandle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+		if (fileHandle != INVALID_HANDLE_VALUE) {
 			LARGE_INTEGER FileSize;
-			if (GetFileSizeEx(FileHandle, &FileSize)) {
+			if (GetFileSizeEx(fileHandle, &FileSize)) {
 				u64 FileSize32 = FileSize.QuadPart; // todo why was SafeTruncateUInt64(FileSize.QuadPart) on this?
 				result.data = VirtualAlloc(0, FileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 				if (result.data) {
 					DWORD BytesRead;
-					if (ReadFile(FileHandle, result.data, FileSize32, &BytesRead, 0) &&
+					if (ReadFile(fileHandle, result.data, FileSize32, &BytesRead, 0) &&
 						(FileSize32 == BytesRead))
 					{
 						// File read successfully
 						result.size = FileSize32;
-					}
-					else {
+					} else {
 						if (result.data) { // TODO is this proper code?
 							VirtualFree(result.data, 0, MEM_RELEASE);
 						}
 						result.data = nullptr;
 					}
+				} else {
+					Logger::Error("Allocation failed - result.data is null");
 				}
-				else {
-					// TODO: Logging
-				}
-			}
-			else {
-				// TODO: Logging
+			} else {
+				Logger::Error("Couldn't get file size");
 			}
 
-			CloseHandle(FileHandle);
-		}
-		else {
-			// TODO: Logging
+			CloseHandle(fileHandle);
+		} else {
+			Logger::Error("Failed to create file: file handle is INVALID_HANDLE_VALUE");
 		}
 
 		return result;

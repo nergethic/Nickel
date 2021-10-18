@@ -224,6 +224,7 @@
   <ItemGroup>
     <ClCompile Include="Source\DX11Layer.cpp" />
     <ClCompile Include="Source\game.cpp" />
+    <ClCompile Include="Source\Logger.cpp" />
     <ClCompile Include="Source\Mesh.cpp" />
     <ClCompile Include="Source\ObjLoader.cpp" />
     <ClCompile Include="Source\renderer.cpp" />

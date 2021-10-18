@@ -4,9 +4,12 @@ static UINT MSAA_LEVEL = 4; // TODO: move this to config file
 
 namespace Nickel::Renderer {
 	auto Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {
+		Logger::Init(); // TODO: super ugly, figure out where to initialize this
+
 		if (!XMVerifyCPUSupport()) {
 			MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
-			//return -1; // TODO: logger
+			Logger::Critical("XMVerifyCPUSupport failed");
+			Assert(false);
 		}
 
 		auto [device, deviceCtx] = DXLayer::CreateDevice();
@@ -19,8 +22,8 @@ namespace Nickel::Renderer {
 
 		ID3D11Debug* d3dDebug = nullptr;
 		if constexpr (_DEBUG) {
-			//d3dDebug = DXLayer::EnableDebug(*device1, false);
-			//ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL));
+			d3dDebug = DXLayer::EnableDebug(*device1, false);
+			ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_FLAGS::D3D11_RLDO_SUMMARY | D3D11_RLDO_FLAGS::D3D11_RLDO_DETAIL));
 		}
 
 		auto swapChain1 = Renderer::DXLayer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
@@ -32,14 +35,12 @@ namespace Nickel::Renderer {
 		// D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
 		ID3D11RenderTargetView* renderTargetView;
 		ASSERT_ERROR_RESULT(device1->CreateRenderTargetView(backBufferTexture, NULL, &renderTargetView));
-		deviceCtx1->OMSetRenderTargets(1, &renderTargetView, NULL); // test code
 
 		D3D11_TEXTURE2D_DESC backBufferDesc = { 0 };
 		backBufferTexture->GetDesc(&backBufferDesc);
 		SafeRelease(backBufferTexture);
 
 		D3D11_VIEWPORT viewport = DXLayer::CreateViewPort(0.0f, 0.0f, backBufferDesc.Width, backBufferDesc.Height);
-		deviceCtx1->RSSetViewports(1, &viewport);
 
 		RendererState rs = {
 			.g_WindowHandle = wndHandle,
@@ -56,7 +57,7 @@ namespace Nickel::Renderer {
 			.backbufferHeight = backBufferDesc.Height
 		};
 
-		ZeroMemory(rs.zeroBuffer, ArrayCount(rs.zeroBuffer));
+		ZeroMemory(rs.zeroBuffer,        ArrayCount(rs.zeroBuffer));
 		ZeroMemory(rs.zeroSamplerStates, ArrayCount(rs.zeroSamplerStates));
 		ZeroMemory(rs.zeroResourceViews, ArrayCount(rs.zeroBuffer));
 

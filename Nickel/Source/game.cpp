@@ -99,21 +99,6 @@ namespace Nickel {
 		cmdQueue.RSSetViewports(1, &rs->g_Viewport);
 	}
 
-	// TODO: move to renderer
-	inline auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void {
-		NoConst(cmdQueue).IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-	}
-
-	// TODO: move to renderer
-	inline auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void {
-		NoConst(cmdQueue).IASetIndexBuffer(indexBuffer, format, offset);
-	}
-
-	// TODO: move to renderer
-	inline auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void {
-		NoConst(cmdQueue).DrawIndexed(indexCount, 0, 0);
-	}
-
 	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
 		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
@@ -124,8 +109,8 @@ namespace Nickel {
 		cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
 		cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
 
-		SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
+		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -142,8 +127,8 @@ namespace Nickel {
 		cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
 		cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
 
-		SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
+		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -160,8 +145,8 @@ namespace Nickel {
 		cmdQueue.PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
 		cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
-		SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, vertexStride, offset);
+		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, vertexStride, offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -271,21 +256,16 @@ namespace Nickel {
 		LoadObjMeshData(meshData, path);
 	}
 
-	//
-
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void {
 		Assert(memory != nullptr);
 		Assert(rs != nullptr);
 		Assert(rs->device);
 		Assert(rs->cmdQueue.queue);
 
-		InitLogger();
-
 		ID3D11Device1* device = rs->device.Get();
 
-		if (!LoadContent(rs)) {
-			// TODO: log error
-		}
+		if (!LoadContent(rs))
+			Logger::Error("Content couldn't be loaded");
 
 		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
@@ -318,7 +298,7 @@ namespace Nickel {
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
 		D3D11_BLEND_DESC1 stateDesc = { 0 };
-		stateDesc.AlphaToCoverageEnable = true;
+		stateDesc.AlphaToCoverageEnable = false;
 		stateDesc.IndependentBlendEnable = true;
 		for (int i = 0; i < ArrayCount(stateDesc.RenderTarget); i++) {
 			stateDesc.RenderTarget[i] = blendDescription;
@@ -328,11 +308,7 @@ namespace Nickel {
 		ID3D11BlendState1* state;
 		device->CreateBlendState1(&stateDesc, &state);
 		const FLOAT blendFactor[4] = { 0 };
-		// rs->deviceCtx->OMSetBlendState(state, blendFactor, 0);
-
-		ID3D11DeviceContext1* cmdQueue = rs->cmdQueue.queue.Get();
-		cmdQueue->OMSetRenderTargets(1, &rs->defaultRenderTargetView, nullptr);
-		cmdQueue->OMSetRenderTargets(1, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+		// rs->cmdQueue.queue->OMSetBlendState(state, blendFactor, 0);
 	}
 
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
@@ -356,31 +332,34 @@ namespace Nickel {
 		frameData.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 		frameData.lightPosition = lightPos;
 
-		auto& cmdQueue = rs->cmdQueue;
+		auto cmd = rs->cmdQueue;
+		auto& queue = *cmd.queue.Get();
 
-		cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
+		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
 
 		// RENDER ---------------------------
 		const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
-		DXLayer::Clear(cmdQueue, rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
+		Assert(rs->defaultRenderTargetView != nullptr);
 		Assert(rs->defaultDepthStencilView != nullptr);
-		SetDefaultPass(cmdQueue, &rs->defaultRenderTargetView, *rs->defaultDepthStencilView);
+		DXLayer::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+		queue.RSSetViewports(1, &rs->g_Viewport);
+
+		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
+		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
-		DrawBunny(cmdQueue, rs, rs->pipelineStates[0]);
+		DrawBunny(cmd, rs, rs->pipelineStates[0]);
 
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
-		DrawLight(cmdQueue, rs, rs->pipelineStates[0]);
+		DrawLight(cmd, rs, rs->pipelineStates[0]);
 
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
-		DrawSuzanne(cmdQueue, rs, rs->pipelineStates[1]);
+		DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
 
-		//deviceCtx->Draw(g_vertexCount, 0);
-		Log();
 		rs->swapChain->Present(1, 0);
 	}
 

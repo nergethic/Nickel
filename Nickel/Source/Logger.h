@@ -1,28 +1,49 @@
 #pragma once
 
-#pragma warning(push, 0)
 #pragma comment(lib, "spdlogd.lib")
 
+#pragma warning(push, 0)
 #include "spdlog/spdlog.h"
-#include "spdlog/sinks/msvc_sink.h"
 #pragma warning(pop)
 
-inline auto InitLogger() {
-    auto sink = std::make_shared<spdlog::sinks::msvc_sink_mt>();
-    auto logger = std::make_shared<spdlog::logger>("msvc_logger", sink);
-    spdlog::initialize_logger(logger);
+namespace Nickel {
+    static class Logger {
+    public:
+        static void Init();
 
-    spdlog::set_default_logger(logger);
+        template <typename T>
+        static auto Debug(const T& val) -> void {
+            GetMainLogger()->debug(val);
+        }
 
-    if constexpr(_DEBUG)
-        spdlog::set_level(spdlog::level::debug);
-}
+        template <typename T>
+        static auto Trace(const T& val) -> void {
+            GetMainLogger()->trace(val);
+        }
 
-inline auto Log() {
-    spdlog::info("Welcome to spdlog!");
-    spdlog::debug("Debug only msg");
-    //spdlog::get("msvc_logger")->info("Welcome to spdlog!");
-    // spdlog::error("Some error message with arg: {}", 1);
-    // spdlog::warn("Easy padding in numbers like {:08d}", 12);
-    // spdlog::critical("Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
+        template <typename T>
+        static auto Info(const T& val) -> void {
+            GetMainLogger()->info(val);
+        }
+
+        template <typename T>
+        static auto Warn(const T& val) -> void {
+            GetMainLogger()->warn(val);
+        }
+
+        template <typename T>
+        static auto Error(const T& val) -> void {
+            GetMainLogger()->error(val);
+        }
+
+        template <typename T>
+        static auto Critical(const T& val) -> void {
+            GetMainLogger()->critical(val);
+        }
+        
+        static std::shared_ptr<spdlog::logger>& GetMainLogger() { return _mainLogger; }
+
+    private:
+        static std::shared_ptr<spdlog::logger> _mainLogger;
+    };
 }

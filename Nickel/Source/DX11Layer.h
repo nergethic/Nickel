@@ -24,14 +24,24 @@
 using namespace Microsoft::WRL;
 
 #if defined(_DEBUG)
-	#define ASSERT_ERROR_RESULT(res) { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::AssertD3DResult(result, __FILE__, __LINE__); }
-	#define LOG_ERROR_RESULT(res)    { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::LogD3DResult(result, __FILE__, __LINE__); }
+	#define ASSERT_ERROR_RESULT(res) { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::AssertD3DResult(result, GetSourceLocation(std::source_location::current())); }
+	#define LOG_ERROR_RESULT(res)    { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::LogD3DResult(result, GetSourceLocation(std::source_location::current())); }
 #else
 	#define ASSERT_ERROR_RESULT(res) {}
 	#define LOG_ERROR_RESULT(res) {}
 #endif
 
 namespace Nickel::Renderer::DXLayer {
+	enum class ClearFlag { // TODO: move to base renderer layer
+		CLEAR_COLOR   = 1 << 0,
+		CLEAR_DEPTH   = 1 << 1,
+		CLEAR_STENCIL = 1 << 2
+	};
+
+	inline ClearFlag operator|(ClearFlag a, ClearFlag b) {
+		return static_cast<ClearFlag>(static_cast<u32>(a) | static_cast<u32>(b));
+	}
+
 	struct CmdQueue {
 		ComPtr<ID3D11DeviceContext1> queue;
 		ComPtr<ID3D11Debug> debug;
@@ -56,7 +66,7 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr)->ID3D11Buffer*;
 	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
-	auto Clear(const CmdQueue& cmd, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
+	auto Clear(const CmdQueue& cmd, u32 clearFlag, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState*;
 	auto CreateDefaultRasterizerState(ID3D11Device1* device)->ID3D11RasterizerState*;
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels) -> ID3D11Texture2D*;
@@ -68,12 +78,26 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY)->D3D11_VIEWPORT;
 	auto EnableDebug(const ID3D11Device1& device1, bool shouldBeVerbose)->ID3D11Debug*;
 
+	auto SetRenderTargets(const ID3D11DeviceContext1& cmdQueue, std::span<ID3D11RenderTargetView* const*> colorTargets, ID3D11DepthStencilView* depthTarget = nullptr) -> void;
+	auto SetRenderTarget(const ID3D11DeviceContext1& cmdQueue, ID3D11RenderTargetView* const* colorTarget, ID3D11DepthStencilView* depthTarget = nullptr) -> void;
+
+	auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void;
+	auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void;
+	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
+
 	auto GetHResultString(HRESULT errCode)->std::string;
 	auto GetHResultErrorMessage(HRESULT errCode)->std::string;
 
-	inline auto AssertD3DResult(HRESULT result, const char* file = "", u32 line = 0) -> void {
-		Assert(FAILED(result));
+	inline auto AssertD3DResult(HRESULT result, const std::string& locationInfo) -> void {
 		const std::string& errorString = GetHResultErrorMessage(result);
-		// TODO: Log file, line
+		const std::string logStr = errorString + ", " + locationInfo;
+		Logger::Critical(logStr);
+		Assert(FAILED(result));
+	}
+
+	inline auto LogD3DResult(HRESULT result, const std::string& locationInfo) -> void {
+		const std::string& errorString = GetHResultErrorMessage(result);
+		const std::string logStr = errorString + ", " + locationInfo;
+		Logger::Critical(logStr);
 	}
 }
