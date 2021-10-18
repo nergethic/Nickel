@@ -256,6 +256,10 @@ namespace Nickel {
 		LoadObjMeshData(meshData, path);
 	}
 
+	void CreatePass() {
+
+	}
+
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void {
 		Assert(memory != nullptr);
 		Assert(rs != nullptr);
@@ -311,6 +315,24 @@ namespace Nickel {
 		// rs->cmdQueue.queue->OMSetBlendState(state, blendFactor, 0);
 	}
 
+	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
+
+	struct Transform {
+		f32 positionX, positionY, positionZ;
+		f32 scaleX, scaleY, scaleZ;
+	};
+
+	struct Material {
+		Nickel::Renderer::DXLayer::ShaderProgram* program;
+		// uniforms
+	};
+
+	struct DescribedMesh {
+		Transform transform;
+		MeshData mesh;
+		Material material;
+	};
+
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
 
@@ -338,8 +360,6 @@ namespace Nickel {
 		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
 
 		// RENDER ---------------------------
-		const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
-
 		Assert(rs->defaultRenderTargetView != nullptr);
 		Assert(rs->defaultDepthStencilView != nullptr);
 		DXLayer::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
@@ -348,6 +368,25 @@ namespace Nickel {
 		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
 		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
+		/*
+		DescribedMesh meshes[5];
+		ShaderProgram* currentProgram; // take out of scope
+		for (int i = 0; i < 5; i++) { // rs->sceneMeshes
+			auto mesh = meshes[i];
+
+			if (currentProgram != mesh.material.program) {
+				currentProgram = mesh.material.program;
+				// SetProgramData(currentProgram); Bind
+			}
+
+			// bind vertex and index buffer
+			// bind textures, samplers
+			// set 
+
+			// draw
+		}
+		*/
+		
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
 		DrawBunny(cmd, rs, rs->pipelineStates[0]);
@@ -359,6 +398,7 @@ namespace Nickel {
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
 		DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
+		
 
 		rs->swapChain->Present(1, 0);
 	}

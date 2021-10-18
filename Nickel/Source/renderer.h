@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DX11Layer.h"
+#include "ShaderProgram.h"
 
 // STL includes
 #include <algorithm>

@@ -232,6 +232,7 @@
     <ClCompile Include="Source\win32_main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\DirectXIncludes.h" />
     <ClInclude Include="Source\DX11Layer.h" />
     <ClInclude Include="Source\game.h" />
     <ClInclude Include="Source\Logger.h" />

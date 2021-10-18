@@ -1,8 +1,7 @@
 #pragma once
 
-#pragma comment(lib, "spdlogd.lib")
-
 #pragma warning(push, 0)
+#pragma comment(lib, "spdlogd.lib")
 #include "spdlog/spdlog.h"
 #pragma warning(pop)
 

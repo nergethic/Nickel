@@ -1,35 +1,9 @@
 #pragma once
 
-#pragma warning(push, 0) // ignores warnings from external headers
-// Link library dependencies
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib") // TODO: check why this doesn't have stuff from dxgi1_3.h (CreateDXGIFactory2)
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "winmm.lib")
-#pragma comment(lib, "dxguid.lib")
-#pragma warning(pop)
-
-// DirectX includes
+#include "DirectXIncludes.h"
 #include "platform.h"
-#include <d3d11_1.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-#include <DirectXColors.h>
-#include <WICTextureLoader.h>
-#include <dxgi.h>
-#include <dxgi1_3.h>
-
-#include <wrl/client.h>
 
 using namespace Microsoft::WRL;
-
-#if defined(_DEBUG)
-	#define ASSERT_ERROR_RESULT(res) { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::AssertD3DResult(result, GetSourceLocation(std::source_location::current())); }
-	#define LOG_ERROR_RESULT(res)    { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::LogD3DResult(result, GetSourceLocation(std::source_location::current())); }
-#else
-	#define ASSERT_ERROR_RESULT(res) {}
-	#define LOG_ERROR_RESULT(res) {}
-#endif
 
 namespace Nickel::Renderer::DXLayer {
 	enum class ClearFlag { // TODO: move to base renderer layer
@@ -84,20 +58,4 @@ namespace Nickel::Renderer::DXLayer {
 	auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void;
 	auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void;
 	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
-
-	auto GetHResultString(HRESULT errCode)->std::string;
-	auto GetHResultErrorMessage(HRESULT errCode)->std::string;
-
-	inline auto AssertD3DResult(HRESULT result, const std::string& locationInfo) -> void {
-		const std::string& errorString = GetHResultErrorMessage(result);
-		const std::string logStr = errorString + ", " + locationInfo;
-		Logger::Critical(logStr);
-		Assert(FAILED(result));
-	}
-
-	inline auto LogD3DResult(HRESULT result, const std::string& locationInfo) -> void {
-		const std::string& errorString = GetHResultErrorMessage(result);
-		const std::string logStr = errorString + ", " + locationInfo;
-		Logger::Critical(logStr);
-	}
 }
