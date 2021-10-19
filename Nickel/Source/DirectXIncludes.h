@@ -23,8 +23,8 @@
 #include "Platform.h"
 
 #if defined(_DEBUG)
-	#define ASSERT_ERROR_RESULT(res) { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::AssertD3DResult(result, GetSourceLocation(std::source_location::current())); }
-	#define LOG_ERROR_RESULT(res)    { HRESULT result = res; if (FAILED(result)) Nickel::Renderer::DXLayer::LogD3DResult(result, GetSourceLocation(std::source_location::current())); }
+	#define ASSERT_ERROR_RESULT(res) { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer::AssertD3DResult(_result, GetSourceLocation(std::source_location::current())); }
+	#define LOG_ERROR_RESULT(res)    { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer::LogD3DResult(_result, GetSourceLocation(std::source_location::current())); }
 #else
 	#define ASSERT_ERROR_RESULT(res) {}
 	#define LOG_ERROR_RESULT(res) {}

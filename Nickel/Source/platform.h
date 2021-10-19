@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <span>
+#include <variant>
 
 #include "Logger.h"
 

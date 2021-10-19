@@ -48,7 +48,7 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView*;
 	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void;
 	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void;
-	auto CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize)->ID3D11InputLayout*;
+	auto CreateInputLayout(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> shaderBytecodeWithInputSignature)->ID3D11InputLayout*;
 	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY)->D3D11_VIEWPORT;
 	auto EnableDebug(const ID3D11Device1& device1, bool shouldBeVerbose)->ID3D11Debug*;
 

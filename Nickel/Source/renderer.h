@@ -76,6 +76,23 @@ enum class ConstantBuffer {
 	NumConstantBuffers
 };
 
+struct Transform {
+	f32 positionX, positionY, positionZ;
+	f32 scaleX, scaleY, scaleZ;
+};
+
+struct Material {
+	Nickel::Renderer::DXLayer::ShaderProgram* program;
+	// uniforms
+};
+
+#include "Mesh.h"
+struct DescribedMesh {
+	Transform transform;
+	Nickel::MeshData mesh;
+	Material material;
+};
+
 struct RendererState {
 	HWND g_WindowHandle;
 
@@ -99,13 +116,6 @@ struct RendererState {
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
-	// Shader data
-	ID3D11VertexShader* g_d3dSimpleVertexShader = nullptr;
-	ID3D11PixelShader* g_d3dSimplePixelShader = nullptr;
-
-	ID3D11VertexShader* g_d3dTexVertexShader = nullptr;
-	ID3D11PixelShader* g_d3dTexPixelShader = nullptr;
-
 	// Demo parameters
 	XMMATRIX g_WorldMatrix;
 	XMMATRIX g_ViewMatrix;
@@ -127,6 +137,18 @@ struct RendererState {
 	UINT backbufferHeight;
 
 	GPUMeshData GPUMeshData[2];
+
+	DXLayer::ShaderProgram simpleProgram;
+	DXLayer::ShaderProgram textureProgram;
+
+	Material simpleMat;
+	Material textureMat;
+
+	DescribedMesh bunny;
+	DescribedMesh suzanne;
+	DescribedMesh light;
+
+	DescribedMesh* sceneMeshes[3];
 };
 
 namespace Nickel {

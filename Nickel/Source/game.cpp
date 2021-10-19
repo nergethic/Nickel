@@ -92,11 +92,14 @@ namespace Nickel {
 		else
 			cmdQueue.VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer* const*)pipeline.vertexConstantBuffers);
 
-		if (pipeline.pixelShader != nullptr)
-			cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
+		cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
 		// cmdQueue->PSSetConstantBuffers(); // TODO
 
 		cmdQueue.RSSetViewports(1, &rs->g_Viewport);
+	}
+
+	auto DrawModel(const Nickel::Renderer::DXLayer::CmdQueue& cmd) -> void {
+
 	}
 
 	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
@@ -278,26 +281,28 @@ namespace Nickel {
 		auto depthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto rasterizerState = DXLayer::CreateDefaultRasterizerState(device);
 
+		// texture pip:
 		auto pip = &rs->pipelineStates[0];
+		pip->inputLayout = DXLayer::CreateInputLayout(device, vertexPosUVLayoutDesc, std::span{g_TexVertexShader});
 		pip->depthStencilState = depthStencilState;
 		pip->rasterizerState = rasterizerState;
-		pip->inputLayout = DXLayer::CreateInputLayout(device, vertexPosUVLayoutDesc, ArrayCount(vertexPosUVLayoutDesc), g_TexVertexShader, ArrayCount(g_TexVertexShader));
-		pip->vertexShader = rs->g_d3dTexVertexShader;
+		pip->vertexShader = rs->textureMat.program->vertexShader;
 		pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 		pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		pip->pixelShader = rs->g_d3dTexPixelShader;
+		pip->pixelShader = rs->textureMat.program->pixelShader;
 		pip->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		// ApplyPipeline(device, &pip); // TODO
 
+		// simple pip:
 		auto pip2 = &rs->pipelineStates[1];
+		pip2->inputLayout = DXLayer::CreateInputLayout(device, vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader});
 		pip2->depthStencilState = depthStencilState;
 		pip2->rasterizerState = rasterizerState;
-		pip2->inputLayout = DXLayer::CreateInputLayout(device, vertexPosColorLayoutDesc, ArrayCount(vertexPosColorLayoutDesc), g_SimpleVertexShader, ArrayCount(g_SimpleVertexShader));
-		pip2->vertexShader = rs->g_d3dSimpleVertexShader;
+		pip2->vertexShader = rs->simpleMat.program->vertexShader;
 		pip2->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 		pip2->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		pip2->pixelShader = rs->g_d3dSimplePixelShader;
+		pip2->pixelShader = rs->simpleMat.program->pixelShader;
 		pip2->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
@@ -316,22 +321,6 @@ namespace Nickel {
 	}
 
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
-
-	struct Transform {
-		f32 positionX, positionY, positionZ;
-		f32 scaleX, scaleY, scaleZ;
-	};
-
-	struct Material {
-		Nickel::Renderer::DXLayer::ShaderProgram* program;
-		// uniforms
-	};
-
-	struct DescribedMesh {
-		Transform transform;
-		MeshData mesh;
-		Material material;
-	};
 
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
@@ -368,13 +357,18 @@ namespace Nickel {
 		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
 		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
+		
 		/*
-		DescribedMesh meshes[5];
+		DescribedMesh meshes[3];
 		for (int i = 0; i < 5; i++) { // rs->sceneMeshes
 			auto mesh = meshes[i];
+			auto material = mesh.material;
 
-			if (currentProgram != mesh.material.program) {
-				currentProgram = mesh.material.program;
+			if (material.HasProperty("u_Color"))
+				material.SetProperty("u_Color", clearColor);
+
+			if (currentProgram != material.program) {
+				currentProgram = material.program;
 				// SetProgramData(currentProgram); Bind
 			}
 
@@ -385,6 +379,7 @@ namespace Nickel {
 			// draw
 		}
 		*/
+		
 		
 		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
 		rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
@@ -474,34 +469,23 @@ namespace Nickel {
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
-		// vertex shader
-		HRESULT hr = rs->device->CreateVertexShader(g_SimpleVertexShader, sizeof(g_SimpleVertexShader), nullptr, &rs->g_d3dSimpleVertexShader);
-		if (FAILED(hr)) {
-			return false;
-		}
+		rs->simpleProgram.Create(rs->device.Get(), vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
+		rs->textureProgram.Create(rs->device.Get(), vertexPosUVLayoutDesc, std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
 
-		// vertex shader2
-		hr = rs->device->CreateVertexShader(g_TexVertexShader, sizeof(g_TexVertexShader), nullptr, &rs->g_d3dTexVertexShader);
-		if (FAILED(hr)) {
-			return false;
-		}
+		rs->simpleMat = Material{
+			.program = &rs->simpleProgram
+		};
 
-		// Load the compiled pixel shader.
-		hr = rs->device->CreatePixelShader(g_SimplePixelShader, sizeof(g_SimplePixelShader), nullptr, &rs->g_d3dSimplePixelShader);
-		if (FAILED(hr)) {
-			return false;
-		}
-
-		hr = rs->device->CreatePixelShader(g_TexPixelShader, sizeof(g_TexPixelShader), nullptr, &rs->g_d3dTexPixelShader);
-		if (FAILED(hr)) {
-			return false;
-		}
+		rs->textureMat = Material{
+			.program = &rs->textureProgram
+		};
 
 		// create Texture
-		hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
+		HRESULT hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
 			L"Data/Textures/matcap.jpg", //tex.png
 			&rs->textureResource, &rs->textureView);
 		if (FAILED(hr)) {
+			Logger::Error("Couldn't load texture");
 			return false;
 		}
 
@@ -526,8 +510,3 @@ namespace Nickel {
 		cmd.queue->OMSetRenderTargets(1, renderTargetView, &depthStencilView);
 	}
 }
-
-// DrawMesh(mesh, material)
-struct RenderPassDescription {
-
-};

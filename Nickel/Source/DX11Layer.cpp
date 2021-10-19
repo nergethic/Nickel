@@ -385,24 +385,19 @@ namespace Nickel::Renderer::DXLayer {
 		cmd.queue->DrawIndexed(indexCount, startIndex, startVertex);
 	}
 
-	auto CreateInputLayout(ID3D11Device1* device, D3D11_INPUT_ELEMENT_DESC* vertexLayoutDesc, UINT vertexLayoutDescLength, const BYTE* shaderBytecodeWithInputSignature, SIZE_T shaderBytecodeSize) -> ID3D11InputLayout* {
+	auto CreateInputLayout(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> shaderBytecodeWithInputSignature) -> ID3D11InputLayout* {
 		Assert(device != nullptr);
-		Assert(vertexLayoutDesc != nullptr);
-		Assert(shaderBytecodeWithInputSignature != nullptr);
+		// Assert(vertexLayoutDesc.data != nullptr); // TODO
+		// Assert(shaderBytecodeWithInputSignature != nullptr);
 
 		ID3D11InputLayout* result = nullptr;
 
-		HRESULT hr = device->CreateInputLayout(
-			vertexLayoutDesc,
-			vertexLayoutDescLength,
-			shaderBytecodeWithInputSignature,
-			shaderBytecodeSize,
-			&result);
-
-		if (FAILED(hr)) {
-			// TODO: log error
-			Assert(nullptr);
-		}
+		ASSERT_ERROR_RESULT(device->CreateInputLayout(
+			vertexLayoutDesc.data(),
+			vertexLayoutDesc.size(),
+			shaderBytecodeWithInputSignature.data(),
+			shaderBytecodeWithInputSignature.size(),
+			&result));
 
 		return result;
 	}
