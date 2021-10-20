@@ -76,41 +76,72 @@ const UINT offset = 0;
 namespace Nickel {
 	using namespace Renderer;
 
-	auto SetPipelineState(const ID3D11DeviceContext1& cmd, RendererState* rs, PipelineState& pipeline) -> void {
+	auto SetPipelineState(const ID3D11DeviceContext1& cmd, D3D11_VIEWPORT* viewport, const PipelineState& pipeline) -> void {
 		ID3D11DeviceContext1& cmdQueue = const_cast<ID3D11DeviceContext1&>(cmd);
 		cmdQueue.RSSetState(pipeline.rasterizerState);
 		cmdQueue.OMSetDepthStencilState(pipeline.depthStencilState, 1);
+		// cmdQueue.OMSetBlendState() // TODO
 
-		// deviceCtx->OMSetBlendState(); // TODO
+		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
 
-		cmdQueue.IASetPrimitiveTopology(pipeline.topology);
-		cmdQueue.IASetInputLayout(pipeline.inputLayout);
-		cmdQueue.VSSetShader(pipeline.vertexShader, nullptr, 0);
+		//cmdQueue.IASetPrimitiveTopology(pipeline.topology);
+		//cmdQueue.IASetInputLayout(pipeline.inputLayout);
+		//cmdQueue.VSSetShader(pipeline.vertexShader, nullptr, 0);
 
-		if (pipeline.vertexConstantBuffersCount == 0)
-			cmdQueue.VSSetConstantBuffers(0, ArrayCount(rs->zeroBuffer), rs->zeroBuffer);
-		else
-			cmdQueue.VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer* const*)pipeline.vertexConstantBuffers);
-
-		cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
+		//if (pipeline.vertexConstantBuffersCount == 0)
+			//cmdQueue.VSSetConstantBuffers(0, ArrayCount(rs->zeroBuffer), rs->zeroBuffer);
+		//else
+			//cmdQueue.VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer* const*)pipeline.vertexConstantBuffers);
+		//cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
 		// cmdQueue->PSSetConstantBuffers(); // TODO
-
-		cmdQueue.RSSetViewports(1, &rs->g_Viewport);
 	}
 
-	auto DrawModel(const Nickel::Renderer::DXLayer::CmdQueue& cmd) -> void {
+	auto Submit(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh) -> void {
+		auto c = cmd.queue.Get();
+		const auto program = mesh.material.program;
+		if (program == nullptr) {
+			Logger::Error("Mesh material program is null");
+			return;
+		}
 
+		const auto& gpuData = mesh.gpuData;
+		mesh.material.program->Bind(c);
+		c->IASetPrimitiveTopology(gpuData->topology);
+		Renderer::DXLayer::SetIndexBuffer(*c, gpuData->indexBuffer);
+		Renderer::DXLayer::SetVertexBuffer(*c, gpuData->vertexBuffer.buffer, texVertexStride, offset); // TODO: fill GPUMeshData with proper vertex buffer info
+
+		// TODO: figure out how to store and generically set samplers and resources
+		c->PSSetShaderResources(0, 1, &rs.texture.srv);
+		c->PSSetSamplers(0, 1, &rs.texture.samplerState); // TODO: ID3D11Device::CreateSamplerState
+
+		c->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), (ID3D11Buffer* const*)rs.g_d3dConstantBuffers);
+
+		SetPipelineState(*c, &rs.g_Viewport, mesh.material.pipelineState);
+		DXLayer::DrawIndexed(cmd, mesh.gpuData->indexCount, 0, 0);
+	}
+
+	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, float offsetX = 0.0f, float offsetY = 0.0f) -> void { // TODO: const Material* overrideMat = nullptr
+		auto c = cmd.queue.Get();
+		Assert(c != nullptr);
+
+		// update:
+		const auto t = mesh.transform;
+		auto worldMat = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ));
+		worldMat *= XMMatrixTranslation(t.positionX+offsetX, t.positionY + offsetY, t.positionZ);
+		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &worldMat, 0, 0, 0);
+
+		Submit(rs, cmd, mesh);		
 	}
 
 	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
 		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
-		SetPipelineState(cmdQueue, rs, pipelineState);
+		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
 		GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-		cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
-		cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
+		cmdQueue.PSSetShaderResources(0, 1, &rs->texture.srv);
+		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
@@ -123,12 +154,12 @@ namespace Nickel {
 	auto DrawLight(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
 		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
-		SetPipelineState(cmdQueue, rs, pipelineState);
+		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
 		GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-		cmdQueue.PSSetShaderResources(0, 1, &rs->textureView);
-		cmdQueue.PSSetSamplers(0, 1, &rs->texSamplerState);
+		cmdQueue.PSSetShaderResources(0, 1, &rs->texture.srv);
+		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
@@ -141,7 +172,7 @@ namespace Nickel {
 	auto DrawSuzanne(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
 		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
-		SetPipelineState(cmdQueue, rs, pipelineState);
+		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
 		GPUMeshData* mesh = &rs->GPUMeshData[1];
 
@@ -154,14 +185,6 @@ namespace Nickel {
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
 		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
-	}
-
-	auto ApplyPipeline(ID3D11Device1* device, PipelineState* pipeline) -> void {
-		Assert(device != nullptr);
-		Assert(pipeline != nullptr);
-
-		// TODO
-		// pipeline->inputLayout = CreateInputLayout(device, layoutDescription.desc vertexPosUVLayoutDesc, layoutDescription.Length ArrayCount(vertexPosUVLayoutDesc), shader.bytecode g_TexVertexShader, shader.bytecodeLength ArrayCount(g_TexVertexShader));
 	}
 
 	auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
@@ -270,6 +293,7 @@ namespace Nickel {
 		Assert(rs->cmdQueue.queue);
 
 		ID3D11Device1* device = rs->device.Get();
+		ResourceManager::Init(device);
 
 		if (!LoadContent(rs))
 			Logger::Error("Content couldn't be loaded");
@@ -280,30 +304,6 @@ namespace Nickel {
 
 		auto depthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto rasterizerState = DXLayer::CreateDefaultRasterizerState(device);
-
-		// texture pip:
-		auto pip = &rs->pipelineStates[0];
-		pip->inputLayout = DXLayer::CreateInputLayout(device, vertexPosUVLayoutDesc, std::span{g_TexVertexShader});
-		pip->depthStencilState = depthStencilState;
-		pip->rasterizerState = rasterizerState;
-		pip->vertexShader = rs->textureMat.program->vertexShader;
-		pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-		pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		pip->pixelShader = rs->textureMat.program->pixelShader;
-		pip->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-		// ApplyPipeline(device, &pip); // TODO
-
-		// simple pip:
-		auto pip2 = &rs->pipelineStates[1];
-		pip2->inputLayout = DXLayer::CreateInputLayout(device, vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader});
-		pip2->depthStencilState = depthStencilState;
-		pip2->rasterizerState = rasterizerState;
-		pip2->vertexShader = rs->simpleMat.program->vertexShader;
-		pip2->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-		pip2->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		pip2->pixelShader = rs->simpleMat.program->pixelShader;
-		pip2->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
 		D3D11_BLEND_DESC1 stateDesc = { 0 };
@@ -318,6 +318,51 @@ namespace Nickel {
 		device->CreateBlendState1(&stateDesc, &state);
 		const FLOAT blendFactor[4] = { 0 };
 		// rs->cmdQueue.queue->OMSetBlendState(state, blendFactor, 0);
+
+		//pip->depthStencilState = depthStencilState;
+		//pip->rasterizerState = rasterizerState;
+		//pip->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		//pip->inputLayout = DXLayer::CreateInputLayout(device, vertexPosUVLayoutDesc, std::span{g_TexVertexShader});
+		//pip->vertexShader = rs->textureMat.program->vertexShader;
+		//pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+		//pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+		//pip->pixelShader = rs->textureMat.program->pixelShader;
+
+		// ApplyPipeline(device, &pip); // TODO
+
+		// simple pip:
+		//pip2->depthStencilState = depthStencilState;
+		//pip2->rasterizerState = rasterizerState;
+		//pip2->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+		//pip2->inputLayout = DXLayer::CreateInputLayout(device, vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader});
+
+		//pip2->vertexShader = rs->simpleMat.program->vertexShader;
+		//pip2->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+		//pip2->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+		//pip2->pixelShader = rs->simpleMat.program->pixelShader;
+
+
+		// pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
+		// pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
+
+		rs->simpleMat = Material{
+			.program = &rs->simpleProgram,
+			.pipelineState = PipelineState{
+				.rasterizerState = rasterizerState,
+				.depthStencilState = depthStencilState
+			}
+		};
+
+		rs->textureMat = Material{
+			.program = &rs->textureProgram,
+			.pipelineState = PipelineState{
+				.rasterizerState = rasterizerState,
+				.depthStencilState = depthStencilState
+			}
+		};
+
+		rs->bunny.material = rs->textureMat;
 	}
 
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
@@ -379,19 +424,22 @@ namespace Nickel {
 			// draw
 		}
 		*/
-		
-		
-		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(12.0f, 12.0f, 12.0f));
-		rs->g_WorldMatrix *= XMMatrixTranslation(0.0f, -2.0f, 0.0f);
-		DrawBunny(cmd, rs, rs->pipelineStates[0]);
 
-		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
-		rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
-		DrawLight(cmd, rs, rs->pipelineStates[0]);
+		for (int y = -20; y < 20; y++) {
+			for (int x = -20; x < 20; x++) {
+				DrawModel(*rs, cmd, rs->bunny, x*2.0f, y*2.0f);
+			}
+		}
 
-		rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
-		rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
-		DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
+		// DrawBunny(cmd, rs, rs->pipelineStates[0]);
+
+		// rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
+		// rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
+		//DrawLight(cmd, rs, rs->pipelineStates[0]);
+
+		// rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
+		// rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
+		// DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
 		
 
 		rs->swapChain->Present(1, 0);
@@ -431,10 +479,22 @@ namespace Nickel {
 				.vertexCount = vertexCount,
 
 				.indexBuffer = Renderer::DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
-				.indexCount = indexCount
+				.indexCount = indexCount,
+				.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 			};
 
 			rs->GPUMeshData[0] = gpuMeshData;
+
+			
+			auto& bunny = rs->bunny;
+			bunny.transform.scaleX = 12.0f;
+			bunny.transform.scaleY = 12.0f;
+			bunny.transform.scaleZ = 12.0f;
+			bunny.transform.positionX = 0.0f;
+			bunny.transform.positionY = -2.0f;
+			bunny.transform.positionZ = 0.0f;
+			bunny.gpuData = &rs->GPUMeshData[0];
+			bunny.mesh = meshData;
 		}
 
 		{ // Suzanne
@@ -472,22 +532,7 @@ namespace Nickel {
 		rs->simpleProgram.Create(rs->device.Get(), vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
 		rs->textureProgram.Create(rs->device.Get(), vertexPosUVLayoutDesc, std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
 
-		rs->simpleMat = Material{
-			.program = &rs->simpleProgram
-		};
-
-		rs->textureMat = Material{
-			.program = &rs->textureProgram
-		};
-
-		// create Texture
-		HRESULT hr = CreateWICTextureFromFile(*rs->device.GetAddressOf(),
-			L"Data/Textures/matcap.jpg", //tex.png
-			&rs->textureResource, &rs->textureView);
-		if (FAILED(hr)) {
-			Logger::Error("Couldn't load texture");
-			return false;
-		}
+		rs->texture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
 
 		// Setup the projection matrix.
 		RECT clientRect;

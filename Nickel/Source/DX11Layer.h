@@ -44,6 +44,7 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState*;
 	auto CreateDefaultRasterizerState(ID3D11Device1* device)->ID3D11RasterizerState*;
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels) -> ID3D11Texture2D*;
+	auto CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc) -> ID3D11SamplerState*;
 	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D*;
 	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView*;
 	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void;

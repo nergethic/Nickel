@@ -13,7 +13,8 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto ShaderProgram::Bind(ID3D11DeviceContext1* ctx) -> void {
-		
+		Assert(ctx != nullptr);
+
 		auto bindShader = [&](auto& arg) {
 			using T = std::decay_t<decltype(arg)>;
 
@@ -35,6 +36,7 @@ namespace Nickel::Renderer::DXLayer {
 			}
 		};
 
+		ctx->IASetInputLayout(inputLayout);
 		bindShader(vertexShader);
 		bindShader(pixelShader);
 

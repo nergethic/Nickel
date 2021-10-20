@@ -42,23 +42,24 @@ struct GPUMeshData {
 	ID3D11Buffer* indexBuffer;
 	u32 indexOffset;
 	u32 indexCount;
+	D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 };
 
-struct PipelineState {
-	ID3D11InputLayout* inputLayout = nullptr;
+struct PipelineState { // rasterizer, blend, depth, stencil
+	//ID3D11InputLayout* inputLayout = nullptr;
 
-	ID3D11VertexShader* vertexShader = nullptr;
-	ID3D11Buffer* vertexConstantBuffers = nullptr;
-
-	ID3D11PixelShader* pixelShader = nullptr;
-	ID3D11Buffer* pixelConstantBuffers = nullptr;
+	//ID3D11VertexShader* vertexShader = nullptr;
+	//ID3D11Buffer* vertexConstantBuffers = nullptr;
+	//ID3D11PixelShader* pixelShader = nullptr;
+	//ID3D11Buffer* pixelConstantBuffers = nullptr;
 
 	ID3D11RasterizerState* rasterizerState = nullptr;
 	ID3D11DepthStencilState* depthStencilState = nullptr;
+	// D3D11_RENDER_TARGET_BLEND_DESC1 ?? 
 	
-	D3D11_PRIMITIVE_TOPOLOGY topology;
-	short vertexConstantBuffersCount = 0;
-	short pixelConstantBuffersCount = 0;
+	//D3D11_PRIMITIVE_TOPOLOGY topology;
+	//short vertexConstantBuffersCount = 0;
+	//short pixelConstantBuffersCount = 0;
 };
 
 struct PerFrameBufferData {
@@ -81,8 +82,13 @@ struct Transform {
 	f32 scaleX, scaleY, scaleZ;
 };
 
+struct TextureData {
+	std::string name;
+};
+
 struct Material {
 	Nickel::Renderer::DXLayer::ShaderProgram* program;
+	PipelineState pipelineState;
 	// uniforms
 };
 
@@ -90,7 +96,14 @@ struct Material {
 struct DescribedMesh {
 	Transform transform;
 	Nickel::MeshData mesh;
+	GPUMeshData* gpuData; // TODO: figure out better structure design, if someone assigns different gpuData then mesh won't correspond to it
 	Material material;
+};
+
+struct TextureDX11 {
+	ID3D11Resource* resource;
+	ID3D11ShaderResourceView* srv;
+	ID3D11SamplerState* samplerState;
 };
 
 struct RendererState {
@@ -110,9 +123,7 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	ID3D11Resource* textureResource = nullptr;
-	ID3D11ShaderResourceView* textureView = nullptr;
-	ID3D11SamplerState* texSamplerState = nullptr;
+	TextureDX11 texture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
@@ -131,7 +142,7 @@ struct RendererState {
 	ID3D11ShaderResourceView* zeroResourceViews[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
 	ID3D11SamplerState* zeroSamplerStates[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
 
-	PipelineState pipelineStates[10];
+	// PipelineState pipelineStates[10];
 
 	UINT backbufferWidth;
 	UINT backbufferHeight;

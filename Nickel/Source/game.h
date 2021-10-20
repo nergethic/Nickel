@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "renderer.h"
 #include "ObjLoader.h"
+#include "ResourceManager.h"
 #include <vector>
 
 static u32 GLOBAL_WINDOW_WIDTH = 1080;

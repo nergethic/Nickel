@@ -325,6 +325,12 @@ namespace Nickel::Renderer::DXLayer {
 		return depthStencilBuffer;
 	}
 
+	auto CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc) -> ID3D11SamplerState* {
+		ID3D11SamplerState* result{};
+		ASSERT_ERROR_RESULT(device->CreateSamplerState(&desc, &result));
+		return result;
+	}
+
 	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D* {
 		return CreateTexture(device, width, height, DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL);
 	}
@@ -387,10 +393,20 @@ namespace Nickel::Renderer::DXLayer {
 
 	auto CreateInputLayout(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> shaderBytecodeWithInputSignature) -> ID3D11InputLayout* {
 		Assert(device != nullptr);
-		// Assert(vertexLayoutDesc.data != nullptr); // TODO
-		// Assert(shaderBytecodeWithInputSignature != nullptr);
+		Assert(vertexLayoutDesc.size() > 0 && vertexLayoutDesc.data() != nullptr);
+		Assert(shaderBytecodeWithInputSignature.size() > 0 && shaderBytecodeWithInputSignature.data() != nullptr);
 
 		ID3D11InputLayout* result = nullptr;
+
+		if constexpr (_DEBUG) { // NOTE: this call validates other input parameters
+			const HRESULT validationResult = device->CreateInputLayout(
+				vertexLayoutDesc.data(),
+				vertexLayoutDesc.size(),
+				shaderBytecodeWithInputSignature.data(),
+				shaderBytecodeWithInputSignature.size(),
+				nullptr);
+			Assert(validationResult == S_FALSE);
+		}
 
 		ASSERT_ERROR_RESULT(device->CreateInputLayout(
 			vertexLayoutDesc.data(),
