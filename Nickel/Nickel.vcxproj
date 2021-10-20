@@ -241,6 +241,7 @@
     <ClInclude Include="Source\ObjLoader.h" />
     <ClInclude Include="Source\platform.h" />
     <ClInclude Include="Source\renderer.h" />
+    <ClInclude Include="Source\ResourceManager.h" />
     <ClInclude Include="Source\ShaderProgram.h" />
     <ClInclude Include="Source\Shaders\PixelShader.h" />
     <ClInclude Include="Source\Shaders\TexPixelShader.h" />
