@@ -69,8 +69,6 @@ auto CreateCubeMap() -> void {
 */
 
 const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
-const UINT vertexStride = sizeof(VertexPosColor);
-const UINT texVertexStride = sizeof(VertexPosUV);
 const UINT offset = 0;
 
 namespace Nickel {
@@ -108,7 +106,7 @@ namespace Nickel {
 		mesh.material.program->Bind(c);
 		c->IASetPrimitiveTopology(gpuData->topology);
 		Renderer::DXLayer::SetIndexBuffer(*c, gpuData->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(*c, gpuData->vertexBuffer.buffer, texVertexStride, offset); // TODO: fill GPUMeshData with proper vertex buffer info
+		Renderer::DXLayer::SetVertexBuffer(*c, gpuData->vertexBuffer.buffer, sizeof(VertexPosUV), offset); // TODO: fill GPUMeshData with proper vertex buffer info
 
 		// TODO: figure out how to store and generically set samplers and resources
 		c->PSSetShaderResources(0, 1, &rs.texture.srv);
@@ -144,7 +142,7 @@ namespace Nickel {
 		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, sizeof(VertexPosUV), offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -162,7 +160,7 @@ namespace Nickel {
 		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, texVertexStride, offset);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, sizeof(VertexPosUV), offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -180,7 +178,7 @@ namespace Nickel {
 		cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, vertexStride, offset);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, sizeof(VertexPosColor), offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -529,8 +527,8 @@ namespace Nickel {
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
-		rs->simpleProgram.Create(rs->device.Get(), vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
-		rs->textureProgram.Create(rs->device.Get(), vertexPosUVLayoutDesc, std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
+		rs->simpleProgram.Create(rs->device.Get(), std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
+		rs->textureProgram.Create(rs->device.Get(), std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
 
 		rs->texture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
 

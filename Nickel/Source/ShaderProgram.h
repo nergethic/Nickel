@@ -39,9 +39,13 @@ namespace Nickel::Renderer::DXLayer {
 		ShaderProgram() = default;
 		~ShaderProgram() = default;
 
-		auto Create(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> vertexShaderBytecode, std::span<const u8> pixelShaderBytecode) -> void;
+		auto Create(ID3D11Device1* device, std::span<const u8> vertexShaderBytecode, std::span<const u8> pixelShaderBytecode) -> void; // removed std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc
 		auto Bind(ID3D11DeviceContext1* ctx) -> void;
 		auto Unbind(ID3D11DeviceContext1* ctx) -> void;
+		inline auto SetProperty(ID3D11DeviceContext1* ctx) -> void {
+			//ctx->VSSet
+			
+		}
 
 		ID3D11InputLayout* inputLayout;
 		ID3D11VertexShader* vertexShader;
@@ -59,8 +63,10 @@ namespace Nickel::Renderer::DXLayer {
 		*/
 
 		private:
+		auto CreateInputLayoutFromBytecode(ID3D11Device1* device, std::span<const u8> vertexShaderBytecode) -> ID3D11InputLayout*;
 
 		template<typename ShaderT>
+		// requires std::is_base_of<ID3D11DeviceChild, ShaderT>::value
 		static auto CreateShaderFromBytecode(ID3D11Device1* device, ShaderT& shader, std::span<const u8> shaderBytecode) -> void {
 			using T = std::decay_t<decltype(shader)>;
 			if (std::is_same_v<T, ID3D11VertexShader*>) {
