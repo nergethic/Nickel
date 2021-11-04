@@ -36,13 +36,15 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateDevice() -> std::pair<ID3D11Device*, ID3D11DeviceContext*>;
 	auto CreateSwapChain(HWND windowHandle, ID3D11Device1* device, int clientWidth, int clientHeight) -> IDXGISwapChain1*;
 
-	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
+	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, bool dynamic, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto CreateIndexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr)->ID3D11Buffer*;
 	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto Clear(const CmdQueue& cmd, u32 clearFlag, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState*;
-	auto CreateDefaultRasterizerState(ID3D11Device1* device)->ID3D11RasterizerState*;
+	auto CreateRasterizerState(ID3D11Device1* device, const D3D11_RASTERIZER_DESC& rasterizerDesc) -> ID3D11RasterizerState*;
+	auto CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState*;
+	auto GetDefaultRasterizerDescription() -> D3D11_RASTERIZER_DESC;
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels) -> ID3D11Texture2D*;
 	auto CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc) -> ID3D11SamplerState*;
 	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D*;

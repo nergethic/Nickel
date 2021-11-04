@@ -43,6 +43,10 @@ namespace Nickel::Renderer {
 			return newTex;
 		}
 
+		inline static auto GetDefaultSamplerState() -> ID3D11SamplerState* {
+			return defaultSamplerState;
+		}
+
 	private:
 		inline static ID3D11Device1* device;
 		inline static ID3D11SamplerState* defaultSamplerState;

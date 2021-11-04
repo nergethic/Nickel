@@ -18,55 +18,66 @@ struct Vec3 {
 	f32 x, y, z;
 };
 
-/*
-auto CreateCubeMap() -> void {
-	D3D11_TEXTURE2D_DESC texDesc;
-	texDesc.Width = description.width;
-	texDesc.Height = description.height;
-	texDesc.MipLevels = 1;
-	texDesc.ArraySize = 6;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	texDesc.CPUAccessFlags = 0;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.Usage = D3D11_USAGE_DEFAULT;
-	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	texDesc.CPUAccessFlags = 0;
-	texDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+struct Color {
+	u8 r, g, b, a;
+};
 
-	D3D11_SHADER_RESOURCE_VIEW_DESC SMViewDesc;
-	SMViewDesc.Format = texDesc.Format;
-	SMViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-	SMViewDesc.TextureCube.MipLevels = texDesc.MipLevels;
-	SMViewDesc.TextureCube.MostDetailedMip = 0;
-
+auto CreateCubeMap(RendererState& rs, u32 width, u32 height) -> void {
+	auto texDesc = D3D11_TEXTURE2D_DESC{
+		.Width = width,
+		.Height = height,
+		.MipLevels = 1,
+		.ArraySize = 6,
+		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+		.SampleDesc = DXGI_SAMPLE_DESC{	
+			.Count = 1,
+			.Quality = 0,
+		},
+		.Usage = D3D11_USAGE_DEFAULT,
+		.BindFlags = D3D11_BIND_SHADER_RESOURCE,
+		.CPUAccessFlags = 0,
+		.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
+	};
+	
 	D3D11_SUBRESOURCE_DATA pData[6];
-	std::vector<vector4b> d[6]; // 6 images of type vector4b = 4 * unsigned char
+	std::vector<Color> imgs[6];
 
-	for (int cubeMapFaceIndex = 0; cubeMapFaceIndex < 6; cubeMapFaceIndex++)
-	{
-		d[cubeMapFaceIndex].resize(description.width * description.height);
+	for (int cubeMapFaceIdx = 0; cubeMapFaceIdx < 6; cubeMapFaceIdx++) {
+		imgs[cubeMapFaceIdx].resize(width*height);
 
 		// fill with red color  
 		std::fill(
-			d[cubeMapFaceIndex].begin(),
-			d[cubeMapFaceIndex].end(),
-			vector4b(255, 0, 0, 255));
+			imgs[cubeMapFaceIdx].begin(),
+			imgs[cubeMapFaceIdx].end(),
+			Color(255, 0, 0, 255));
 
-		pData[cubeMapFaceIndex].pSysMem = &d[cubeMapFaceIndex][0];// description.data;
-		pData[cubeMapFaceIndex].SysMemPitch = description.width * 4;
-		pData[cubeMapFaceIndex].SysMemSlicePitch = 0;
+		pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
+		pData[cubeMapFaceIdx].SysMemPitch = width * 4;
+		pData[cubeMapFaceIdx].SysMemSlicePitch = 0;
 	}
 
-	HRESULT hr = renderer->getDevice()->CreateTexture2D(&texDesc,
-		description.data[0] ? &pData[0] : nullptr, &m_pCubeTexture);
-	Assert(hr == S_OK);
+	auto device = rs.device.Get();
+	ID3D11Texture2D* cubeTexture;
+	ASSERT_ERROR_RESULT(device->CreateTexture2D(&texDesc, &pData[0], &cubeTexture));
 
-	hr = renderer->getDevice()->CreateShaderResourceView(
-		m_pCubeTexture, &SMViewDesc, &m_pShaderResourceView);
-	Assert(hr == S_OK);
+	auto resourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{
+		.Format = texDesc.Format,
+		.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+		.TextureCube = D3D11_TEXCUBE_SRV{
+			.MostDetailedMip = 0,
+			.MipLevels = texDesc.MipLevels
+		}
+	};
+
+	ID3D11ShaderResourceView* srv;
+	ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
+
+	rs.cubeMap = TextureDX11{
+			.resource = cubeTexture,
+			.srv = srv,
+			.samplerState = ResourceManager::GetDefaultSamplerState()
+	};
 }
-*/
 
 const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 const UINT offset = 0;
@@ -79,7 +90,6 @@ namespace Nickel {
 		cmdQueue.RSSetState(pipeline.rasterizerState);
 		cmdQueue.OMSetDepthStencilState(pipeline.depthStencilState, 1);
 		// cmdQueue.OMSetBlendState() // TODO
-
 		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
 
 		//cmdQueue.IASetPrimitiveTopology(pipeline.topology);
@@ -94,8 +104,8 @@ namespace Nickel {
 		// cmdQueue->PSSetConstantBuffers(); // TODO
 	}
 
-	auto Submit(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh) -> void {
-		auto c = cmd.queue.Get();
+	auto Submit(RendererState& rs, const DXLayer::CmdQueue& cmd, const DescribedMesh& mesh) -> void {
+		auto queue = cmd.queue.Get();
 		const auto program = mesh.material.program;
 		if (program == nullptr) {
 			Logger::Error("Mesh material program is null");
@@ -103,18 +113,22 @@ namespace Nickel {
 		}
 
 		const auto& gpuData = mesh.gpuData;
-		mesh.material.program->Bind(c);
-		c->IASetPrimitiveTopology(gpuData->topology);
-		Renderer::DXLayer::SetIndexBuffer(*c, gpuData->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(*c, gpuData->vertexBuffer.buffer, sizeof(VertexPosUV), offset); // TODO: fill GPUMeshData with proper vertex buffer info
+		const auto& material = mesh.material;
 
-		// TODO: figure out how to store and generically set samplers and resources
-		c->PSSetShaderResources(0, 1, &rs.texture.srv);
-		c->PSSetSamplers(0, 1, &rs.texture.samplerState); // TODO: ID3D11Device::CreateSamplerState
+		material.program->Bind(queue);
+		queue->IASetPrimitiveTopology(gpuData->topology);
+		DXLayer::SetIndexBuffer(*queue, gpuData->indexBuffer);
+		DXLayer::SetVertexBuffer(*queue, gpuData->vertexBuffer.buffer.get(), gpuData->vertexBuffer.stride, gpuData->vertexBuffer.offset);
 
-		c->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), (ID3D11Buffer* const*)rs.g_d3dConstantBuffers);
+		for (auto& tex : material.textures) {
+			queue->PSSetShaderResources(0, 1, &tex.srv);
+			queue->PSSetSamplers(0, 1, &tex.samplerState);
+		}
+		
+		queue->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
+		// c->VSSetConstantBuffers(0, ArrayCount(material.constantBuffer), &material.constantBuffer);
 
-		SetPipelineState(*c, &rs.g_Viewport, mesh.material.pipelineState);
+		SetPipelineState(*queue, &rs.g_Viewport, mesh.material.pipelineState);
 		DXLayer::DrawIndexed(cmd, mesh.gpuData->indexCount, 0, 0);
 	}
 
@@ -138,11 +152,11 @@ namespace Nickel {
 
 		GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-		cmdQueue.PSSetShaderResources(0, 1, &rs->texture.srv);
-		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
+		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
+		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, sizeof(VertexPosUV), offset);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer.get(), sizeof(VertexPosUV), offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -156,11 +170,11 @@ namespace Nickel {
 
 		GPUMeshData* mesh = &rs->GPUMeshData[0];
 
-		cmdQueue.PSSetShaderResources(0, 1, &rs->texture.srv);
-		cmdQueue.PSSetSamplers(0, 1, &rs->texture.samplerState);
+		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
+		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer, sizeof(VertexPosUV), offset);
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer.get(), sizeof(VertexPosUV), offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -178,7 +192,9 @@ namespace Nickel {
 		cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, rs->GPUMeshData[1].vertexBuffer.buffer, sizeof(VertexPosColor), offset);
+
+		auto& vertexBuffer = rs->GPUMeshData[1].vertexBuffer;
+		Renderer::DXLayer::SetVertexBuffer(cmdQueue, vertexBuffer.buffer.get(), sizeof(VertexPosColor), vertexBuffer.offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
@@ -300,8 +316,8 @@ namespace Nickel {
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
-		auto depthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-		auto rasterizerState = DXLayer::CreateDefaultRasterizerState(device);
+		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
 		D3D11_BLEND_DESC1 stateDesc = { 0 };
@@ -344,21 +360,48 @@ namespace Nickel {
 		// pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
 		// pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
 
-		rs->simpleMat = Material{
-			.program = &rs->simpleProgram,
-			.pipelineState = PipelineState{
-				.rasterizerState = rasterizerState,
-				.depthStencilState = depthStencilState
-			}
-		};
-
-		rs->textureMat = Material{
-			.program = &rs->textureProgram,
-			.pipelineState = PipelineState{
-				.rasterizerState = rasterizerState,
-				.depthStencilState = depthStencilState
-			}
-		};
+		// materials
+		{
+			auto& simpleMat = rs->simpleMat;
+			simpleMat = Material{
+				.program = &rs->simpleProgram,
+				.pipelineState = PipelineState{
+					.rasterizerState = defaultRasterizerState,
+					.depthStencilState = defaultDepthStencilState
+				},
+			};
+		}
+		
+		
+		// simpleMat.constantBuffer = DXLayer::CreateConstantBuffer(device, )
+		{
+			auto& textureMat = rs->textureMat;
+			textureMat = Material{
+				.program = &rs->textureProgram,
+				.pipelineState = PipelineState{
+					.rasterizerState = defaultRasterizerState,
+					.depthStencilState = defaultDepthStencilState
+				}
+			};
+			textureMat.textures = std::vector<TextureDX11>(1);
+			textureMat.textures[0] = rs->matCapTexture;
+		}
+		
+		{
+			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
+			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+			auto& skyboxMat = rs->backgroundMat;
+			skyboxMat = Material{
+				.program = &rs->backgroundProgram,
+				.pipelineState = PipelineState{
+					.rasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc),
+					.depthStencilState = defaultDepthStencilState
+				}
+			};
+			//textureMat.textures = std::vector<TextureDX11>(1);
+			//textureMat.textures[0] = rs->matCapTexture;
+		}
+		
 
 		rs->bunny.material = rs->textureMat;
 	}
@@ -423,6 +466,9 @@ namespace Nickel {
 		}
 		*/
 
+		//std::vector<ID3D11ShaderResourceView*> nullSRVs(gbuffer.size() + 1, nullptr); // TODO
+		//context->PSSetShaderResources(0, static_cast<u32>(nullSRVs.size()), nullSRVs.data());
+
 		for (int y = -20; y < 20; y++) {
 			for (int x = -20; x < 20; x++) {
 				DrawModel(*rs, cmd, rs->bunny, x*2.0f, y*2.0f);
@@ -456,7 +502,7 @@ namespace Nickel {
 			MeshData meshData;
 			LoadBunnyMesh(meshData);
 
-			auto vertexFormatData = GetVertexPosUVFromModelData(&meshData);
+			std::vector<VertexPosUV> vertexFormatData = GetVertexPosUVFromModelData(&meshData);
 			auto vertexCount = static_cast<u32>(vertexFormatData.size());
 			auto indexCount = static_cast<u32>(meshData.i.size());
 
@@ -464,25 +510,21 @@ namespace Nickel {
 			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = meshData.i.data() };
 			auto indexByteWidthSize = sizeof(meshData.i[0]) * indexCount;
 
-			// TODO: initialize vertex buffer fully!!
-			auto vertexBuffer = VertexBuffer{
-				.buffer = Renderer::DXLayer::CreateVertexBuffer(device, (sizeof(vertexFormatData[0]) * vertexCount), &vertexSubresource),
-				.inputElementDescription{},
-				.stride{},
-				.offset{}
-			};
+			//auto vertexBuffer = VertexBuffer{
+				//.buffer = Renderer::DXLayer::CreateVertexBuffer(device, (sizeof(vertexFormatData[0]) * vertexCount), &vertexSubresource),
+				//.stride = sizeof(VertexPosUV),
+				//.offset = 0
+			//};
 
-			auto gpuMeshData = GPUMeshData{
-				.vertexBuffer = vertexBuffer,
+			auto& gpuMeshData = rs->GPUMeshData[0];	
+			gpuMeshData = GPUMeshData{
 				.vertexCount = vertexCount,
 
 				.indexBuffer = Renderer::DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
 				.indexCount = indexCount,
 				.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 			};
-
-			rs->GPUMeshData[0] = gpuMeshData;
-
+			gpuMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
 			
 			auto& bunny = rs->bunny;
 			bunny.transform.scaleX = 12.0f;
@@ -499,7 +541,7 @@ namespace Nickel {
 			MeshData meshData;
 			LoadSuzanneModel(meshData);
 
-			auto vertexFormatData = GetVertexPosColorFromModelData(&meshData); // TODO: change this to GetVertexPosUVFromModelData and make easy to debug
+			std::vector<VertexPosColor> vertexFormatData = GetVertexPosColorFromModelData(&meshData); // TODO: change this to GetVertexPosUVFromModelData and make easy to debug
 			auto vertexCount = static_cast<u32>(vertexFormatData.size());
 			auto indexCount = static_cast<u32>(meshData.i.size());
 
@@ -507,19 +549,14 @@ namespace Nickel {
 			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = meshData.i.data() };
 			auto indexByteWidthSize = sizeof(meshData.i[0]) * indexCount;
 
-			auto vertexBuffer = VertexBuffer{
-				.buffer = DXLayer::CreateVertexBuffer(device, (sizeof(vertexFormatData[0]) * vertexCount), &vertexSubresource)
-			};
-
-			auto gpuMeshData = GPUMeshData{
-				.vertexBuffer = vertexBuffer,
+			auto& gpuMeshData = rs->GPUMeshData[1];
+			gpuMeshData = GPUMeshData{
 				.vertexCount = vertexCount,
 
 				.indexBuffer = DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
 				.indexCount = indexCount
 			};
-
-			rs->GPUMeshData[1] = gpuMeshData;
+			gpuMeshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexFormatData), false);
 		}
 
 		// Create the constant buffers for the variables defined in the vertex shader.
@@ -527,10 +564,12 @@ namespace Nickel {
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
+		// Create shader programs
 		rs->simpleProgram.Create(rs->device.Get(), std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
 		rs->textureProgram.Create(rs->device.Get(), std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
+		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_SimpleVertexShader }, std::span{ g_BackgroundPixelShader });
 
-		rs->texture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
+		rs->matCapTexture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
 
 		// Setup the projection matrix.
 		RECT clientRect;
@@ -544,6 +583,8 @@ namespace Nickel {
 		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
 
 		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
+
+		CreateCubeMap(*rs, 256, 256);
 
 		return true;
 	}

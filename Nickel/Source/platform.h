@@ -64,15 +64,6 @@ typedef double f64;
 // #define PushStruct(s) (size_of(s))
 // entity = PushStruct(Arena, Entity);
 
-// Safely release a COM object
-template<typename T>
-inline auto SafeRelease(T & ptr) -> void {
-	if (ptr != nullptr) {
-		ptr->Release();
-		ptr = nullptr;
-	}
-};
-
 template <typename T>
 inline auto NoConst(const T& x) -> T& {
 	return const_cast<T&>(x);

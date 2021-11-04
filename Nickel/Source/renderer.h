@@ -14,15 +14,47 @@
 #include "Shaders/TexVertexShader.h"
 #include "Shaders/TexPixelShader.h"
 
+#include "Shaders/BackgroundVertexShader.h"
+#include "Shaders/BackgroundPixelShader.h"
+
 using namespace DirectX;
 using namespace Nickel::Renderer;
 using namespace Microsoft::WRL;
 
 struct VertexBuffer {
-	ID3D11Buffer* buffer;
-	D3D11_INPUT_ELEMENT_DESC inputElementDescription;
+	std::unique_ptr<ID3D11Buffer, DxDeleter> buffer;
 	UINT stride;
 	UINT offset;
+	bool isDynamic;
+
+	template <typename VertexT>
+	void Create(ID3D11Device1* device, std::span<VertexT> vertexData, bool dynamic) {
+		Assert(buffer.get() == nullptr);
+		auto data = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexData.data() };
+
+		auto rawBuffer = DXLayer::CreateVertexBuffer(device, (sizeof(VertexT) * vertexData.size()), dynamic, &data);
+		buffer = std::unique_ptr<ID3D11Buffer, DxDeleter>(rawBuffer);
+		stride = sizeof(VertexT);
+		offset = 0;
+		isDynamic = dynamic;
+	}
+
+	template <typename VertexT>
+	void Update(ID3D11DeviceContext1* ctx, std::span<VertexT const*> vertexData) {
+		if constexpr (_DEBUG) {
+			Assert(isDynamic);
+			D3D11_BUFFER_DESC buffer_desc;
+			buffer->GetDesc(&buffer_desc);
+			Assert(buffer_desc.Usage == D3D11_USAGE_DYNAMIC && buffer_desc.CPUAccessFlags == D3D11_CPU_ACCESS_WRITE);
+		}
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		void* dataPtr;
+		ctx->Map(buffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		dataPtr = mappedResource.pData;
+		memcpy(dataPtr, vertexData.data(), vertexData.size());
+		ctx->Unmap(buffer.get(), 0);
+	}
 };
 
 struct IndexBuffer {
@@ -86,10 +118,18 @@ struct TextureData {
 	std::string name;
 };
 
+struct TextureDX11 {
+	ID3D11Resource* resource;
+	ID3D11ShaderResourceView* srv;
+	ID3D11SamplerState* samplerState;
+};
+
 struct Material {
 	Nickel::Renderer::DXLayer::ShaderProgram* program;
 	PipelineState pipelineState;
-	// uniforms
+	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
+	std::vector<TextureDX11> textures;
+	ID3D11Buffer* constantBuffer;
 };
 
 #include "Mesh.h"
@@ -98,12 +138,6 @@ struct DescribedMesh {
 	Nickel::MeshData mesh;
 	GPUMeshData* gpuData; // TODO: figure out better structure design, if someone assigns different gpuData then mesh won't correspond to it
 	Material material;
-};
-
-struct TextureDX11 {
-	ID3D11Resource* resource;
-	ID3D11ShaderResourceView* srv;
-	ID3D11SamplerState* samplerState;
 };
 
 struct RendererState {
@@ -123,7 +157,8 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	TextureDX11 texture;
+	TextureDX11 matCapTexture;
+	TextureDX11 cubeMap;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
@@ -132,7 +167,7 @@ struct RendererState {
 	XMMATRIX g_ViewMatrix;
 	XMMATRIX g_ProjectionMatrix;
 
-	// ------- toto this probably should be separated
+	// ------- todo this probably should be separated
 	ID3D11Buffer* vertexBuffers[20];
 	ID3D11Buffer* indexBuffers[20];
 	u32 vertexBuffersCount = 0;
@@ -151,13 +186,16 @@ struct RendererState {
 
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;
+	DXLayer::ShaderProgram backgroundProgram;
 
 	Material simpleMat;
 	Material textureMat;
+	Material backgroundMat;
 
 	DescribedMesh bunny;
 	DescribedMesh suzanne;
 	DescribedMesh light;
+	DescribedMesh skybox;
 
 	DescribedMesh* sceneMeshes[3];
 };

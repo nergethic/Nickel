@@ -30,6 +30,19 @@
 	#define LOG_ERROR_RESULT(res) {}
 #endif
 
+// Safely release a COM object
+template<typename T>
+inline auto SafeRelease(T& ptr) -> void {
+	if (ptr != nullptr) {
+		ptr->Release();
+		ptr = nullptr;
+	}
+};
+
+struct DxDeleter {
+	void operator() (IUnknown* ptr) { SafeRelease(ptr); }
+};
+
 namespace Nickel::Renderer::DXLayer {
 	inline auto GetHResultString(HRESULT errCode) -> std::string {
 		switch (errCode) {

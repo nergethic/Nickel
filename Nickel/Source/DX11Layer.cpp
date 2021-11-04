@@ -257,11 +257,16 @@ namespace Nickel::Renderer::DXLayer {
 		depthStencilStateDesc.StencilEnable = enableStencilTest ? TRUE : FALSE;
 
 		ID3D11DepthStencilState* result = nullptr;
-		HRESULT hr = device->CreateDepthStencilState(&depthStencilStateDesc, &result);
-		if (!SUCCEEDED(hr)) {
-			Assert(false);
-			Logger::Error("Depth Stencil State creation failed");
-		}
+		ASSERT_ERROR_RESULT(device->CreateDepthStencilState(&depthStencilStateDesc, &result));
+
+		return result;
+	}
+
+	auto CreateRasterizerState(ID3D11Device1* device, const D3D11_RASTERIZER_DESC& rasterizerDesc) -> ID3D11RasterizerState* {
+		Assert(device != nullptr);
+
+		ID3D11RasterizerState* result = nullptr;
+		ASSERT_ERROR_RESULT(device->CreateRasterizerState(&rasterizerDesc, &result));
 
 		return result;
 	}
@@ -269,6 +274,10 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState* {
 		Assert(device != nullptr);
 
+		return CreateRasterizerState(device, GetDefaultRasterizerDescription());
+	}
+
+	auto GetDefaultRasterizerDescription() -> D3D11_RASTERIZER_DESC {
 		D3D11_RASTERIZER_DESC rasterizerDesc;
 		ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
 
@@ -283,44 +292,35 @@ namespace Nickel::Renderer::DXLayer {
 		rasterizerDesc.ScissorEnable = FALSE;
 		rasterizerDesc.SlopeScaledDepthBias = 0.0f;
 
-		ID3D11RasterizerState* result = nullptr;
-		HRESULT hr = device->CreateRasterizerState(&rasterizerDesc, &result);
-		if (FAILED(hr)) {
-			Assert(false);
-			// TODO: report error
-		}
-
-		return result;
+		return rasterizerDesc;
 	}
 
 	auto CreateTexture(ID3D11Device1* device, UINT width, UINT height, DXGI_FORMAT format, UINT bindFlags, UINT mipLevels = 1) -> ID3D11Texture2D* {
 		Assert(device != nullptr);
-		D3D11_TEXTURE2D_DESC depthStencilTextureDesc = { 0 };
-
-		depthStencilTextureDesc.ArraySize = 1;
-		depthStencilTextureDesc.BindFlags = bindFlags;
-		depthStencilTextureDesc.CPUAccessFlags = 0; // No CPU access required.
-		depthStencilTextureDesc.Format = format;
-		depthStencilTextureDesc.Width = width;
-		depthStencilTextureDesc.Height = height;
-		depthStencilTextureDesc.MipLevels = mipLevels;
-		depthStencilTextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		auto textureDesc = D3D11_TEXTURE2D_DESC{
+			.Width = width,
+			.Height = height,
+			.MipLevels = mipLevels,
+			.ArraySize = 1,
+			.Format = format,
+			.SampleDesc{},
+			.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT,
+			.BindFlags = bindFlags,
+			.CPUAccessFlags = 0, // No CPU access required.
+			.MiscFlags{}
+		};
 
 		if (mipLevels == 1) {
-			depthStencilTextureDesc.SampleDesc.Count = 4; // TODO: match depth stencil count and quality with swap chain settings
-			depthStencilTextureDesc.SampleDesc.Quality = GetHighestQualitySampleLevel(device, format);
+			textureDesc.SampleDesc.Count = 4; // TODO: match depth stencil count and quality with swap chain settings
+			textureDesc.SampleDesc.Quality = GetHighestQualitySampleLevel(device, format);
 		}
 		else {
-			depthStencilTextureDesc.SampleDesc.Count = 1;
-			depthStencilTextureDesc.SampleDesc.Quality = 0;
+			textureDesc.SampleDesc.Count = 1;
+			textureDesc.SampleDesc.Quality = 0;
 		}
 
 		ID3D11Texture2D* depthStencilBuffer = nullptr;
-		HRESULT hr = device->CreateTexture2D(&depthStencilTextureDesc, nullptr, &depthStencilBuffer);
-		if (FAILED(hr)) {
-			Assert(false);
-			// TODO: report error
-		}
+		ASSERT_ERROR_RESULT(device->CreateTexture2D(&textureDesc, nullptr, &depthStencilBuffer));
 
 		return depthStencilBuffer;
 	}
@@ -348,10 +348,7 @@ namespace Nickel::Renderer::DXLayer {
 		}
 
 		ID3D11DepthStencilView* result = nullptr;
-		device->CreateDepthStencilView(depthStencilTexture, nullptr, &result);
-		if (FAILED(result)) {
-			// TODO: report error
-		}
+		ASSERT_ERROR_RESULT(device->CreateDepthStencilView(depthStencilTexture, nullptr, &result));
 
 		return result;
 	}
@@ -368,11 +365,7 @@ namespace Nickel::Renderer::DXLayer {
 		// bufferDesc.StructureByteStride
 
 		ID3D11Buffer* newBuffer = nullptr;
-		HRESULT hr = device->CreateBuffer(&bufferDesc, initialData, &newBuffer);
-		if (!SUCCEEDED(hr)) {
-			// TODO: report error
-			return nullptr;
-		}
+		ASSERT_ERROR_RESULT(device->CreateBuffer(&bufferDesc, initialData, &newBuffer));
 
 		return newBuffer;
 	}
@@ -418,10 +411,12 @@ namespace Nickel::Renderer::DXLayer {
 		return result;
 	}
 
-	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* {
+	auto CreateVertexBuffer(ID3D11Device1* device, u32 size, bool dynamic, D3D11_SUBRESOURCE_DATA* initialData) -> ID3D11Buffer* { // TODO: add support for usage D3D11_USAGE
 		Assert(device != nullptr);
 
-		auto newVertexBuffer = CreateBuffer(device, D3D11_USAGE::D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, 0, 0, initialData);
+		D3D11_USAGE usage  = dynamic ? D3D11_USAGE::D3D11_USAGE_DYNAMIC : D3D11_USAGE::D3D11_USAGE_DEFAULT;
+		u32 cpuAccessFlags = dynamic ? D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE : 0;
+		auto newVertexBuffer = CreateBuffer(device, usage, D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER, size, cpuAccessFlags, 0, initialData);
 		//i32 newVertexBufferIndex = rs->vertexBuffersCount; // TODO: if vertex buffer creation fails this still returns index to empty array 
 		//if (newVertexBuffer != nullptr) {
 			//rs->vertexBuffers[newVertexBufferIndex] = newVertexBuffer;
