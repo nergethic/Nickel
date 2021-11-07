@@ -246,6 +246,15 @@ namespace Nickel::Renderer::DXLayer {
 		}
 	}
 
+	auto CreateDepthStencilState(ID3D11Device1* device, const D3D11_DEPTH_STENCIL_DESC& depthStencilDesc) -> ID3D11DepthStencilState* {
+		Assert(device != nullptr);
+
+		ID3D11DepthStencilState* result = nullptr;
+		ASSERT_ERROR_RESULT(device->CreateDepthStencilState(&depthStencilDesc, &result));
+
+		return result;
+	}
+
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState* {
 		Assert(device != nullptr);
 		D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
@@ -256,10 +265,7 @@ namespace Nickel::Renderer::DXLayer {
 		depthStencilStateDesc.DepthFunc = depthFunc;
 		depthStencilStateDesc.StencilEnable = enableStencilTest ? TRUE : FALSE;
 
-		ID3D11DepthStencilState* result = nullptr;
-		ASSERT_ERROR_RESULT(device->CreateDepthStencilState(&depthStencilStateDesc, &result));
-
-		return result;
+		return CreateDepthStencilState(device, depthStencilStateDesc);;
 	}
 
 	auto CreateRasterizerState(ID3D11Device1* device, const D3D11_RASTERIZER_DESC& rasterizerDesc) -> ID3D11RasterizerState* {
@@ -282,7 +288,7 @@ namespace Nickel::Renderer::DXLayer {
 		ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
 
 		rasterizerDesc.AntialiasedLineEnable = FALSE;
-		rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
+		rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE; // TODO: change to D3D11_CULL_BACK
 		rasterizerDesc.DepthBias = 0;
 		rasterizerDesc.DepthBiasClamp = 0.0f;
 		rasterizerDesc.DepthClipEnable = TRUE;

@@ -22,10 +22,12 @@ struct Color {
 	u8 r, g, b, a;
 };
 
-auto CreateCubeMap(RendererState& rs, u32 width, u32 height) -> void {
+auto CreateCubeMap(ID3D11Device1* device, std::string path) -> TextureDX11 {
+	auto imgData = ResourceManager::LoadImageData(path);
+
 	auto texDesc = D3D11_TEXTURE2D_DESC{
-		.Width = width,
-		.Height = height,
+		.Width = imgData.width,
+		.Height = imgData.height,
 		.MipLevels = 1,
 		.ArraySize = 6,
 		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -43,22 +45,23 @@ auto CreateCubeMap(RendererState& rs, u32 width, u32 height) -> void {
 	std::vector<Color> imgs[6];
 
 	for (int cubeMapFaceIdx = 0; cubeMapFaceIdx < 6; cubeMapFaceIdx++) {
-		imgs[cubeMapFaceIdx].resize(width*height);
-
+		//imgs[cubeMapFaceIdx].resize(imgData.width*imgData.height);
+		
 		// fill with red color  
-		std::fill(
-			imgs[cubeMapFaceIdx].begin(),
-			imgs[cubeMapFaceIdx].end(),
-			Color(255, 0, 0, 255));
+		//std::fill(
+			//imgs[cubeMapFaceIdx].begin(),
+			//imgs[cubeMapFaceIdx].end(),
+			//Color(255, 0, 0, 255));
 
-		pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
-		pData[cubeMapFaceIdx].SysMemPitch = width * 4;
+		//pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
+		pData[cubeMapFaceIdx].pSysMem = imgData.data;
+		pData[cubeMapFaceIdx].SysMemPitch = imgData.width * 4;
 		pData[cubeMapFaceIdx].SysMemSlicePitch = 0;
 	}
 
-	auto device = rs.device.Get();
 	ID3D11Texture2D* cubeTexture;
 	ASSERT_ERROR_RESULT(device->CreateTexture2D(&texDesc, &pData[0], &cubeTexture));
+	stbi_image_free(imgData.data); // TODO: do this inside resource manager
 
 	auto resourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{
 		.Format = texDesc.Format,
@@ -72,14 +75,13 @@ auto CreateCubeMap(RendererState& rs, u32 width, u32 height) -> void {
 	ID3D11ShaderResourceView* srv;
 	ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
 
-	rs.cubeMap = TextureDX11{
-			.resource = cubeTexture,
-			.srv = srv,
-			.samplerState = ResourceManager::GetDefaultSamplerState()
+	return TextureDX11{
+		.resource = cubeTexture,
+		.srv = srv,
+		.samplerState = ResourceManager::GetDefaultSamplerState()
 	};
 }
 
-const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 const UINT offset = 0;
 
 namespace Nickel {
@@ -138,19 +140,26 @@ namespace Nickel {
 
 		// update:
 		const auto t = mesh.transform;
-		auto worldMat = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ));
-		worldMat *= XMMatrixTranslation(t.positionX+offsetX, t.positionY + offsetY, t.positionZ);
-		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &worldMat, 0, 0, 0);
+		auto worldMat = XMMatrixRotationY(t.rotationY) * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ) * XMMatrixTranslation(t.positionX + offsetX, t.positionY + offsetY, t.positionZ);
+		auto worldTransposed = XMMatrixTranspose(XMMatrixIdentity() * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ));
+
+		PerObjectBufferData data;
+		data.modelMatrix = XMMatrixTranspose(worldMat);
+		data.viewProjectionMatrix = XMMatrixTranspose(rs.g_ViewMatrix * rs.g_ProjectionMatrix);
+		data.modelViewProjectionMatrix = XMMatrixTranspose(worldMat * rs.g_ViewMatrix * rs.g_ProjectionMatrix);
+
+		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &data, 0, 0, 0);
 
 		Submit(rs, cmd, mesh);		
 	}
 
+	/*
 	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
 		Assert(cmd.queue != nullptr);
 		auto& cmdQueue = *cmd.queue.Get();
 		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
-		GPUMeshData* mesh = &rs->GPUMeshData[0];
+		GPUMeshData* mesh = &rs->gpuMeshData[0];
 
 		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
 		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
@@ -168,7 +177,7 @@ namespace Nickel {
 		auto& cmdQueue = *cmd.queue.Get();
 		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
-		GPUMeshData* mesh = &rs->GPUMeshData[0];
+		GPUMeshData* mesh = &rs->gpuMeshData[0];
 
 		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
 		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
@@ -186,20 +195,21 @@ namespace Nickel {
 		auto& cmdQueue = *cmd.queue.Get();
 		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
 
-		GPUMeshData* mesh = &rs->GPUMeshData[1];
+		GPUMeshData* mesh = &rs->gpuMeshData[1];
 
 		cmdQueue.PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
 		cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
 
 		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
 
-		auto& vertexBuffer = rs->GPUMeshData[1].vertexBuffer;
+		auto& vertexBuffer = rs->gpuMeshData[1].vertexBuffer;
 		Renderer::DXLayer::SetVertexBuffer(cmdQueue, vertexBuffer.buffer.get(), sizeof(VertexPosColor), vertexBuffer.offset);
 
 		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
 
 		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
 	}
+	*/
 
 	auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
 		Assert(data != nullptr);
@@ -390,34 +400,34 @@ namespace Nickel {
 		{
 			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
 			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+
+			D3D11_DEPTH_STENCIL_DESC desc;
+			defaultDepthStencilState->GetDesc(&desc);
+			desc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
+			desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ZERO;
 			auto& skyboxMat = rs->backgroundMat;
 			skyboxMat = Material{
 				.program = &rs->backgroundProgram,
 				.pipelineState = PipelineState{
 					.rasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc),
-					.depthStencilState = defaultDepthStencilState
+					.depthStencilState = DXLayer::CreateDepthStencilState(device, desc)
 				}
 			};
-			//textureMat.textures = std::vector<TextureDX11>(1);
-			//textureMat.textures[0] = rs->matCapTexture;
+			skyboxMat.textures = std::vector<TextureDX11>(1);
+			skyboxMat.textures[0] = rs->skyboxTexture;
 		}
 		
-
+		rs->skybox.material = rs->backgroundMat;
 		rs->bunny.material = rs->textureMat;
 	}
 
+	static f32 previousMouseX = 0.5f;
+	static f32 previousMouseY = 0.5f;
+	static Vec3 cameraPos{ 0.0,0.0,-10.0 };
+	static Vec3 focusPos{ 0.0,0.0,0.0 };
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
-
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
-
-		Vec3 cameraPos;
-		cameraPos.x = 0.0f;
-		cameraPos.y = 0.0f;
-		cameraPos.z = -10.0f;
-
-		XMVECTOR eyePosition = XMVectorSet(cameraPos.x, cameraPos.y, cameraPos.z, 1);
-		XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
 
 		static float angle = -90.0f;
 		float radius = 2.1f;
@@ -425,7 +435,11 @@ namespace Nickel {
 		XMFLOAT3 lightPos = XMFLOAT3(radius * cos(XMConvertToRadians(angle)), 0.0f, radius * sin(XMConvertToRadians(angle)));
 
 		PerFrameBufferData frameData;
-		frameData.viewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+		XMVECTOR eyePosition = XMVectorSet(cameraPos.x, cameraPos.y, cameraPos.z, 1);
+		XMVECTOR lookAtPoint = XMVectorSet(focusPos.x, focusPos.y, focusPos.z, 1);
+
+		rs->g_ViewMatrix = XMMatrixLookAtLH(eyePosition, lookAtPoint, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+		frameData.viewMatrix = XMMatrixTranspose(rs->g_ViewMatrix);
 		frameData.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 		frameData.lightPosition = lightPos;
 
@@ -442,7 +456,6 @@ namespace Nickel {
 
 		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
 		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
-
 		
 		/*
 		DescribedMesh meshes[3];
@@ -468,12 +481,24 @@ namespace Nickel {
 
 		//std::vector<ID3D11ShaderResourceView*> nullSRVs(gbuffer.size() + 1, nullptr); // TODO
 		//context->PSSetShaderResources(0, static_cast<u32>(nullSRVs.size()), nullSRVs.data());
+		rs->bunny.transform.rotationY += 0.005;
+		rs->skybox.transform.rotationY += 0.0005;
 
-		for (int y = -20; y < 20; y++) {
-			for (int x = -20; x < 20; x++) {
-				DrawModel(*rs, cmd, rs->bunny, x*2.0f, y*2.0f);
+		for (int y = -2; y < 2; y++) {
+			for (int x = -2; x < 2; x++) {
+				DrawModel(*rs, cmd, rs->bunny, x*3.0f, y*3.0f);
 			}
 		}
+
+		//DrawModel(*rs, cmd, rs->bunny, 0.f, 0.f);
+
+		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
+		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
+		focusPos.x += dtMouseX * 50.0f;
+		focusPos.y += dtMouseY * 50.0f;
+		Logger::Error(dtMouseX);
+
+		DrawModel(*rs, cmd, rs->skybox);
 
 		// DrawBunny(cmd, rs, rs->pipelineStates[0]);
 
@@ -487,6 +512,9 @@ namespace Nickel {
 		
 
 		rs->swapChain->Present(1, 0);
+
+		previousMouseX = input->normalizedMouseX;
+		previousMouseY = input->normalizedMouseY;
 	}
 
 	auto LoadContent(RendererState* rs) -> bool {
@@ -503,8 +531,8 @@ namespace Nickel {
 			LoadBunnyMesh(meshData);
 
 			std::vector<VertexPosUV> vertexFormatData = GetVertexPosUVFromModelData(&meshData);
-			auto vertexCount = static_cast<u32>(vertexFormatData.size());
-			auto indexCount = static_cast<u32>(meshData.i.size());
+			const auto vertexCount = static_cast<u32>(vertexFormatData.size());
+			const auto indexCount = static_cast<u32>(meshData.i.size());
 
 			auto vertexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexFormatData.data() };
 			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = meshData.i.data() };
@@ -516,25 +544,25 @@ namespace Nickel {
 				//.offset = 0
 			//};
 
-			auto& gpuMeshData = rs->GPUMeshData[0];	
+			auto& gpuMeshData = rs->gpuMeshData[0];
 			gpuMeshData = GPUMeshData{
 				.vertexCount = vertexCount,
 
 				.indexBuffer = Renderer::DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
-				.indexCount = indexCount,
-				.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+				.indexCount  = indexCount,
+				.topology    = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 			};
 			gpuMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
 			
 			auto& bunny = rs->bunny;
-			bunny.transform.scaleX = 12.0f;
-			bunny.transform.scaleY = 12.0f;
-			bunny.transform.scaleZ = 12.0f;
+			bunny.transform.scaleX = 15.0f;
+			bunny.transform.scaleY = 15.0f;
+			bunny.transform.scaleZ = 15.0f;
 			bunny.transform.positionX = 0.0f;
-			bunny.transform.positionY = -2.0f;
-			bunny.transform.positionZ = 0.0f;
-			bunny.gpuData = &rs->GPUMeshData[0];
-			bunny.mesh = meshData;
+			bunny.transform.positionY = 0.0f;
+			bunny.transform.positionZ = 7.0f;
+			bunny.gpuData = &rs->gpuMeshData[0];
+			bunny.mesh = meshData; // TODO: is this useless?
 		}
 
 		{ // Suzanne
@@ -542,14 +570,14 @@ namespace Nickel {
 			LoadSuzanneModel(meshData);
 
 			std::vector<VertexPosColor> vertexFormatData = GetVertexPosColorFromModelData(&meshData); // TODO: change this to GetVertexPosUVFromModelData and make easy to debug
-			auto vertexCount = static_cast<u32>(vertexFormatData.size());
-			auto indexCount = static_cast<u32>(meshData.i.size());
+			const auto vertexCount = static_cast<u32>(vertexFormatData.size());
+			const auto indexCount = static_cast<u32>(meshData.i.size());
 
-			auto vertexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexFormatData.data() };
-			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = meshData.i.data() };
+			auto vertexSubresource  = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexFormatData.data() };
+			auto indexSubresource   = D3D11_SUBRESOURCE_DATA{ .pSysMem = meshData.i.data() };
 			auto indexByteWidthSize = sizeof(meshData.i[0]) * indexCount;
 
-			auto& gpuMeshData = rs->GPUMeshData[1];
+			auto& gpuMeshData = rs->gpuMeshData[1];
 			gpuMeshData = GPUMeshData{
 				.vertexCount = vertexCount,
 
@@ -559,32 +587,126 @@ namespace Nickel {
 			gpuMeshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexFormatData), false);
 		}
 
+		{ // Skybox
+			const float side = 0.5f;
+			auto vertexData = std::vector<VertexPos>(8);
+			vertexData[0] = VertexPos{.Position = {-side,-side,-side}};
+			vertexData[1] = VertexPos{.Position = {side,-side,-side}};
+			vertexData[2] = VertexPos{.Position = {-side,side,-side}};
+			vertexData[3] = VertexPos{.Position = {side,side,-side}};
+			vertexData[4] = VertexPos{.Position = {-side,-side,side}};
+			vertexData[5] = VertexPos{.Position = {side,-side,side}};
+			vertexData[6] = VertexPos{.Position = {-side,side,side}};
+			vertexData[7] = VertexPos{.Position = {side,side,side}};
+
+			auto indices = std::vector<u32>{
+				0,2,1, 2,3,1,
+				1,3,5, 3,7,5,
+				2,6,3, 3,6,7,
+				4,5,7, 4,7,6,
+				0,4,2, 2,4,6,
+				0,1,4, 1,5,4
+			};
+
+			const auto vertexCount = static_cast<u32>(vertexData.size());
+			const auto indexCount = static_cast<u32>(indices.size());
+
+			auto vertexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexData.data() };
+			auto indexSubresource  = D3D11_SUBRESOURCE_DATA{ .pSysMem = indices.data() };
+			auto indexByteWidthSize = sizeof(indices[0]) * indexCount;
+
+			auto& skyboxMeshData = rs->skyboxMeshData;
+			skyboxMeshData = GPUMeshData{
+				.vertexCount = vertexCount,
+				.indexBuffer = DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
+				.indexCount = indexCount
+			};
+			skyboxMeshData.vertexBuffer.Create<VertexPos>(device, std::span(vertexData), false);
+
+			auto& skybox = rs->skybox;
+			skybox.transform.scaleX = 1.0f;
+			skybox.transform.scaleY = 1.0f;
+			skybox.transform.scaleZ = 1.0f;
+			skybox.transform.positionX = 0.0f;
+			skybox.transform.positionY = 0.0f;
+			skybox.transform.positionZ = 0.0f;
+			skybox.transform.rotationY = 0.0f;
+			skybox.gpuData = &skyboxMeshData;
+		}
+
+		/*
+		{ // Test Cube
+			const float side = 0.5f;
+			auto vertexData = std::vector<VertexPosUV>(8);
+			vertexData[0] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,-side), .Normal = {0.0, 0.0, 0.0}, .UV = {0.0,0.0}};
+			vertexData[1] = VertexPosUV{ .Position = XMFLOAT3(side,-side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[2] = VertexPosUV{ .Position = XMFLOAT3(-side,side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[3] = VertexPosUV{ .Position = XMFLOAT3(side,side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[4] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[5] = VertexPosUV{ .Position = XMFLOAT3(side,-side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[6] = VertexPosUV{ .Position = XMFLOAT3(-side,side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[7] = VertexPosUV{ .Position = XMFLOAT3(side,side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+
+			auto indices = std::vector<u32>{
+				0,2,1, 2,3,1,
+				1,3,5, 3,7,5,
+				2,6,3, 3,6,7,
+				4,5,7, 4,7,6,
+				0,4,2, 2,4,6,
+				0,1,4, 1,5,4
+			};
+
+			const auto vertexCount = static_cast<u32>(vertexData.size());
+			const auto indexCount = static_cast<u32>(indices.size());
+
+			auto vertexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexData.data() };
+			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = indices.data() };
+			auto indexByteWidthSize = sizeof(indices[0]) * indexCount;
+
+			auto& skyboxMeshData = rs->gpuMeshData[0];
+			skyboxMeshData = GPUMeshData{
+				.vertexCount = vertexCount,
+				.indexBuffer = DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
+				.indexCount = indexCount
+			};
+			skyboxMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexData), false);
+
+			auto& bunny = rs->bunny; // TODO: debug overrite
+			bunny.transform.scaleX = 2.0f;
+			bunny.transform.scaleY = 2.0f;
+			bunny.transform.scaleZ = 2.0f;
+			bunny.transform.positionX = 0.0f;
+			bunny.transform.positionY = 0.0f;
+			bunny.transform.positionZ = 0.0f;
+			bunny.transform.rotationY = 0.0f;
+			bunny.gpuData = &skyboxMeshData;
+		}
+		*/
+
 		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(XMMATRIX));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(XMFLOAT4X4));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// Create shader programs
 		rs->simpleProgram.Create(rs->device.Get(), std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
 		rs->textureProgram.Create(rs->device.Get(), std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
-		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_SimpleVertexShader }, std::span{ g_BackgroundPixelShader });
+		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
 
 		rs->matCapTexture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
+		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
 
-		// Setup the projection matrix.
 		RECT clientRect;
 		GetClientRect(rs->g_WindowHandle, &clientRect);
 
-		// Compute the exact client dimensions.
-		// This is required for a correct projection matrix.
 		float clientWidth = static_cast<float>(clientRect.right - clientRect.left);
 		float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
 
-		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), clientWidth / clientHeight, 0.1f, 100.0f);
+		const f32 aspectRatio = static_cast<f32>(clientWidth) / clientHeight;
+		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), aspectRatio, 0.1f, 100.0f);
+		auto projectionTransposed = XMMatrixTranspose(rs->g_ProjectionMatrix);
 
-		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &rs->g_ProjectionMatrix, 0, 0, 0);
-
-		CreateCubeMap(*rs, 256, 256);
+		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &projectionTransposed, 0, 0, 0);
 
 		return true;
 	}

@@ -41,6 +41,7 @@ namespace Nickel::Renderer::DXLayer {
 	auto CreateConstantBuffer(ID3D11Device1* device, u32 size, D3D11_SUBRESOURCE_DATA* initialData = nullptr)->ID3D11Buffer*;
 	auto CreateBuffer(ID3D11Device1* device, D3D11_USAGE usage, UINT bindFlags, UINT byteWidthSize, UINT cpuAccessFlags, UINT miscFlags, D3D11_SUBRESOURCE_DATA* initialData = nullptr) -> ID3D11Buffer*;
 	auto Clear(const CmdQueue& cmd, u32 clearFlag, ID3D11RenderTargetView* renderTargetView, ID3D11DepthStencilView* depthStencilView, const FLOAT clearColor[4], FLOAT clearDepth, UINT8 clearStencil) -> void;
+	auto CreateDepthStencilState(ID3D11Device1* device, const D3D11_DEPTH_STENCIL_DESC& depthStencilDesc) -> ID3D11DepthStencilState*;
 	auto CreateDepthStencilState(ID3D11Device1* device, bool enableDepthTest, D3D11_DEPTH_WRITE_MASK depthWriteMask, D3D11_COMPARISON_FUNC depthFunc, bool enableStencilTest) -> ID3D11DepthStencilState*;
 	auto CreateRasterizerState(ID3D11Device1* device, const D3D11_RASTERIZER_DESC& rasterizerDesc) -> ID3D11RasterizerState*;
 	auto CreateDefaultRasterizerState(ID3D11Device1* device) -> ID3D11RasterizerState*;

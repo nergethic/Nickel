@@ -241,10 +241,12 @@
     <ClCompile Include="Source\Mesh.cpp" />
     <ClCompile Include="Source\ObjLoader.cpp" />
     <ClCompile Include="Source\renderer.cpp" />
+    <ClCompile Include="Source\ResourceManager.cpp" />
     <ClCompile Include="Source\ShaderProgram.cpp" />
     <ClCompile Include="Source\win32_main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Cube.h" />
     <ClInclude Include="Source\DirectXIncludes.h" />
     <ClInclude Include="Source\DX11Layer.h" />
     <ClInclude Include="Source\game.h" />
@@ -260,6 +262,7 @@
     <ClInclude Include="Source\Shaders\TexPixelShader.h" />
     <ClInclude Include="Source\Shaders\TexVertexShader.h" />
     <ClInclude Include="Source\Shaders\VertexShader.h" />
+    <ClInclude Include="Source\stb\stb_image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

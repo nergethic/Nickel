@@ -13,6 +13,14 @@ struct GameState {
 	RendererState* rs;
 };
 
+struct VertexPos {
+	XMFLOAT3 Position;
+};
+
+static D3D11_INPUT_ELEMENT_DESC vertexPosDesc[] = {
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(VertexPos, Position), D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
+};
+
 struct VertexPosColor {
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;

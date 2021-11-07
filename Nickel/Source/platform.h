@@ -123,6 +123,7 @@ typedef struct GameControllerInput {
 typedef struct GameInput {
 	GameButtonState mouseButtons[5];
 	i32 mouseX, mouseY, mouseZ;
+	f32 normalizedMouseX, normalizedMouseY;
 
 	f32 dt;
 

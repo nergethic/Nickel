@@ -94,11 +94,19 @@ struct PipelineState { // rasterizer, blend, depth, stencil
 	//short pixelConstantBuffersCount = 0;
 };
 
+//__declspec(align(16))
+// alignas(16)
 struct PerFrameBufferData {
 	XMMATRIX viewMatrix;
 	XMFLOAT3 cameraPosition;
 	f32 spacing;
 	XMFLOAT3 lightPosition;
+};
+
+struct PerObjectBufferData {
+	XMMATRIX modelMatrix;
+	XMMATRIX viewProjectionMatrix;
+	XMMATRIX modelViewProjectionMatrix;
 };
 
 // Shader resources
@@ -112,6 +120,7 @@ enum class ConstantBuffer {
 struct Transform {
 	f32 positionX, positionY, positionZ;
 	f32 scaleX, scaleY, scaleZ;
+	f32 rotationY;
 };
 
 struct TextureData {
@@ -158,7 +167,7 @@ struct RendererState {
 	D3D11_VIEWPORT g_Viewport = {0};
 
 	TextureDX11 matCapTexture;
-	TextureDX11 cubeMap;
+	TextureDX11 skyboxTexture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
@@ -182,7 +191,8 @@ struct RendererState {
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
-	GPUMeshData GPUMeshData[2];
+	GPUMeshData gpuMeshData[2];
+	GPUMeshData skyboxMeshData;
 
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;

@@ -294,6 +294,26 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 				oldKeyboardController->buttons[ButtonIndex].endedDown;
 		}
 
+		POINT mousePos;
+		GetCursorPos(&mousePos);
+		ScreenToClient(wndHandle, &mousePos);
+		f32 mouseX = static_cast<f32>(mousePos.x);
+		f32 mouseY = (f32)((clientHeight-1) - mousePos.y);
+		newInput->mouseX = mouseX;
+		newInput->mouseY = mouseY;
+		newInput->normalizedMouseX = mouseX / clientWidth;
+		if (newInput->normalizedMouseX < 0.0f)
+			newInput->normalizedMouseX = 0.0f;
+		else if (newInput->normalizedMouseX > 1.0f)
+			newInput->normalizedMouseX = 1.0f;
+
+		if (newInput->normalizedMouseY < 0.0f)
+			newInput->normalizedMouseY = 0.0f;
+		else if (newInput->normalizedMouseY > 1.0f)
+			newInput->normalizedMouseY = 1.0f;
+
+		newInput->normalizedMouseY = mouseY / (clientWidth-1);
+
 		Win32ProcessPendingMessages(newKeyboardController);
 		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
