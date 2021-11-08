@@ -136,13 +136,13 @@ namespace Nickel {
 		DXLayer::DrawIndexed(cmd, mesh.gpuData->indexCount, 0, 0);
 	}
 
-	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, float offsetX = 0.0f, float offsetY = 0.0f) -> void { // TODO: const Material* overrideMat = nullptr
+	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
 		auto c = cmd.queue.Get();
 		Assert(c != nullptr);
 
 		// update:
 		const auto t = mesh.transform;
-		auto worldMat = XMMatrixRotationY(t.rotationY) * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ) * XMMatrixTranslation(t.positionX + offsetX, t.positionY + offsetY, t.positionZ);
+		auto worldMat = XMMatrixRotationY(t.rotationY) * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ) * XMMatrixTranslation(t.positionX + offset.x, t.positionY + offset.y, t.positionZ + offset.z);
 		auto worldTransposed = XMMatrixTranspose(XMMatrixIdentity() * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ));
 
 		PerObjectBufferData data;
@@ -518,13 +518,13 @@ namespace Nickel {
 			if (line.material.program != nullptr)
 				DrawModel(*rs, cmd, line);
 
-		for (int y = 0; y < 4; y++) {
-			for (int x = -2; x < 2; x++) {
-				DrawModel(*rs, cmd, rs->bunny, x*3.0f, y*3.0f);
+		for (int y = -2; y <= 2; y++) {
+			for (int x = -2; x <= 2; x++) {
+				//DrawModel(*rs, cmd, rs->bunny, {x*3.0f, 0.0f, y*3.0f});
 			}
 		}
 
-		DrawModel(*rs, cmd, rs->debugCube, 0.f, 0.f);
+		DrawModel(*rs, cmd, rs->debugCube);
 
 		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
 		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
@@ -686,6 +686,21 @@ namespace Nickel {
 		//line.mesh = meshData; // TODO: is this useless?
 	}
 
+	auto Lerp(Vec3 from, Vec3 to, float t) -> Vec3 {
+		const auto diff = Vec3{ to.x - from.x, to.y - from.y, to.z - from.z };
+		const auto mul = Vec3{ diff.x * t, diff.y * t, diff.z * t};
+		return {from.x+mul.x, from.y+mul.y, from.z+mul.z};
+	}
+
+	auto GenerateLinePoints(Vec3 from, Vec3 to, u32 pointCount) -> std::vector<Vec3> {
+		auto result = std::vector<Vec3>();
+		for (i32 i = 0; i <= pointCount; i++) {
+			result.push_back(Lerp(from, to, static_cast<f32>(i) / pointCount));
+		}
+
+		return result;
+	}
+
 	auto LoadContent(RendererState* rs) -> bool {
 		Assert(rs != nullptr);
 		Assert(rs->device != nullptr);
@@ -696,8 +711,8 @@ namespace Nickel {
 		{ // convert vertex data to be LineVertexData compatible
 			auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
-			//rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-			rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
+			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+			//rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
 			auto defaultRasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc);
 			auto& lineMat = rs->lineMat;
 			lineMat = Material{
@@ -709,7 +724,7 @@ namespace Nickel {
 				.constantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData))
 			};
 			LineBufferData bufferData{
-				.thickness = 0.03f,
+				.thickness = 0.04f,
 				.miter = 0
 			};
 			rs->cmdQueue.queue.Get()->UpdateSubresource1(lineMat.constantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
@@ -719,14 +734,15 @@ namespace Nickel {
 			// auto line1 = GenerateLineInDir(Vec3{ 0.0, 0.0, 0.0 }, pointOffset, Vec3{ 0.0, 0.0, 1.0 }, 10);
 
 			u32 lineIdx = 0;
+			const u32 linePointsCount = 100;
 			for (i32 x = -5; x <= 5; x++, lineIdx++) {
 				const auto xOffset = static_cast<f32>(x) * 2.0f;
-				GenerateLine(rs, { Vec3{xOffset,0.0,-10.0}, Vec3{xOffset, 0.0, 10.0} }, rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset,0.0,-10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
 			}
 				
 			for (i32 y = -5; y <= 5; y++, lineIdx++) {
 				const auto yOffset = static_cast<f32>(y) * 2.0f;
-				GenerateLine(rs, { Vec3{-10.0,0.0,yOffset}, Vec3{10.0, 0.0, yOffset} }, rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0,0.0,yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
 			}
 				
 
@@ -773,7 +789,7 @@ namespace Nickel {
 			bunny.transform.scaleZ = 15.0f;
 			bunny.transform.positionX = 0.0f;
 			bunny.transform.positionY = 0.0f;
-			bunny.transform.positionZ = 7.0f;
+			bunny.transform.positionZ = 0.0f;
 			bunny.gpuData = &rs->gpuMeshData[0];
 			bunny.mesh = meshData; // TODO: is this useless?
 			bunny.material = rs->textureMat;
@@ -850,15 +866,16 @@ namespace Nickel {
 
 		{ // Test Cube
 			const float side = 0.5f;
-			auto vertexData = std::vector<VertexPosUV>(8);
-			vertexData[0] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,-side), .Normal = {0.0, 0.0, 0.0},  .UV = {0.0,0.0}};
-			vertexData[1] = VertexPosUV{ .Position = XMFLOAT3(side,-side,-side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[2] = VertexPosUV{ .Position = XMFLOAT3(-side,side,-side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[3] = VertexPosUV{ .Position = XMFLOAT3(side,side,-side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[4] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[5] = VertexPosUV{ .Position = XMFLOAT3(side,-side,side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[6] = VertexPosUV{ .Position = XMFLOAT3(-side,side,side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[7] = VertexPosUV{ .Position = XMFLOAT3(side,side,side),    .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			auto vertexData = std::vector<VertexPosColor>(8);
+			auto color = XMFLOAT3{ 0.1803f, 0.3255f, 0.7882f };
+			vertexData[0] = VertexPosColor{ .Position = XMFLOAT3(-side,-side,-side), .Normal = {1.0, 0.0, 0.0},  .Color = color };
+			vertexData[1] = VertexPosColor{ .Position = XMFLOAT3(side,-side,-side),  .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[2] = VertexPosColor{ .Position = XMFLOAT3(-side,side,-side),  .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[3] = VertexPosColor{ .Position = XMFLOAT3(side,side,-side),   .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[4] = VertexPosColor{ .Position = XMFLOAT3(-side,-side,side),  .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[5] = VertexPosColor{ .Position = XMFLOAT3(side,-side,side),   .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[6] = VertexPosColor{ .Position = XMFLOAT3(-side,side,side),   .Normal = {1.0, 0.0, 0.0 }, .Color = color };
+			vertexData[7] = VertexPosColor{ .Position = XMFLOAT3(side,side,side),    .Normal = {1.0, 0.0, 0.0 }, .Color = color };
 
 			auto indices = std::vector<u32>{
 				0,2,1, 2,3,1,
@@ -882,17 +899,17 @@ namespace Nickel {
 				.indexBuffer = DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
 				.indexCount = indexCount
 			};
-			meshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexData), false);
+			meshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexData), false);
 
 			auto& cube = rs->debugCube;
-			cube.transform.scaleX = 2.0f;
-			cube.transform.scaleY = 2.0f;
-			cube.transform.scaleZ = 2.0f;
+			cube.transform.scaleX = 0.2f;
+			cube.transform.scaleY = 0.2f;
+			cube.transform.scaleZ = 0.2f;
 			cube.transform.positionX = 0.0f;
-			cube.transform.positionY = 3.5f;
-			cube.transform.positionZ = -5.0f;
+			cube.transform.positionY = 0.1f;
+			cube.transform.positionZ = 0.0f;
 			cube.gpuData = &rs->debugCubeGpuMeshData;
-			cube.material = rs->textureMat;
+			cube.material = rs->simpleMat;
 		}
 
 		return true;

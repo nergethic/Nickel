@@ -9,7 +9,7 @@ struct PixelShaderInput
 
 float4 SimplePixelShader( PixelShaderInput IN ) : SV_TARGET
 {
-	float3 n = float3(IN.normal.x, IN.normal.y, IN.normal.z);
+	float3 n = normalize(IN.normal);
 	//float3 v = IN.eyeVec;
 	//float3 l = IN.lightVec;
 

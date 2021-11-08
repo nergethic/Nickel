@@ -14,7 +14,7 @@ cbuffer PerFrame : register( b1 )
 cbuffer PerObject : register(b2)
 {
 	matrix modelMatrix;
-	matrix modelViewMatrix;
+	matrix viewProjectionMatrix;
 	matrix modelViewProjectionMatrix;
 }
 
