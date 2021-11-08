@@ -287,14 +287,14 @@ namespace Nickel::Renderer::DXLayer {
 		D3D11_RASTERIZER_DESC rasterizerDesc;
 		ZeroMemory(&rasterizerDesc, sizeof(D3D11_RASTERIZER_DESC));
 
-		rasterizerDesc.AntialiasedLineEnable = FALSE;
-		rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE; // TODO: change to D3D11_CULL_BACK
+		rasterizerDesc.AntialiasedLineEnable = TRUE;
+		rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 		rasterizerDesc.DepthBias = 0;
 		rasterizerDesc.DepthBiasClamp = 0.0f;
 		rasterizerDesc.DepthClipEnable = TRUE;
 		rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
 		rasterizerDesc.FrontCounterClockwise = FALSE;
-		rasterizerDesc.MultisampleEnable = FALSE;
+		rasterizerDesc.MultisampleEnable = TRUE;
 		rasterizerDesc.ScissorEnable = FALSE;
 		rasterizerDesc.SlopeScaledDepthBias = 0.0f;
 

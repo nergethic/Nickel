@@ -45,6 +45,12 @@
     <FxCompile Include="Data\Shaders\BackgroundVertexShader.hlsl">
       <Filter>Resource Files\Data\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Data\Shaders\ColorPixelShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Data\Shaders\LineVertexShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Object Include="Data\Suzanne.obj">

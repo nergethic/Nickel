@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string>
 
+#include "Shaders/ColorPixelShader.h"
+#include "Shaders/LineVertexShader.h"
+
 #include "Shaders/VertexShader.h"
 #include "Shaders/PixelShader.h"
 
@@ -16,6 +19,8 @@
 
 #include "Shaders/BackgroundVertexShader.h"
 #include "Shaders/BackgroundPixelShader.h"
+
+//#include "Shaders/BackgroundVertexShader.h"
 
 using namespace DirectX;
 using namespace Nickel::Renderer;
@@ -94,6 +99,11 @@ struct PipelineState { // rasterizer, blend, depth, stencil
 	//short pixelConstantBuffersCount = 0;
 };
 
+struct PerApplicationData {
+	XMMATRIX projectionMatrix;
+	XMFLOAT3 clientData;
+};
+
 //__declspec(align(16))
 // alignas(16)
 struct PerFrameBufferData {
@@ -107,6 +117,12 @@ struct PerObjectBufferData {
 	XMMATRIX modelMatrix;
 	XMMATRIX viewProjectionMatrix;
 	XMMATRIX modelViewProjectionMatrix;
+};
+
+struct alignas(16) LineBufferData {
+	f32 thickness;
+	i32 miter;
+	f64 spacing;
 };
 
 // Shader resources
@@ -138,7 +154,7 @@ struct Material {
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 	std::vector<TextureDX11> textures;
-	ID3D11Buffer* constantBuffer;
+	ComPtr<ID3D11Buffer> constantBuffer;
 };
 
 #include "Mesh.h"
@@ -193,19 +209,25 @@ struct RendererState {
 
 	GPUMeshData gpuMeshData[2];
 	GPUMeshData skyboxMeshData;
+	GPUMeshData debugCubeGpuMeshData;
+	std::vector<GPUMeshData> linesGPUData = std::vector<GPUMeshData>(30);
 
+	DXLayer::ShaderProgram lineProgram;
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;
 	DXLayer::ShaderProgram backgroundProgram;
 
+	Material lineMat;
 	Material simpleMat;
 	Material textureMat;
 	Material backgroundMat;
 
+	DescribedMesh debugCube;
 	DescribedMesh bunny;
 	DescribedMesh suzanne;
 	DescribedMesh light;
 	DescribedMesh skybox;
+	std::vector<DescribedMesh> lines = std::vector<DescribedMesh>(30);
 
 	DescribedMesh* sceneMeshes[3];
 };

@@ -45,6 +45,13 @@ static D3D11_INPUT_ELEMENT_DESC vertexPosUVLayoutDesc[] = {
 	{ "UV",       0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(VertexPosUV, UV),       D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
 };
 
+static struct LineVertexData {
+	XMFLOAT3 position;
+	XMFLOAT3 previous;
+	XMFLOAT3 next;
+	XMFLOAT3 direction;
+};
+
 namespace Nickel {
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void;
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;

@@ -188,6 +188,20 @@
       <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_BackgroundVertexShader</VariableName>
       <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Source\Shaders\BackgroundVertexShader.h</HeaderFileOutput>
     </FxCompile>
+    <FxCompile Include="Data\Shaders\ColorPixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalIncludeDirectories>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ColorPixelShader</EntryPointName>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_ColorPixelShader</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Source\Shaders\ColorPixelShader.h</HeaderFileOutput>
+    </FxCompile>
+    <FxCompile Include="Data\Shaders\LineVertexShader.hlsl">
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_LineVertexShader</VariableName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Source\Shaders\LineVertexShader.h</HeaderFileOutput>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">LineVertexShader</EntryPointName>
+    </FxCompile>
     <FxCompile Include="Data\Shaders\SimplePixelShader.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">SimplePixelShader</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

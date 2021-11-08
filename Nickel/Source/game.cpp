@@ -128,7 +128,9 @@ namespace Nickel {
 		}
 		
 		queue->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
-		// c->VSSetConstantBuffers(0, ArrayCount(material.constantBuffer), &material.constantBuffer);
+		const auto constantBuffer = material.constantBuffer.Get();
+		if (constantBuffer != nullptr)
+			queue->VSSetConstantBuffers(3, 1, &constantBuffer); // TODO: figure out a way to do this nicely
 
 		SetPipelineState(*queue, &rs.g_Viewport, mesh.material.pipelineState);
 		DXLayer::DrawIndexed(cmd, mesh.gpuData->indexCount, 0, 0);
@@ -319,12 +321,23 @@ namespace Nickel {
 		ID3D11Device1* device = rs->device.Get();
 		ResourceManager::Init(device);
 
-		if (!LoadContent(rs))
-			Logger::Error("Content couldn't be loaded");
-
 		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
+
+		// Create the constant buffers for the variables defined in the vertex shader.
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(PerApplicationData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object] = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+
+		// Create shader programs
+		rs->lineProgram.Create(rs->device.Get(), std::span{ g_LineVertexShader }, std::span{ g_ColorPixelShader });
+		rs->simpleProgram.Create(rs->device.Get(), std::span{ g_SimpleVertexShader }, std::span{ g_SimplePixelShader });
+		rs->textureProgram.Create(rs->device.Get(), std::span{ g_TexVertexShader }, std::span{ g_TexPixelShader });
+		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
+
+		rs->matCapTexture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
+		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
 
 		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
@@ -416,14 +429,31 @@ namespace Nickel {
 			skyboxMat.textures = std::vector<TextureDX11>(1);
 			skyboxMat.textures[0] = rs->skyboxTexture;
 		}
-		
-		rs->skybox.material = rs->backgroundMat;
-		rs->bunny.material = rs->textureMat;
+
+		if (!LoadContent(rs))
+			Logger::Error("Content couldn't be loaded");
+
+		// set projection matrix
+		RECT clientRect;
+		GetClientRect(rs->g_WindowHandle, &clientRect);
+
+		float clientWidth = static_cast<float>(clientRect.right - clientRect.left);
+		float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+
+		const f32 aspectRatio = static_cast<f32>(clientWidth) / clientHeight;
+		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), aspectRatio, 0.1f, 100.0f);
+
+		auto data = PerApplicationData{
+			.projectionMatrix = XMMatrixTranspose(rs->g_ProjectionMatrix),
+			.clientData = XMFLOAT3(clientWidth,clientHeight,aspectRatio)
+		};
+
+		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &data, 0, 0, 0);
 	}
 
 	static f32 previousMouseX = 0.5f;
 	static f32 previousMouseY = 0.5f;
-	static Vec3 cameraPos{ 0.0,0.0,-10.0 };
+	static Vec3 cameraPos{ 0.0,6.0,-10.0 };
 	static Vec3 focusPos{ 0.0,0.0,0.0 };
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
@@ -484,19 +514,25 @@ namespace Nickel {
 		rs->bunny.transform.rotationY += 0.005;
 		rs->skybox.transform.rotationY += 0.0005;
 
-		for (int y = -2; y < 2; y++) {
+		for (auto& line : rs->lines)
+			if (line.material.program != nullptr)
+				DrawModel(*rs, cmd, line);
+
+		for (int y = 0; y < 4; y++) {
 			for (int x = -2; x < 2; x++) {
 				DrawModel(*rs, cmd, rs->bunny, x*3.0f, y*3.0f);
 			}
 		}
 
-		//DrawModel(*rs, cmd, rs->bunny, 0.f, 0.f);
+		DrawModel(*rs, cmd, rs->debugCube, 0.f, 0.f);
 
 		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
 		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
 		focusPos.x += dtMouseX * 50.0f;
 		focusPos.y += dtMouseY * 50.0f;
 		Logger::Error(dtMouseX);
+
+		
 
 		DrawModel(*rs, cmd, rs->skybox);
 
@@ -517,12 +553,189 @@ namespace Nickel {
 		previousMouseY = input->normalizedMouseY;
 	}
 
+	auto CreateLineIndices(u32 length) -> std::vector<u32> {
+		auto indices = std::vector<u32>(length*6);
+
+		u32 c = 0;
+		u32 index = 0;
+
+		for (u32 j = 0; j < length; j++) {
+			auto i = index;
+			indices[c++] = i + 0;
+			indices[c++] = i + 1;
+			indices[c++] = i + 2;
+			indices[c++] = i + 2;
+			indices[c++] = i + 1;
+			indices[c++] = i + 3;
+			index += 2;
+		}
+
+		return indices;
+	}
+
+	auto DuplicateLineVertices(std::span<Vec3> vertices, bool mirror = false) -> std::vector<Vec3> {
+		Assert(vertices.data() != nullptr && vertices.size() >= 0);
+		auto result = std::vector<Vec3>();
+		for (const auto& v : vertices) {
+			const auto outV = mirror ? Vec3(-v.x, -v.y, -v.z) : v;
+			result.push_back(outV);
+			result.push_back(v);
+		}
+		return result;
+	}
+
+	auto DuplicateLineVertices(std::span<i32> vertices, bool mirror = false) -> std::vector<i32> {
+		Assert(vertices.data() != nullptr && vertices.size() >= 0);
+		auto result = std::vector<i32>();
+		for (const auto& v : vertices) {
+			const auto outV = mirror ? -v : v;
+			result.push_back(outV);
+			result.push_back(v);
+		}
+		return result;
+	}
+
+	auto Clamp(u32 val, u32 min, u32 max) {
+		if (val < min)
+			val = min;
+		else if (val > max)
+			val = max;
+
+		return val;
+	}
+
+	/*
+	auto GenerateLineInDir(Vec3 startPos, Vec3 pointOffset, Vec3 dir, u32 pointCount) -> std::vector<Vec3> {
+		auto result = std::vector<Vec3>(pointCount);
+		const f32 len = std::sqrt(pointOffset.x * pointOffset.x + pointOffset.y * pointOffset.y + pointOffset.z * pointOffset.z);
+		const auto dirNormalized = Vec3{
+			pointOffset.x / len,
+			pointOffset.y / len,
+			pointOffset.z / len,
+		};
+		for (u32 i = 0; i < pointCount; i++) {
+			auto val = Vec3{ startPos.x + (dirNormalized.x*pointOffset.x*i) , startPos.y + (dirNormalized.y*pointOffset.y*i), startPos.z + (dirNormalized.z*pointOffset.z*i) };
+			result[i] = val;
+		}
+
+		return result;
+	}
+	*/
+
+	auto GenerateLine(RendererState* rs, std::vector<Vec3> vertexData, GPUMeshData& gpuMeshData, DescribedMesh& describedMesh) -> void {
+		auto device = rs->device.Get();
+
+		//each pair has a mirrored direction 
+		auto dirs = std::vector<i32>(vertexData.size());
+		for (int i = 0; i < vertexData.size(); i++) {
+			dirs[i] = 1;
+		}
+		auto direction = DuplicateLineVertices(std::span{ dirs }, true);
+		auto positions = DuplicateLineVertices(std::span{ vertexData });
+
+		auto prevs = std::vector<Vec3>(vertexData.size());
+		for (u32 i = 0; i < vertexData.size(); i++) {
+			u32 idx = Clamp(i - 1, 0, prevs.size() - 1);
+			prevs[i] = vertexData[idx];
+		}
+		auto previousVertex = DuplicateLineVertices(std::span{ prevs });
+
+		auto nexts = std::vector<Vec3>(vertexData.size());
+		for (u32 i = 0; i < vertexData.size(); i++) {
+			u32 idx = Clamp(i + 1, 0, nexts.size() - 1);
+			nexts[i] = vertexData[idx];
+		}
+		auto nextVertex = DuplicateLineVertices(std::span{ nexts });
+
+		//
+		auto vertexFormatData = std::vector<LineVertexData>();
+		for (int i = 0; i < direction.size(); i++) {
+			auto vertex = LineVertexData{
+				.position = XMFLOAT3(positions[i].x, positions[i].y, positions[i].z),
+				.previous = XMFLOAT3(previousVertex[i].x, previousVertex[i].y, previousVertex[i].z),
+				.next = XMFLOAT3(nextVertex[i].x, nextVertex[i].y, nextVertex[i].z),
+				.direction = XMFLOAT3(direction[i], direction[i], direction[i])
+			};
+			vertexFormatData.push_back(vertex);
+		}
+
+		auto indexData = CreateLineIndices(vertexData.size());
+
+		const u32 indexCount = indexData.size();
+		auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = indexData.data() };
+		auto indexByteWidthSize = sizeof(indexData[0]) * indexCount;
+
+		const u32 vertexCount = vertexFormatData.size() - 6;
+		gpuMeshData = GPUMeshData{
+			.vertexCount = vertexCount,
+
+			.indexBuffer = Renderer::DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource), // TODO: pass void pointer, create subresource inside?
+			.indexCount = indexCount,
+			.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+		};
+		gpuMeshData.vertexBuffer.Create<LineVertexData>(device, std::span(vertexFormatData), false);
+
+		describedMesh.transform.scaleX = 1.0f;
+		describedMesh.transform.scaleY = 1.0f;
+		describedMesh.transform.scaleZ = 1.0f;
+		describedMesh.transform.positionX = 0.0f;
+		describedMesh.transform.positionY = 0.0f;
+		describedMesh.transform.positionZ = 0.0f;
+		describedMesh.gpuData = &gpuMeshData;
+		describedMesh.material = rs->lineMat;
+		//line.mesh = meshData; // TODO: is this useless?
+	}
+
 	auto LoadContent(RendererState* rs) -> bool {
 		Assert(rs != nullptr);
 		Assert(rs->device != nullptr);
 		Assert(rs->cmdQueue.queue != nullptr);
 
 		auto device = rs->device.Get();
+
+		{ // convert vertex data to be LineVertexData compatible
+			auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
+			//rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+			rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
+			auto defaultRasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc);
+			auto& lineMat = rs->lineMat;
+			lineMat = Material{
+				.program = &rs->lineProgram,
+				.pipelineState = PipelineState{
+					.rasterizerState = defaultRasterizerState,
+					.depthStencilState = defaultDepthStencilState
+				},
+				.constantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData))
+			};
+			LineBufferData bufferData{
+				.thickness = 0.03f,
+				.miter = 0
+			};
+			rs->cmdQueue.queue.Get()->UpdateSubresource1(lineMat.constantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
+
+
+			const auto pointOffset = Vec3{ 0.5f, 0.0f, 0.5f };
+			// auto line1 = GenerateLineInDir(Vec3{ 0.0, 0.0, 0.0 }, pointOffset, Vec3{ 0.0, 0.0, 1.0 }, 10);
+
+			u32 lineIdx = 0;
+			for (i32 x = -5; x <= 5; x++, lineIdx++) {
+				const auto xOffset = static_cast<f32>(x) * 2.0f;
+				GenerateLine(rs, { Vec3{xOffset,0.0,-10.0}, Vec3{xOffset, 0.0, 10.0} }, rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+			}
+				
+			for (i32 y = -5; y <= 5; y++, lineIdx++) {
+				const auto yOffset = static_cast<f32>(y) * 2.0f;
+				GenerateLine(rs, { Vec3{-10.0,0.0,yOffset}, Vec3{10.0, 0.0, yOffset} }, rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+			}
+				
+
+			//GenerateLine(rs, { Vec3{1.0,0.0,-10.0}, Vec3{1.0, 0.0, 10.0} }, rs->linesGPUData[1], rs->lines[1]);
+			//GenerateLine(rs, { Vec3{2.0,0.0,-10.0}, Vec3{2.0, 0.0, 10.0} }, rs->linesGPUData[2], rs->lines[2]);
+			//GenerateLine(rs, { Vec3{3.0,0.0,-10.0}, Vec3{3.0, 0.0, 10.0} }, rs->linesGPUData[3], rs->lines[3]);
+			//GenerateLine(rs, { Vec3{4.0,0.0,-10.0}, Vec3{4.0, 0.0, 10.0} }, rs->linesGPUData[4], rs->lines[4]);
+			//GenerateLine(rs, { Vec3{5.0,0.0,-10.0}, Vec3{5.0, 0.0, 10.0} }, rs->linesGPUData[5], rs->lines[5]);
+		}
 
 		{ // Bunny
 			LoadMeshAndSetup("Data/Models/bny.obj");
@@ -563,8 +776,9 @@ namespace Nickel {
 			bunny.transform.positionZ = 7.0f;
 			bunny.gpuData = &rs->gpuMeshData[0];
 			bunny.mesh = meshData; // TODO: is this useless?
+			bunny.material = rs->textureMat;
 		}
-
+		
 		{ // Suzanne
 			MeshData meshData;
 			LoadSuzanneModel(meshData);
@@ -630,22 +844,21 @@ namespace Nickel {
 			skybox.transform.positionX = 0.0f;
 			skybox.transform.positionY = 0.0f;
 			skybox.transform.positionZ = 0.0f;
-			skybox.transform.rotationY = 0.0f;
 			skybox.gpuData = &skyboxMeshData;
+			skybox.material = rs->backgroundMat;
 		}
 
-		/*
 		{ // Test Cube
 			const float side = 0.5f;
 			auto vertexData = std::vector<VertexPosUV>(8);
-			vertexData[0] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,-side), .Normal = {0.0, 0.0, 0.0}, .UV = {0.0,0.0}};
-			vertexData[1] = VertexPosUV{ .Position = XMFLOAT3(side,-side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[2] = VertexPosUV{ .Position = XMFLOAT3(-side,side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[3] = VertexPosUV{ .Position = XMFLOAT3(side,side,-side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[4] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[5] = VertexPosUV{ .Position = XMFLOAT3(side,-side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[6] = VertexPosUV{ .Position = XMFLOAT3(-side,side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
-			vertexData[7] = VertexPosUV{ .Position = XMFLOAT3(side,side,side), .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[0] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,-side), .Normal = {0.0, 0.0, 0.0},  .UV = {0.0,0.0}};
+			vertexData[1] = VertexPosUV{ .Position = XMFLOAT3(side,-side,-side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[2] = VertexPosUV{ .Position = XMFLOAT3(-side,side,-side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[3] = VertexPosUV{ .Position = XMFLOAT3(side,side,-side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[4] = VertexPosUV{ .Position = XMFLOAT3(-side,-side,side),  .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[5] = VertexPosUV{ .Position = XMFLOAT3(side,-side,side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[6] = VertexPosUV{ .Position = XMFLOAT3(-side,side,side),   .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
+			vertexData[7] = VertexPosUV{ .Position = XMFLOAT3(side,side,side),    .Normal = {0.0, 0.0, 0.0 }, .UV = {0.0,0.0} };
 
 			auto indices = std::vector<u32>{
 				0,2,1, 2,3,1,
@@ -663,50 +876,24 @@ namespace Nickel {
 			auto indexSubresource = D3D11_SUBRESOURCE_DATA{ .pSysMem = indices.data() };
 			auto indexByteWidthSize = sizeof(indices[0]) * indexCount;
 
-			auto& skyboxMeshData = rs->gpuMeshData[0];
-			skyboxMeshData = GPUMeshData{
+			auto& meshData = rs->debugCubeGpuMeshData;
+			meshData = GPUMeshData{
 				.vertexCount = vertexCount,
 				.indexBuffer = DXLayer::CreateIndexBuffer(device, indexByteWidthSize, &indexSubresource),
 				.indexCount = indexCount
 			};
-			skyboxMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexData), false);
+			meshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexData), false);
 
-			auto& bunny = rs->bunny; // TODO: debug overrite
-			bunny.transform.scaleX = 2.0f;
-			bunny.transform.scaleY = 2.0f;
-			bunny.transform.scaleZ = 2.0f;
-			bunny.transform.positionX = 0.0f;
-			bunny.transform.positionY = 0.0f;
-			bunny.transform.positionZ = 0.0f;
-			bunny.transform.rotationY = 0.0f;
-			bunny.gpuData = &skyboxMeshData;
+			auto& cube = rs->debugCube;
+			cube.transform.scaleX = 2.0f;
+			cube.transform.scaleY = 2.0f;
+			cube.transform.scaleZ = 2.0f;
+			cube.transform.positionX = 0.0f;
+			cube.transform.positionY = 3.5f;
+			cube.transform.positionZ = -5.0f;
+			cube.gpuData = &rs->debugCubeGpuMeshData;
+			cube.material = rs->textureMat;
 		}
-		*/
-
-		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(XMFLOAT4X4));
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object]     = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame]      = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
-
-		// Create shader programs
-		rs->simpleProgram.Create(rs->device.Get(), std::span{g_SimpleVertexShader}, std::span{g_SimplePixelShader});
-		rs->textureProgram.Create(rs->device.Get(), std::span{g_TexVertexShader}, std::span{g_TexPixelShader});
-		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
-
-		rs->matCapTexture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
-		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
-
-		RECT clientRect;
-		GetClientRect(rs->g_WindowHandle, &clientRect);
-
-		float clientWidth = static_cast<float>(clientRect.right - clientRect.left);
-		float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
-
-		const f32 aspectRatio = static_cast<f32>(clientWidth) / clientHeight;
-		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), aspectRatio, 0.1f, 100.0f);
-		auto projectionTransposed = XMMatrixTranspose(rs->g_ProjectionMatrix);
-
-		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &projectionTransposed, 0, 0, 0);
 
 		return true;
 	}

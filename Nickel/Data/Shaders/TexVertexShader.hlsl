@@ -1,6 +1,7 @@
 cbuffer PerApplication : register(b0)
 {
 	matrix projectionMatrix;
+	float3 clientData;
 }
 
 cbuffer PerFrame : register(b1)
