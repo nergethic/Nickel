@@ -248,6 +248,15 @@ auto AllocateGameMemory(GameMemory& gameMemory, Win32State& win32State) -> void 
 	gameMemory.temporaryStorage = (reinterpret_cast<u8*>(gameMemory.permanentStorage) + gameMemory.permanentStorageSize);
 }
 
+auto InitializeImGui(HWND wndHandle, const RendererState& rs) -> void {
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplWin32_Init(wndHandle);
+	ImGui_ImplDX11_Init(rs.device.Get(), rs.cmdQueue.queue.Get());
+}
+
 auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) -> int {
 	//if (!InitializeWinMain(hInstance, "Title", "MyWndClassName", 800, 600))
 	//	return -1;
@@ -263,6 +272,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
 	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+	InitializeImGui(wndHandle, rs);
 
 	GameMemory gameMemory{};
 	Win32State win32State{};
@@ -319,6 +329,10 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 
 		std::swap(newInput, oldInput);
 	}
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 	spdlog::drop_all(); // Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 }

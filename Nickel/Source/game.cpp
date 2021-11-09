@@ -486,6 +486,14 @@ namespace Nickel {
 
 		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
 		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
+
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Hello imgui    ");
+		ImGui::Text("Lorem Ipsum     ");
+		ImGui::End();
 		
 		/*
 		DescribedMesh meshes[3];
@@ -520,7 +528,7 @@ namespace Nickel {
 
 		for (int y = -2; y <= 2; y++) {
 			for (int x = -2; x <= 2; x++) {
-				//DrawModel(*rs, cmd, rs->bunny, {x*3.0f, 0.0f, y*3.0f});
+				DrawModel(*rs, cmd, rs->bunny, {x*3.0f, 0.0f, y*3.0f});
 			}
 		}
 
@@ -546,7 +554,8 @@ namespace Nickel {
 		// rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
 		// DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
 		
-
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 		rs->swapChain->Present(1, 0);
 
 		previousMouseX = input->normalizedMouseX;
@@ -906,7 +915,7 @@ namespace Nickel {
 			cube.transform.scaleY = 0.2f;
 			cube.transform.scaleZ = 0.2f;
 			cube.transform.positionX = 0.0f;
-			cube.transform.positionY = 0.1f;
+			cube.transform.positionY = 0.0f;
 			cube.transform.positionZ = 0.0f;
 			cube.gpuData = &rs->debugCubeGpuMeshData;
 			cube.material = rs->simpleMat;

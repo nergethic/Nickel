@@ -11,6 +11,9 @@
 #include <variant>
 
 #include "Logger.h"
+#include "imgui/imgui.h";
+#include "imgui/imgui_impl_win32.h";
+#include "imgui/imgui_impl_dx11.h"
 
 inline auto GetSourceLocation(const std::source_location& loc) -> std::string {
 	std::ostringstream result("file: ", std::ios_base::ate);
