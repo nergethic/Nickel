@@ -249,6 +249,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\DX11Layer.cpp" />
     <ClCompile Include="Source\game.cpp" />
     <ClCompile Include="Source\imgui\imgui.cpp" />
@@ -259,6 +260,7 @@
     <ClCompile Include="Source\imgui\imgui_tables.cpp" />
     <ClCompile Include="Source\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Logger.cpp" />
+    <ClCompile Include="Source\Math.cpp" />
     <ClCompile Include="Source\Mesh.cpp" />
     <ClCompile Include="Source\ObjLoader.cpp" />
     <ClCompile Include="Source\renderer.cpp" />
@@ -267,6 +269,7 @@
     <ClCompile Include="Source\win32_main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\Cube.h" />
     <ClInclude Include="Source\DirectXIncludes.h" />
     <ClInclude Include="Source\DX11Layer.h" />
@@ -281,6 +284,7 @@
     <ClInclude Include="Source\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Logger.h" />
     <ClInclude Include="Source\Material.h" />
+    <ClInclude Include="Source\Math.h" />
     <ClInclude Include="Source\Mesh.h" />
     <ClInclude Include="Source\ObjLoader.h" />
     <ClInclude Include="Source\platform.h" />

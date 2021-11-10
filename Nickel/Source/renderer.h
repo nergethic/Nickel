@@ -22,6 +22,9 @@
 
 //#include "Shaders/BackgroundVertexShader.h"
 
+#include "Camera.h" // TODO: move to scene manager
+#include "Math.h"
+
 using namespace DirectX;
 using namespace Nickel::Renderer;
 using namespace Microsoft::WRL;
@@ -134,9 +137,9 @@ enum class ConstantBuffer {
 };
 
 struct Transform {
-	f32 positionX, positionY, positionZ;
-	f32 scaleX, scaleY, scaleZ;
-	f32 rotationY;
+	Nickel::Vec3 position;
+	Nickel::Vec3 scale;
+	Nickel::Vec3 rotation;
 };
 
 struct TextureData {
@@ -230,6 +233,8 @@ struct RendererState {
 	std::vector<DescribedMesh> lines = std::vector<DescribedMesh>(30);
 
 	DescribedMesh* sceneMeshes[3];
+
+	std::unique_ptr<Nickel::Camera> mainCamera;
 };
 
 namespace Nickel {

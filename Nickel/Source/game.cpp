@@ -14,10 +14,6 @@ struct renderer_state {
 };
 */
 
-struct Vec3 {
-	f32 x, y, z;
-};
-
 struct Color {
 	u8 r, g, b, a;
 };
@@ -142,13 +138,15 @@ namespace Nickel {
 
 		// update:
 		const auto t = mesh.transform;
-		auto worldMat = XMMatrixRotationY(t.rotationY) * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ) * XMMatrixTranslation(t.positionX + offset.x, t.positionY + offset.y, t.positionZ + offset.z);
-		auto worldTransposed = XMMatrixTranspose(XMMatrixIdentity() * XMMatrixScaling(t.scaleX, t.scaleY, t.scaleZ));
+		const auto& pos = t.position + offset;
+		auto worldMat = XMMatrixRotationY(t.rotation.y) * XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+		const auto& viewProjectionMatrix = rs.mainCamera.get()->GetViewProjectionMatrix();
 
 		PerObjectBufferData data;
 		data.modelMatrix = XMMatrixTranspose(worldMat);
-		data.viewProjectionMatrix = XMMatrixTranspose(rs.g_ViewMatrix * rs.g_ProjectionMatrix);
-		data.modelViewProjectionMatrix = XMMatrixTranspose(worldMat * rs.g_ViewMatrix * rs.g_ProjectionMatrix);
+		data.viewProjectionMatrix = XMMatrixTranspose(viewProjectionMatrix);
+		data.modelViewProjectionMatrix = XMMatrixTranspose(worldMat * viewProjectionMatrix);
 
 		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &data, 0, 0, 0);
 
@@ -321,6 +319,8 @@ namespace Nickel {
 		ID3D11Device1* device = rs->device.Get();
 		ResourceManager::Init(device);
 
+		rs->mainCamera = std::make_unique<Camera>(45.0f, 1.5f, 0.1f, 100.0f);
+
 		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
@@ -441,10 +441,9 @@ namespace Nickel {
 		float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
 
 		const f32 aspectRatio = static_cast<f32>(clientWidth) / clientHeight;
-		rs->g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), aspectRatio, 0.1f, 100.0f);
-
+		const auto& projectionMatrix = rs->mainCamera.get()->GetProjectionMatrix();
 		auto data = PerApplicationData{
-			.projectionMatrix = XMMatrixTranspose(rs->g_ProjectionMatrix),
+			.projectionMatrix = XMMatrixTranspose(projectionMatrix),
 			.clientData = XMFLOAT3(clientWidth,clientHeight,aspectRatio)
 		};
 
@@ -453,8 +452,6 @@ namespace Nickel {
 
 	static f32 previousMouseX = 0.5f;
 	static f32 previousMouseY = 0.5f;
-	static Vec3 cameraPos{ 0.0,6.0,-10.0 };
-	static Vec3 focusPos{ 0.0,0.0,0.0 };
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
@@ -464,13 +461,10 @@ namespace Nickel {
 		angle += 1.2f;
 		XMFLOAT3 lightPos = XMFLOAT3(radius * cos(XMConvertToRadians(angle)), 0.0f, radius * sin(XMConvertToRadians(angle)));
 
+		auto& camera = *rs->mainCamera.get();
 		PerFrameBufferData frameData;
-		XMVECTOR eyePosition = XMVectorSet(cameraPos.x, cameraPos.y, cameraPos.z, 1);
-		XMVECTOR lookAtPoint = XMVectorSet(focusPos.x, focusPos.y, focusPos.z, 1);
-
-		rs->g_ViewMatrix = XMMatrixLookAtLH(eyePosition, lookAtPoint, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-		frameData.viewMatrix = XMMatrixTranspose(rs->g_ViewMatrix);
-		frameData.cameraPosition = XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
+		frameData.viewMatrix = XMMatrixTranspose(camera.GetViewMatrix());
+		frameData.cameraPosition = XMFLOAT3(camera.position.x, camera.position.y, camera.position.z);
 		frameData.lightPosition = lightPos;
 
 		auto cmd = rs->cmdQueue;
@@ -519,8 +513,8 @@ namespace Nickel {
 
 		//std::vector<ID3D11ShaderResourceView*> nullSRVs(gbuffer.size() + 1, nullptr); // TODO
 		//context->PSSetShaderResources(0, static_cast<u32>(nullSRVs.size()), nullSRVs.data());
-		rs->bunny.transform.rotationY += 0.005;
-		rs->skybox.transform.rotationY += 0.0005;
+		rs->bunny.transform.rotation.y += 0.005;
+		rs->skybox.transform.rotation.y += 0.0005;
 
 		for (auto& line : rs->lines)
 			if (line.material.program != nullptr)
@@ -536,11 +530,9 @@ namespace Nickel {
 
 		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
 		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
-		focusPos.x += dtMouseX * 50.0f;
-		focusPos.y += dtMouseY * 50.0f;
-		Logger::Error(dtMouseX);
-
-		
+		camera.lookAtPosition.x += dtMouseX * 50.0f;
+		camera.lookAtPosition.y += dtMouseY * 50.0f;
+		camera.RecalculateMatrices();
 
 		DrawModel(*rs, cmd, rs->skybox);
 
@@ -684,27 +676,17 @@ namespace Nickel {
 		};
 		gpuMeshData.vertexBuffer.Create<LineVertexData>(device, std::span(vertexFormatData), false);
 
-		describedMesh.transform.scaleX = 1.0f;
-		describedMesh.transform.scaleY = 1.0f;
-		describedMesh.transform.scaleZ = 1.0f;
-		describedMesh.transform.positionX = 0.0f;
-		describedMesh.transform.positionY = 0.0f;
-		describedMesh.transform.positionZ = 0.0f;
+		describedMesh.transform.scale = {1.0f, 1.0f, 1.0f};
+		describedMesh.transform.position = { 0.0f, 0.0f, 0.0f };
 		describedMesh.gpuData = &gpuMeshData;
 		describedMesh.material = rs->lineMat;
 		//line.mesh = meshData; // TODO: is this useless?
 	}
 
-	auto Lerp(Vec3 from, Vec3 to, float t) -> Vec3 {
-		const auto diff = Vec3{ to.x - from.x, to.y - from.y, to.z - from.z };
-		const auto mul = Vec3{ diff.x * t, diff.y * t, diff.z * t};
-		return {from.x+mul.x, from.y+mul.y, from.z+mul.z};
-	}
-
 	auto GenerateLinePoints(Vec3 from, Vec3 to, u32 pointCount) -> std::vector<Vec3> {
 		auto result = std::vector<Vec3>();
 		for (i32 i = 0; i <= pointCount; i++) {
-			result.push_back(Lerp(from, to, static_cast<f32>(i) / pointCount));
+			result.push_back(Vec3::Lerp(from, to, static_cast<f32>(i) / pointCount));
 		}
 
 		return result;
@@ -746,12 +728,12 @@ namespace Nickel {
 			const u32 linePointsCount = 100;
 			for (i32 x = -5; x <= 5; x++, lineIdx++) {
 				const auto xOffset = static_cast<f32>(x) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset,0.0,-10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset, 0.0, -10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
 			}
 				
 			for (i32 y = -5; y <= 5; y++, lineIdx++) {
 				const auto yOffset = static_cast<f32>(y) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0,0.0,yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
 			}
 				
 
@@ -793,12 +775,8 @@ namespace Nickel {
 			gpuMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
 			
 			auto& bunny = rs->bunny;
-			bunny.transform.scaleX = 15.0f;
-			bunny.transform.scaleY = 15.0f;
-			bunny.transform.scaleZ = 15.0f;
-			bunny.transform.positionX = 0.0f;
-			bunny.transform.positionY = 0.0f;
-			bunny.transform.positionZ = 0.0f;
+			bunny.transform.scale = {15.0f, 15.0f, 15.0f};
+			bunny.transform.position = { 0.0f, 0.0f, 0.0f };
 			bunny.gpuData = &rs->gpuMeshData[0];
 			bunny.mesh = meshData; // TODO: is this useless?
 			bunny.material = rs->textureMat;
@@ -863,12 +841,8 @@ namespace Nickel {
 			skyboxMeshData.vertexBuffer.Create<VertexPos>(device, std::span(vertexData), false);
 
 			auto& skybox = rs->skybox;
-			skybox.transform.scaleX = 1.0f;
-			skybox.transform.scaleY = 1.0f;
-			skybox.transform.scaleZ = 1.0f;
-			skybox.transform.positionX = 0.0f;
-			skybox.transform.positionY = 0.0f;
-			skybox.transform.positionZ = 0.0f;
+			skybox.transform.scale = { 1.0f, 1.0f, 1.0f };
+			skybox.transform.position = { 0.0f, 0.0f, 0.0f };
 			skybox.gpuData = &skyboxMeshData;
 			skybox.material = rs->backgroundMat;
 		}
@@ -911,12 +885,8 @@ namespace Nickel {
 			meshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexData), false);
 
 			auto& cube = rs->debugCube;
-			cube.transform.scaleX = 0.2f;
-			cube.transform.scaleY = 0.2f;
-			cube.transform.scaleZ = 0.2f;
-			cube.transform.positionX = 0.0f;
-			cube.transform.positionY = 0.0f;
-			cube.transform.positionZ = 0.0f;
+			cube.transform.scale = { 0.2f, 0.2f, 0.2f };
+			cube.transform.position = { 0.0f, 0.0f, 0.0f };
 			cube.gpuData = &rs->debugCubeGpuMeshData;
 			cube.material = rs->simpleMat;
 		}

@@ -115,15 +115,18 @@
     <ClCompile Include="Source\imgui\imgui_impl_dx11.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\ObjLoader.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\platform.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Shaders\PixelShader.h">
@@ -191,6 +194,15 @@
     </ClInclude>
     <ClInclude Include="Source\imgui\imgui_impl_dx11.h">
       <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\platform.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

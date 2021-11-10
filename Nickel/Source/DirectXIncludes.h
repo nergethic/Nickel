@@ -12,7 +12,7 @@
 // DirectX includes
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
+#include <directxmath.h>
 #include <DirectXColors.h>
 #include <WICTextureLoader.h>
 #include <dxgi.h>

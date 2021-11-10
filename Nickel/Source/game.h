@@ -2,6 +2,7 @@
 
 #include "platform.h"
 #include "renderer.h"
+#include "Math.h"
 #include "ObjLoader.h"
 #include "ResourceManager.h"
 #include <vector>
