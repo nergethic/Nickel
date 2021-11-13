@@ -271,6 +271,7 @@
     <ClCompile Include="Source\renderer.cpp" />
     <ClCompile Include="Source\ResourceManager.cpp" />
     <ClCompile Include="Source\ShaderProgram.cpp" />
+    <ClCompile Include="Source\VertexBuffer.cpp" />
     <ClCompile Include="Source\win32_main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -287,6 +288,7 @@
     <ClInclude Include="Source\imgui\imstb_rectpack.h" />
     <ClInclude Include="Source\imgui\imstb_textedit.h" />
     <ClInclude Include="Source\imgui\imstb_truetype.h" />
+    <ClInclude Include="Source\IndexBuffer.h" />
     <ClInclude Include="Source\Logger.h" />
     <ClInclude Include="Source\Material.h" />
     <ClInclude Include="Source\Math.h" />
@@ -301,6 +303,7 @@
     <ClInclude Include="Source\Shaders\TexVertexShader.h" />
     <ClInclude Include="Source\Shaders\VertexShader.h" />
     <ClInclude Include="Source\stb\stb_image.h" />
+    <ClInclude Include="Source\VertexBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
