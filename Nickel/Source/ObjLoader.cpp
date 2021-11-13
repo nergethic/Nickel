@@ -184,18 +184,15 @@ namespace Nickel {
 
 								modelData.i.push_back(e->index);
 
-								modelData.v.push_back(packedVertices[vertexIdx][0]);
-								modelData.v.push_back(packedVertices[vertexIdx][1]);
-								modelData.v.push_back(packedVertices[vertexIdx][2]);
-
-								modelData.n.push_back(packedNormals[normalIdx][0]);
-								modelData.n.push_back(packedNormals[normalIdx][1]);
-								modelData.n.push_back(packedNormals[normalIdx][2]);
+								LoadedVertex vertex{};
+								vertex.position = { (f32)packedVertices[vertexIdx][0], (f32)packedVertices[vertexIdx][1], (f32)packedVertices[vertexIdx][2] };
+								vertex.normal = { packedNormals[normalIdx][0], packedNormals[normalIdx][1], packedNormals[normalIdx][2] };
 
 								if (dataFormat == ObjFormat::Vertex_UV_Normal) { // todo bake it
-									modelData.uv.push_back(packedUVs[UVIdx][0]);
-									modelData.uv.push_back(packedUVs[UVIdx][1]);
+									vertex.uv[0] = { packedUVs[UVIdx][0], packedUVs[UVIdx][1] };
 								}
+
+								modelData.v.push_back(vertex);
 								break;
 							}
 							else { // go to next entry

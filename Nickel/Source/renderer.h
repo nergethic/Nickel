@@ -31,6 +31,7 @@ using namespace Microsoft::WRL;
 
 struct VertexBuffer {
 	std::unique_ptr<ID3D11Buffer, DxDeleter> buffer;
+	//ID3D11Buffer* buffer;
 	UINT stride;
 	UINT offset;
 	bool isDynamic;
@@ -41,6 +42,7 @@ struct VertexBuffer {
 		auto data = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexData.data() };
 
 		auto rawBuffer = DXLayer::CreateVertexBuffer(device, (sizeof(VertexT) * vertexData.size()), dynamic, &data);
+		//buffer = rawBuffer;
 		buffer = std::unique_ptr<ID3D11Buffer, DxDeleter>(rawBuffer);
 		stride = sizeof(VertexT);
 		offset = 0;
@@ -49,25 +51,36 @@ struct VertexBuffer {
 
 	template <typename VertexT>
 	void Update(ID3D11DeviceContext1* ctx, std::span<VertexT const*> vertexData) {
+		auto& b = b.get();
 		if constexpr (_DEBUG) {
 			Assert(isDynamic);
 			D3D11_BUFFER_DESC buffer_desc;
-			buffer->GetDesc(&buffer_desc);
+			b->GetDesc(&buffer_desc);
 			Assert(buffer_desc.Usage == D3D11_USAGE_DYNAMIC && buffer_desc.CPUAccessFlags == D3D11_CPU_ACCESS_WRITE);
 		}
 
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		void* dataPtr;
-		ctx->Map(buffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		ctx->Map(b, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		dataPtr = mappedResource.pData;
 		memcpy(dataPtr, vertexData.data(), vertexData.size());
-		ctx->Unmap(buffer.get(), 0);
+		ctx->Unmap(b, 0);
 	}
 };
 
 struct IndexBuffer {
-	ID3D11Buffer* buffer;
-	UINT offset;
+	std::unique_ptr<ID3D11Buffer, DxDeleter> buffer;
+	//ID3D11Buffer* buffer;
+	u32 offset;
+
+	inline void Create(ID3D11Device1* device, std::span<u32> indexData) {
+		Assert(buffer.get() == nullptr);
+		auto data = D3D11_SUBRESOURCE_DATA{ .pSysMem = indexData.data() };
+		auto rawBuffer = DXLayer::CreateIndexBuffer(device, (sizeof(indexData[0]) * indexData.size()), &data);
+		//buffer = rawBuffer;
+		buffer = std::unique_ptr<ID3D11Buffer, DxDeleter>(rawBuffer);
+		offset = 0;
+	}
 };
 
 struct ShaderData {
@@ -77,11 +90,10 @@ struct ShaderData {
 
 struct GPUMeshData {
 	VertexBuffer vertexBuffer;
-	u32 vertexCount;
+	u64 vertexCount;
 
-	ID3D11Buffer* indexBuffer;
-	u32 indexOffset;
-	u32 indexCount;
+	IndexBuffer indexBuffer;
+	u64 indexCount;
 	D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 };
 
@@ -211,6 +223,7 @@ struct RendererState {
 	UINT backbufferHeight;
 
 	GPUMeshData gpuMeshData[2];
+	std::vector<GPUMeshData> bunnyGpuMeshData = std::vector<GPUMeshData>(500);
 	GPUMeshData skyboxMeshData;
 	GPUMeshData debugCubeGpuMeshData;
 	std::vector<GPUMeshData> linesGPUData = std::vector<GPUMeshData>(30);
@@ -226,7 +239,7 @@ struct RendererState {
 	Material backgroundMat;
 
 	DescribedMesh debugCube;
-	DescribedMesh bunny;
+	std::vector<DescribedMesh> bunny;
 	DescribedMesh suzanne;
 	DescribedMesh light;
 	DescribedMesh skybox;

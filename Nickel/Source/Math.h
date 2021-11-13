@@ -127,6 +127,10 @@ namespace Nickel {
 		friend auto operator/=(Vec3& a, const Vec3& b)->Vec3&;
 	};
 
+	struct Vec4 {
+		f32 x, y, z, w;
+	};
+
 	// Vec2
 	template <typename T>
 	inline auto operator+(const Vec2& a, const T& b) -> Vec2 { return { a.x + b, a.y + b }; }

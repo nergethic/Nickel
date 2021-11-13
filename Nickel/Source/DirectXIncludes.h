@@ -40,7 +40,9 @@ inline auto SafeRelease(T& ptr) -> void {
 };
 
 struct DxDeleter {
-	void operator() (IUnknown* ptr) { SafeRelease(ptr); }
+	void operator() (IUnknown* ptr) {
+		SafeRelease(ptr);
+	}
 };
 
 namespace Nickel::Renderer::DXLayer {

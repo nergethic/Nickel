@@ -2,20 +2,21 @@
 #include <d3d11.h>
 #include <vector>
 #include "platform.h"
+#include "Math.h"
 
 namespace Nickel {
-	struct MeshData {
-		MeshData() {
-			v = std::vector<f64>();
-			i = std::vector<u32>();
-			n = std::vector<f64>();
-			uv = std::vector<f32>();
-		}
+	struct LoadedVertex {
+		Vec3 position;
+		Vec3 normal;
+		Vec3 tangent;
+		Vec3 bitangent;
+		Vec2 uv[8];
+		Vec4 colors[8];
+	};
 
-		std::vector<f64> v;
-		std::vector<u32> i;
-		std::vector<f64> n;
-		std::vector<f32> uv;
+	struct MeshData {
+		std::vector<LoadedVertex> v = std::vector<LoadedVertex>();
+		std::vector<u32> i = std::vector<u32>();
 	};
 
 	class Model {
