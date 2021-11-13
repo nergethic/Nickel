@@ -113,19 +113,19 @@ namespace Nickel {
 		const auto& gpuData = mesh.gpuData;
 		const auto& material = mesh.material;
 
-		if (mesh.gpuData->indexCount == 0) {
+		if (mesh.gpuData.indexCount == 0) {
 			Logger::Warn("Index count is 0!");
 			return;
 		}
 
 		material.program->Bind(queue);
-		queue->IASetPrimitiveTopology(gpuData->topology);
+		queue->IASetPrimitiveTopology(gpuData.topology);
 
-		const auto indexBuffer = gpuData->indexBuffer.buffer.get();
-		const auto vertexBuffer = gpuData->vertexBuffer.buffer.get();
+		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
+		const auto vertexBuffer = gpuData.vertexBuffer.buffer.get();
 
 		DXLayer::SetIndexBuffer(*queue, indexBuffer);
-		DXLayer::SetVertexBuffer(*queue, vertexBuffer, gpuData->vertexBuffer.stride, gpuData->vertexBuffer.offset);
+		DXLayer::SetVertexBuffer(*queue, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
 
 		for (auto& tex : material.textures) {
 			queue->PSSetShaderResources(0, 1, &tex.srv);
@@ -138,7 +138,7 @@ namespace Nickel {
 			queue->VSSetConstantBuffers(3, 1, &constantBuffer); // TODO: figure out a way to do this nicely
 
 		SetPipelineState(*queue, &rs.g_Viewport, mesh.material.pipelineState);
-		DXLayer::DrawIndexed(cmd, mesh.gpuData->indexCount, 0, 0);
+		DXLayer::DrawIndexed(cmd, mesh.gpuData.indexCount, 0, 0);
 	}
 
 	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
@@ -277,45 +277,11 @@ namespace Nickel {
 
 	auto LoadSuzanneModel(MeshData& meshData) -> void {
 		LoadObjMeshData(meshData, "Data/Models/Suzanne.obj");
-
-		/*
-		auto device = rs->device.Get();
-
-		auto meshData = MeshData();
-		LoadObjMeshData(meshData, "Data/Models/Suzanne.obj");
-		auto vertexFormatData = GetVertexPosColorFromModelData(&meshData);
-
-		GPUMeshData mesh = {
-
-		};
-		mesh.indexCount = meshData.i.size();
-
-
-		mesh.vertexCount = vertexFormatData.size();
-
-		mesh.vertexBuffer.buffer = Renderer::CreateVertexBuffer(device, sizeof(vertexFormatData[0]) * mesh.vertexCount);
-
-		D3D11_SUBRESOURCE_DATA resourceData3 = {0};
-		resourceData3.pSysMem = vertexFormatData.data();
-		rs->deviceCtx->UpdateSubresource1(mesh.vertexBuffer.buffer, 0, nullptr, resourceData3.pSysMem, 0, 0, 0);
-
-		D3D11_SUBRESOURCE_DATA resourceData4 = {0};
-		resourceData4.pSysMem = meshData.i.data();
-
-		u32 byteWidthSize = sizeof(meshData.i[0]) * mesh.indexCount;
-		// mesh.indexBuffer = Renderer::CreateIndexBuffer(device, byteWidthSize, &resourceData4);
-
-		return mesh;
-		*/
 	}
 
 	void LoadMeshAndSetup(const std::string& path) {
 		MeshData meshData;
 		LoadObjMeshData(meshData, path);
-	}
-
-	void CreatePass() {
-
 	}
 
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void {
@@ -363,33 +329,6 @@ namespace Nickel {
 		device->CreateBlendState1(&stateDesc, &state);
 		const FLOAT blendFactor[4] = { 0 };
 		// rs->cmdQueue.queue->OMSetBlendState(state, blendFactor, 0);
-
-		//pip->depthStencilState = depthStencilState;
-		//pip->rasterizerState = rasterizerState;
-		//pip->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		//pip->inputLayout = DXLayer::CreateInputLayout(device, vertexPosUVLayoutDesc, std::span{g_TexVertexShader});
-		//pip->vertexShader = rs->textureMat.program->vertexShader;
-		//pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-		//pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		//pip->pixelShader = rs->textureMat.program->pixelShader;
-
-		// ApplyPipeline(device, &pip); // TODO
-
-		// simple pip:
-		//pip2->depthStencilState = depthStencilState;
-		//pip2->rasterizerState = rasterizerState;
-		//pip2->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-		//pip2->inputLayout = DXLayer::CreateInputLayout(device, vertexPosColorLayoutDesc, std::span{g_SimpleVertexShader});
-
-		//pip2->vertexShader = rs->simpleMat.program->vertexShader;
-		//pip2->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-		//pip2->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
-		//pip2->pixelShader = rs->simpleMat.program->pixelShader;
-
-
-		// pip->vertexConstantBuffers = (ID3D11Buffer*)rs->g_d3dConstantBuffers;
-		// pip->vertexConstantBuffersCount = ArrayCount(rs->g_d3dConstantBuffers);
 
 		// materials
 		{
@@ -475,7 +414,7 @@ namespace Nickel {
 		frameData.cameraPosition = XMFLOAT3(camera.position.x, camera.position.y, camera.position.z);
 		frameData.lightPosition = lightPos;
 
-		auto cmd = rs->cmdQueue;
+		auto& cmd = rs->cmdQueue;
 		auto& queue = *cmd.queue.Get();
 
 		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
@@ -634,7 +573,7 @@ namespace Nickel {
 	}
 	*/
 
-	auto GenerateLine(RendererState* rs, std::vector<Vec3> vertexData, GPUMeshData& gpuMeshData, DescribedMesh& describedMesh) -> void {
+	auto GenerateLine(RendererState* rs, std::vector<Vec3> vertexData, DescribedMesh& describedMesh) -> void {
 		auto device = rs->device.Get();
 
 		//each pair has a mirrored direction 
@@ -674,19 +613,17 @@ namespace Nickel {
 		auto indexData = CreateLineIndices(vertexData.size());
 
 		const u32 indexCount = indexData.size();
-
 		const u32 vertexCount = vertexFormatData.size() - 6;
-		gpuMeshData = GPUMeshData{
+
+		describedMesh.transform.scale = {1.0f, 1.0f, 1.0f};
+		describedMesh.transform.position = { 0.0f, 0.0f, 0.0f };
+		describedMesh.gpuData = GPUMeshData{
 			.vertexCount = vertexCount,
 			.indexCount = indexCount,
 			.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 		};
-		gpuMeshData.indexBuffer.Create(device, std::span(indexData));
-		gpuMeshData.vertexBuffer.Create<LineVertexData>(device, std::span(vertexFormatData), false);
-
-		describedMesh.transform.scale = {1.0f, 1.0f, 1.0f};
-		describedMesh.transform.position = { 0.0f, 0.0f, 0.0f };
-		describedMesh.gpuData = &gpuMeshData;
+		describedMesh.gpuData.indexBuffer.Create(device, std::span(indexData));
+		describedMesh.gpuData.vertexBuffer.Create<LineVertexData>(device, std::span(vertexFormatData), false);
 		describedMesh.material = rs->lineMat;
 		//line.mesh = meshData; // TODO: is this useless?
 	}
@@ -736,12 +673,12 @@ namespace Nickel {
 			const u32 linePointsCount = 100;
 			for (i32 x = -5; x <= 5; x++, lineIdx++) {
 				const auto xOffset = static_cast<f32>(x) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset, 0.0, -10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset, 0.0, -10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->lines[lineIdx]);
 			}
 				
 			for (i32 y = -5; y <= 5; y++, lineIdx++) {
 				const auto yOffset = static_cast<f32>(y) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->linesGPUData[lineIdx], rs->lines[lineIdx]);
+				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->lines[lineIdx]);
 			}
 				
 
@@ -759,6 +696,7 @@ namespace Nickel {
 			// LoadBunnyMesh(meshData);
 			const auto& meshData = *ResourceManager::LoadModel("Data/Models/backpack/backpack.obj");
 			auto& bunny = rs->bunny;
+			bunny = std::vector<DescribedMesh>(meshData.size());
 			for (int i = 0; i < meshData.size(); i++) {
 				const auto& submesh = meshData[i];
 
@@ -777,30 +715,23 @@ namespace Nickel {
 					}
 				}
 
-				rs->bunnyGpuMeshData[i] = GPUMeshData{
-					.vertexBuffer = nullptr,
-					.vertexCount = vertexCount,
-					.indexBuffer = nullptr,
-					.indexCount = indexCount,
-					.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
-				};
-
-				auto& gpuMeshData = rs->bunnyGpuMeshData[i];
-				auto x = submesh.i;
-				gpuMeshData.indexBuffer.Create(device, std::span(x));
-				gpuMeshData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
-				
-
-				auto describedSubmesh = DescribedMesh{
+				bunny[i] = DescribedMesh{
 					.transform = {
 						.position = { 1.0f, 1.0f, 1.0f },
 						.scale = {0.7f, 0.7f, 0.7f}
 					},
 					.mesh = submesh, // TODO: is this useless?
-					.gpuData = &gpuMeshData,
+					.gpuData = GPUMeshData{
+						.vertexCount = vertexCount,
+						.indexCount = indexCount,
+						.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+					},
 					.material = rs->textureMat
 				};
-				bunny.push_back(describedSubmesh);
+
+				auto x = submesh.i;
+				bunny[i].gpuData.indexBuffer.Create(device, std::span(x));
+				bunny[i].gpuData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
 			}
 		}
 		
@@ -812,13 +743,13 @@ namespace Nickel {
 			const auto vertexCount = static_cast<u32>(vertexFormatData.size());
 			const auto indexCount = static_cast<u32>(meshData.i.size());
 
-			auto& gpuMeshData = rs->gpuMeshData[1];
-			gpuMeshData = GPUMeshData{
-				.vertexCount = vertexCount,
-				.indexCount = indexCount
-			};
-			gpuMeshData.indexBuffer.Create(device, std::span(meshData.i));
-			gpuMeshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexFormatData), false);
+			//auto& gpuMeshData = rs->gpuMeshData[1];
+			//gpuMeshData = GPUMeshData{
+				//.vertexCount = vertexCount,
+				//.indexCount = indexCount
+			//};
+			//gpuMeshData.indexBuffer.Create(device, std::span(meshData.i));
+			//gpuMeshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexFormatData), false);
 		}
 
 		{ // Skybox
@@ -845,18 +776,15 @@ namespace Nickel {
 			const auto vertexCount = static_cast<u32>(vertexData.size());
 			const auto indexCount = static_cast<u32>(indices.size());
 
-			auto& skyboxMeshData = rs->skyboxMeshData;
-			skyboxMeshData = GPUMeshData{
-				.vertexCount = vertexCount,
-				.indexCount = indexCount
-			};
-			skyboxMeshData.indexBuffer.Create(device, std::span{indices});
-			skyboxMeshData.vertexBuffer.Create<VertexPos>(device, std::span(vertexData), false);
-
 			auto& skybox = rs->skybox;
 			skybox.transform.scale = { 1.0f, 1.0f, 1.0f };
 			skybox.transform.position = { 0.0f, 0.0f, 0.0f };
-			skybox.gpuData = &skyboxMeshData;
+			skybox.gpuData = GPUMeshData{
+				.vertexCount = vertexCount,
+				.indexCount = indexCount
+			};
+			skybox.gpuData.indexBuffer.Create(device, std::span{ indices });
+			skybox.gpuData.vertexBuffer.Create<VertexPos>(device, std::span(vertexData), false);
 			skybox.material = rs->backgroundMat;
 		}
 
@@ -885,18 +813,15 @@ namespace Nickel {
 			const auto vertexCount = static_cast<u32>(vertexData.size());
 			const auto indexCount = static_cast<u32>(indices.size());
 
-			auto& meshData = rs->debugCubeGpuMeshData;
-			meshData = GPUMeshData{
-				.vertexCount = vertexCount,
-				.indexCount = indexCount
-			};
-			meshData.indexBuffer.Create(device, std::span(indices));
-			meshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexData), false);
-
 			auto& cube = rs->debugCube;
 			cube.transform.scale = { 0.2f, 0.2f, 0.2f };
 			cube.transform.position = { 0.0f, 0.0f, 0.0f };
-			cube.gpuData = &rs->debugCubeGpuMeshData;
+			cube.gpuData = GPUMeshData{
+				.vertexCount = vertexCount,
+				.indexCount = indexCount
+			};
+			cube.gpuData.indexBuffer.Create(device, std::span(indices));
+			cube.gpuData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexData), false);
 			cube.material = rs->simpleMat;
 		}
 

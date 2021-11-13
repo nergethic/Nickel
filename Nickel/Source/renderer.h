@@ -70,7 +70,7 @@ struct VertexBuffer {
 
 struct IndexBuffer {
 	std::unique_ptr<ID3D11Buffer, DxDeleter> buffer;
-	//ID3D11Buffer* buffer;
+	// ID3D11Buffer* buffer;
 	u32 offset;
 
 	inline void Create(ID3D11Device1* device, std::span<u32> indexData) {
@@ -176,7 +176,7 @@ struct Material {
 struct DescribedMesh {
 	Transform transform;
 	Nickel::MeshData mesh;
-	GPUMeshData* gpuData; // TODO: figure out better structure design, if someone assigns different gpuData then mesh won't correspond to it
+	GPUMeshData gpuData;
 	Material material;
 };
 
@@ -221,12 +221,6 @@ struct RendererState {
 
 	UINT backbufferWidth;
 	UINT backbufferHeight;
-
-	GPUMeshData gpuMeshData[2];
-	std::vector<GPUMeshData> bunnyGpuMeshData = std::vector<GPUMeshData>(500);
-	GPUMeshData skyboxMeshData;
-	GPUMeshData debugCubeGpuMeshData;
-	std::vector<GPUMeshData> linesGPUData = std::vector<GPUMeshData>(30);
 
 	DXLayer::ShaderProgram lineProgram;
 	DXLayer::ShaderProgram simpleProgram;
