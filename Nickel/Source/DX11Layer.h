@@ -21,6 +21,12 @@ namespace Nickel::Renderer::DXLayer {
 		ComPtr<ID3D11Debug> debug;
 	};
 
+	struct TextureDX11 {
+		ID3D11Resource* resource;
+		ID3D11ShaderResourceView* srv;
+		ID3D11SamplerState* samplerState;
+	};
+
 	const D3D_FEATURE_LEVEL FEATURE_LEVELS[] = {
 		D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0,

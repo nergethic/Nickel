@@ -106,17 +106,11 @@ struct TextureData {
 	std::string name;
 };
 
-struct TextureDX11 {
-	ID3D11Resource* resource;
-	ID3D11ShaderResourceView* srv;
-	ID3D11SamplerState* samplerState;
-};
-
 struct Material {
 	Nickel::Renderer::DXLayer::ShaderProgram* program;
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
-	std::vector<TextureDX11> textures;
+	std::vector<DXLayer::TextureDX11> textures;
 	ComPtr<ID3D11Buffer> constantBuffer;
 };
 
@@ -145,8 +139,8 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	TextureDX11 matCapTexture;
-	TextureDX11 skyboxTexture;
+	DXLayer::TextureDX11 matCapTexture;
+	DXLayer::TextureDX11 skyboxTexture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 

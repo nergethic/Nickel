@@ -18,8 +18,9 @@ struct Color {
 	u8 r, g, b, a;
 };
 
-auto CreateCubeMap(ID3D11Device1* device, std::string path) -> TextureDX11 {
-	auto imgData = ResourceManager::LoadImageData(path);
+auto CreateCubeMap(ID3D11Device1* device, std::string path) -> DXLayer::TextureDX11 {
+	auto resourceManager = ResourceManager::GetInstance();
+	auto imgData = resourceManager->LoadImageData(path);
 
 	auto texDesc = D3D11_TEXTURE2D_DESC{
 		.Width = imgData.width,
@@ -71,10 +72,10 @@ auto CreateCubeMap(ID3D11Device1* device, std::string path) -> TextureDX11 {
 	ID3D11ShaderResourceView* srv;
 	ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
 
-	return TextureDX11{
+	return DXLayer::TextureDX11{
 		.resource = cubeTexture,
 		.srv = srv,
-		.samplerState = ResourceManager::GetDefaultSamplerState()
+		.samplerState = resourceManager->GetDefaultSamplerState()
 	};
 }
 
@@ -291,7 +292,8 @@ namespace Nickel {
 		Assert(rs->cmdQueue.queue);
 
 		ID3D11Device1* device = rs->device.Get();
-		ResourceManager::Init(device);
+		auto resourceManager = ResourceManager::GetInstance();
+		resourceManager->Init(device);
 
 		rs->mainCamera = std::make_unique<Camera>(45.0f, 1.5f, 0.1f, 100.0f);
 
@@ -310,7 +312,7 @@ namespace Nickel {
 		rs->textureProgram.Create(rs->device.Get(), std::span{ g_TexVertexShader }, std::span{ g_TexPixelShader });
 		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
 
-		rs->matCapTexture = ResourceManager::LoadTexture(L"Data/Textures/matcap.jpg");
+		rs->matCapTexture = resourceManager->LoadTexture(L"Data/Textures/matcap.jpg");
 		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
 
 		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
@@ -353,7 +355,7 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				}
 			};
-			textureMat.textures = std::vector<TextureDX11>(1);
+			textureMat.textures = std::vector<DXLayer::TextureDX11>(1);
 			textureMat.textures[0] = rs->matCapTexture;
 		}
 		
@@ -373,7 +375,7 @@ namespace Nickel {
 					.depthStencilState = DXLayer::CreateDepthStencilState(device, desc)
 				}
 			};
-			skyboxMat.textures = std::vector<TextureDX11>(1);
+			skyboxMat.textures = std::vector<DXLayer::TextureDX11>(1);
 			skyboxMat.textures[0] = rs->skyboxTexture;
 		}
 
@@ -643,6 +645,7 @@ namespace Nickel {
 		Assert(rs->cmdQueue.queue != nullptr);
 
 		auto device = rs->device.Get();
+		auto resourceManager = ResourceManager::GetInstance();
 
 		{ // convert vertex data to be LineVertexData compatible
 			auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
@@ -694,7 +697,7 @@ namespace Nickel {
 
 			//MeshData meshData;
 			// LoadBunnyMesh(meshData);
-			const auto& meshData = *ResourceManager::LoadModel("Data/Models/backpack/backpack.obj");
+			const auto& meshData = *resourceManager->LoadModel("Data/Models/backpack/backpack.obj");
 			auto& bunny = rs->bunny;
 			bunny = std::vector<DescribedMesh>(meshData.size());
 			for (int i = 0; i < meshData.size(); i++) {
