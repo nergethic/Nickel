@@ -1,86 +1,6 @@
 #include "game.h"
 #include "renderer.h"
 
-/*
-struct renderer_state {
-	Device,
-	DeviceContext,
-	ViewMatrix,
-	WorldMatrix,
-	ConstantBuffers,
-	VertexBuffer,
-	IndexBuffer,
-	VertexPosColor
-};
-*/
-
-struct Color {
-	u8 r, g, b, a;
-};
-
-auto CreateCubeMap(ID3D11Device1* device, std::string path) -> DXLayer::TextureDX11 {
-	auto resourceManager = ResourceManager::GetInstance();
-	auto imgData = resourceManager->LoadImageData(path);
-
-	auto texDesc = D3D11_TEXTURE2D_DESC{
-		.Width = imgData.width,
-		.Height = imgData.height,
-		.MipLevels = 1,
-		.ArraySize = 6,
-		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-		.SampleDesc = DXGI_SAMPLE_DESC{	
-			.Count = 1,
-			.Quality = 0,
-		},
-		.Usage = D3D11_USAGE_DEFAULT,
-		.BindFlags = D3D11_BIND_SHADER_RESOURCE,
-		.CPUAccessFlags = 0,
-		.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
-	};
-	
-	D3D11_SUBRESOURCE_DATA pData[6];
-	std::vector<Color> imgs[6];
-
-	for (int cubeMapFaceIdx = 0; cubeMapFaceIdx < 6; cubeMapFaceIdx++) {
-		//imgs[cubeMapFaceIdx].resize(imgData.width*imgData.height);
-		
-		// fill with red color  
-		//std::fill(
-			//imgs[cubeMapFaceIdx].begin(),
-			//imgs[cubeMapFaceIdx].end(),
-			//Color(255, 0, 0, 255));
-
-		//pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
-		pData[cubeMapFaceIdx].pSysMem = imgData.data;
-		pData[cubeMapFaceIdx].SysMemPitch = imgData.width * 4;
-		pData[cubeMapFaceIdx].SysMemSlicePitch = 0;
-	}
-
-	ID3D11Texture2D* cubeTexture;
-	ASSERT_ERROR_RESULT(device->CreateTexture2D(&texDesc, &pData[0], &cubeTexture));
-	stbi_image_free(imgData.data); // TODO: do this inside resource manager
-
-	auto resourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{
-		.Format = texDesc.Format,
-		.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
-		.TextureCube = D3D11_TEXCUBE_SRV{
-			.MostDetailedMip = 0,
-			.MipLevels = texDesc.MipLevels
-		}
-	};
-
-	ID3D11ShaderResourceView* srv;
-	ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
-
-	return DXLayer::TextureDX11{
-		.resource = cubeTexture,
-		.srv = srv,
-		.samplerState = resourceManager->GetDefaultSamplerState()
-	};
-}
-
-const UINT offset = 0;
-
 namespace Nickel {
 	using namespace Renderer;
 
@@ -90,17 +10,6 @@ namespace Nickel {
 		cmdQueue.OMSetDepthStencilState(pipeline.depthStencilState, 1);
 		// cmdQueue.OMSetBlendState() // TODO
 		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
-
-		//cmdQueue.IASetPrimitiveTopology(pipeline.topology);
-		//cmdQueue.IASetInputLayout(pipeline.inputLayout);
-		//cmdQueue.VSSetShader(pipeline.vertexShader, nullptr, 0);
-
-		//if (pipeline.vertexConstantBuffersCount == 0)
-			//cmdQueue.VSSetConstantBuffers(0, ArrayCount(rs->zeroBuffer), rs->zeroBuffer);
-		//else
-			//cmdQueue.VSSetConstantBuffers(0, pipeline.vertexConstantBuffersCount, (ID3D11Buffer* const*)pipeline.vertexConstantBuffers);
-		//cmdQueue.PSSetShader(pipeline.pixelShader, nullptr, 0);
-		// cmdQueue->PSSetConstantBuffers(); // TODO
 	}
 
 	auto Submit(RendererState& rs, const DXLayer::CmdQueue& cmd, const DescribedMesh& mesh) -> void {
@@ -262,7 +171,10 @@ namespace Nickel {
 		rs->debugBoxTexture = resourceManager->LoadTexture(L"Data/Models/BoxTextured/CesiumLogoFlat.png");
 
 		rs->matCapTexture = resourceManager->LoadTexture(L"Data/Textures/matcap.jpg");
-		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
+
+		auto imgData = resourceManager->LoadImageData("Data/Textures/skybox/galaxy2048.jpg");
+		rs->skyboxTexture = DXLayer::CreateCubeMap(rs->device.Get(), imgData);
+		stbi_image_free(imgData.data);
 
 		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
@@ -633,13 +545,6 @@ namespace Nickel {
 				const auto yOffset = static_cast<f32>(y) * 2.0f;
 				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->lines[lineIdx]);
 			}
-				
-
-			//GenerateLine(rs, { Vec3{1.0,0.0,-10.0}, Vec3{1.0, 0.0, 10.0} }, rs->linesGPUData[1], rs->lines[1]);
-			//GenerateLine(rs, { Vec3{2.0,0.0,-10.0}, Vec3{2.0, 0.0, 10.0} }, rs->linesGPUData[2], rs->lines[2]);
-			//GenerateLine(rs, { Vec3{3.0,0.0,-10.0}, Vec3{3.0, 0.0, 10.0} }, rs->linesGPUData[3], rs->lines[3]);
-			//GenerateLine(rs, { Vec3{4.0,0.0,-10.0}, Vec3{4.0, 0.0, 10.0} }, rs->linesGPUData[4], rs->lines[4]);
-			//GenerateLine(rs, { Vec3{5.0,0.0,-10.0}, Vec3{5.0, 0.0, 10.0} }, rs->linesGPUData[5], rs->lines[5]);
 		}
 
 		{ // Bunny

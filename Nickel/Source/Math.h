@@ -3,6 +3,10 @@
 #include <math.h>
 
 namespace Nickel {
+	struct Color8 {
+		u8 r, g, b, a;
+	};
+
 	struct Vec2 {
 		f32 x, y;
 

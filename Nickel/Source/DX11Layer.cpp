@@ -467,4 +467,82 @@ namespace Nickel::Renderer::DXLayer {
 	auto SetRenderTarget(const ID3D11DeviceContext1& cmdQueue, ID3D11RenderTargetView* const* colorTarget, ID3D11DepthStencilView* depthTarget) -> void {
 		NoConst(cmdQueue).OMSetRenderTargets(1, colorTarget, depthTarget);
 	}
+
+	auto GetDefaultSamplerState(ID3D11Device1* device) -> ID3D11SamplerState* {
+		D3D11_SAMPLER_DESC desc;
+		ZeroMemory(&desc, sizeof(D3D11_SAMPLER_DESC));
+
+		D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
+		desc.AddressU = addressMode;
+		desc.AddressV = addressMode;
+		desc.AddressW = addressMode;
+		desc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_ALWAYS;
+		desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR; //D3D11_FILTER::D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		desc.MaxAnisotropy = 0;
+		desc.MaxLOD = FLT_MAX;
+		desc.MinLOD = FLT_MIN;
+		desc.MipLODBias = 0;
+
+		return DXLayer::CreateSamplerState(device, desc);
+	}
+
+	auto CreateCubeMap(ID3D11Device1* device, const LoadedImageData& imgData) -> DXLayer::TextureDX11 {
+		// auto resourceManager = ResourceManager::GetInstance();
+		// auto imgData = resourceManager->LoadImageData(path);
+
+		auto texDesc = D3D11_TEXTURE2D_DESC{
+			.Width = imgData.width,
+			.Height = imgData.height,
+			.MipLevels = 1,
+			.ArraySize = 6,
+			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+			.SampleDesc = DXGI_SAMPLE_DESC{
+				.Count = 1,
+				.Quality = 0,
+			},
+			.Usage = D3D11_USAGE_DEFAULT,
+			.BindFlags = D3D11_BIND_SHADER_RESOURCE,
+			.CPUAccessFlags = 0,
+			.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
+		};
+
+		D3D11_SUBRESOURCE_DATA pData[6];
+		std::vector<Color8> imgs[6];
+
+		for (int cubeMapFaceIdx = 0; cubeMapFaceIdx < 6; cubeMapFaceIdx++) {
+			//imgs[cubeMapFaceIdx].resize(imgData.width*imgData.height);
+
+			// fill with red color  
+			//std::fill(
+				//imgs[cubeMapFaceIdx].begin(),
+				//imgs[cubeMapFaceIdx].end(),
+				//Color(255, 0, 0, 255));
+
+			//pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
+			pData[cubeMapFaceIdx].pSysMem = imgData.data;
+			pData[cubeMapFaceIdx].SysMemPitch = imgData.width * 4;
+			pData[cubeMapFaceIdx].SysMemSlicePitch = 0;
+		}
+
+		ID3D11Texture2D* cubeTexture;
+		ASSERT_ERROR_RESULT(device->CreateTexture2D(&texDesc, &pData[0], &cubeTexture));
+
+		auto resourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{
+			.Format = texDesc.Format,
+			.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+			.TextureCube = D3D11_TEXCUBE_SRV{
+				.MostDetailedMip = 0,
+				.MipLevels = texDesc.MipLevels
+			}
+		};
+
+		ID3D11ShaderResourceView* srv;
+		ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
+
+		return DXLayer::TextureDX11{
+			.resource = cubeTexture,
+			.srv = srv,
+			.samplerState = GetDefaultSamplerState(device)
+		};
+	}
 }

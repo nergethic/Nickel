@@ -9,12 +9,6 @@
 //#include "assimp/material.h"
 
 namespace Nickel::Renderer {
-	struct LoadedImageData {
-		u8* data;
-		u32 width;
-		u32 height;
-	};
-
 	//struct Texture {
 		//unsigned int id;
 		//std::string type;
@@ -59,7 +53,6 @@ namespace Nickel::Renderer {
 
 	private:
 		ID3D11Device1* device;
-		ID3D11SamplerState* defaultSamplerState;
 		std::vector<DXLayer::TextureDX11> loadedTextures = std::vector<DXLayer::TextureDX11>();
 	};
 }

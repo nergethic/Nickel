@@ -2,6 +2,7 @@
 
 #include "DirectXIncludes.h"
 #include "platform.h"
+#include "Math.h"
 
 using namespace Microsoft::WRL;
 
@@ -68,4 +69,7 @@ namespace Nickel::Renderer::DXLayer {
 	auto SetVertexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* vertexBuffer, UINT stride, UINT offset) -> void;
 	auto SetIndexBuffer(const ID3D11DeviceContext1& cmdQueue, ID3D11Buffer* indexBuffer, DXGI_FORMAT format = DXGI_FORMAT::DXGI_FORMAT_R32_UINT, u32 offset = 0) -> void;
 	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
+
+	auto GetDefaultSamplerState(ID3D11Device1* device) -> ID3D11SamplerState*;
+	auto CreateCubeMap(ID3D11Device1* device, const LoadedImageData& imgData) -> DXLayer::TextureDX11;
 }

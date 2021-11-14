@@ -13,26 +13,10 @@ namespace Nickel::Renderer {
 
 	auto ResourceManager::Init(ID3D11Device1* _device) -> void {
 		device = _device;
-
-		D3D11_SAMPLER_DESC desc;
-		ZeroMemory(&desc, sizeof(D3D11_SAMPLER_DESC));
-
-		D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
-		desc.AddressU = addressMode;
-		desc.AddressV = addressMode;
-		desc.AddressW = addressMode;
-		desc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_ALWAYS;
-		desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR; //D3D11_FILTER::D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
-		desc.MaxAnisotropy = 0;
-		desc.MaxLOD = FLT_MAX;
-		desc.MinLOD = FLT_MIN;
-		desc.MipLODBias = 0;
-
-		defaultSamplerState = DXLayer::CreateSamplerState(device, desc);
 	}
 
 	auto ResourceManager::LoadTexture(std::wstring path) -> DXLayer::TextureDX11 {
-		DXLayer::TextureDX11 newTex{ .samplerState = defaultSamplerState };
+		DXLayer::TextureDX11 newTex{ .samplerState = DXLayer::GetDefaultSamplerState(device)};
 		ASSERT_ERROR_RESULT(DirectX::CreateWICTextureFromFile(device, path.c_str(), &newTex.resource, &newTex.srv));
 		Assert(newTex.srv != nullptr);
 
@@ -149,9 +133,5 @@ namespace Nickel::Renderer {
 		ProcessNode(scene->mRootNode, *scene, *submeshes);
 
 		return submeshes;
-	}
-
-	auto ResourceManager::GetDefaultSamplerState() -> ID3D11SamplerState* {
-		return defaultSamplerState;
 	}
 }
