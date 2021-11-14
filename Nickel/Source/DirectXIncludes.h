@@ -18,6 +18,10 @@
 #include <dxgi.h>
 #include <dxgi1_3.h>
 
+#pragma error(push, 0)
+#include "include/d3dx12.h"
+#pragma error(pop)
+
 // WRL
 #include <wrl/client.h>
 #include "Platform.h"
@@ -37,6 +41,8 @@ inline auto SafeRelease(T& ptr) -> void {
 		ptr->Release();
 		ptr = nullptr;
 	}
+
+	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
 };
 
 struct DxDeleter {

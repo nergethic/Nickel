@@ -9,7 +9,7 @@
 
 #include "Background.h"
 
-static u32 GLOBAL_WINDOW_WIDTH = 1080;
+static u32 GLOBAL_WINDOW_WIDTH = 1280;
 static u32 GLOBAL_WINDOW_HEIGHT = 720;
 
 struct GameState {
