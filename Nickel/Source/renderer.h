@@ -139,8 +139,14 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
+	DXLayer::TextureDX11 albedoTexture;
+	DXLayer::TextureDX11 normalTexture;
+	DXLayer::TextureDX11 aoTexture;
+	DXLayer::TextureDX11 metalRoughnessTexture;
+	DXLayer::TextureDX11 emissiveTexture;
 	DXLayer::TextureDX11 matCapTexture;
 	DXLayer::TextureDX11 skyboxTexture;
+	DXLayer::TextureDX11 debugBoxTexture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
 
@@ -179,6 +185,7 @@ struct RendererState {
 	DescribedMesh suzanne;
 	DescribedMesh light;
 	DescribedMesh skybox;
+	DescribedMesh debugBoxTextured;
 	std::vector<DescribedMesh> lines = std::vector<DescribedMesh>(30);
 
 	DescribedMesh* sceneMeshes[3];

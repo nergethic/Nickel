@@ -163,64 +163,6 @@ namespace Nickel {
 		Submit(rs, cmd, mesh);		
 	}
 
-	/*
-	auto DrawBunny(const Nickel::Renderer::DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		Assert(cmd.queue != nullptr);
-		auto& cmdQueue = *cmd.queue.Get();
-		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
-
-		GPUMeshData* mesh = &rs->gpuMeshData[0];
-
-		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
-		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
-
-		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer.get(), sizeof(VertexPosUV), offset);
-
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
-
-		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
-	}
-
-	auto DrawLight(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		Assert(cmd.queue != nullptr);
-		auto& cmdQueue = *cmd.queue.Get();
-		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
-
-		GPUMeshData* mesh = &rs->gpuMeshData[0];
-
-		cmdQueue.PSSetShaderResources(0, 1, &rs->matCapTexture.srv);
-		cmdQueue.PSSetSamplers(0, 1, &rs->matCapTexture.samplerState);
-
-		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, mesh->vertexBuffer.buffer.get(), sizeof(VertexPosUV), offset);
-
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
-
-		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
-	}
-
-	auto DrawSuzanne(const DXLayer::CmdQueue& cmd, RendererState* rs, PipelineState pipelineState) -> void {
-		Assert(cmd.queue != nullptr);
-		auto& cmdQueue = *cmd.queue.Get();
-		//SetPipelineState(cmdQueue, rs->g_Viewport, pipelineState);
-
-		GPUMeshData* mesh = &rs->gpuMeshData[1];
-
-		cmdQueue.PSSetShaderResources(0, ArrayCount(rs->zeroResourceViews), rs->zeroResourceViews);
-		cmdQueue.PSSetSamplers(0, ArrayCount(rs->zeroSamplerStates), rs->zeroSamplerStates);
-
-		Renderer::DXLayer::SetIndexBuffer(cmdQueue, mesh->indexBuffer);
-
-		auto& vertexBuffer = rs->gpuMeshData[1].vertexBuffer;
-		Renderer::DXLayer::SetVertexBuffer(cmdQueue, vertexBuffer.buffer.get(), sizeof(VertexPosColor), vertexBuffer.offset);
-
-		cmdQueue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &rs->g_WorldMatrix, 0, 0, 0);
-
-		DXLayer::DrawIndexed(cmd, mesh->indexCount, 0, 0);
-	}
-	*/
-
 	auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
 		Assert(data != nullptr);
 
@@ -312,6 +254,13 @@ namespace Nickel {
 		rs->textureProgram.Create(rs->device.Get(), std::span{ g_TexVertexShader }, std::span{ g_TexPixelShader });
 		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
 
+		rs->albedoTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_albedo.jpg");
+		rs->normalTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_normal.jpg");
+		rs->aoTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_AO.jpg");
+		rs->metalRoughnessTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_metalRoughness.jpg");
+		rs->emissiveTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_emissive.jpg");
+		rs->debugBoxTexture = resourceManager->LoadTexture(L"Data/Models/BoxTextured/CesiumLogoFlat.png");
+
 		rs->matCapTexture = resourceManager->LoadTexture(L"Data/Textures/matcap.jpg");
 		rs->skyboxTexture = CreateCubeMap(rs->device.Get(), "Data/Textures/skybox/galaxy2048.jpg");
 
@@ -356,7 +305,7 @@ namespace Nickel {
 				}
 			};
 			textureMat.textures = std::vector<DXLayer::TextureDX11>(1);
-			textureMat.textures[0] = rs->matCapTexture;
+			textureMat.textures[0] = rs->albedoTexture;
 		}
 		
 		{
@@ -479,6 +428,7 @@ namespace Nickel {
 		}
 
 		DrawModel(*rs, cmd, rs->debugCube);
+		// DrawModel(*rs, cmd, rs->debugBoxTextured);
 
 		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
 		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
@@ -697,7 +647,8 @@ namespace Nickel {
 
 			//MeshData meshData;
 			// LoadBunnyMesh(meshData);
-			const auto& meshData = *resourceManager->LoadModel("Data/Models/backpack/backpack.obj");
+			//const auto& meshData = *resourceManager->LoadModel("Data/Models/backpack/backpack.obj");
+			const auto& meshData = *resourceManager->LoadModel("Data/Models/DamagedHelmet/DamagedHelmet.gltf");
 			auto& bunny = rs->bunny;
 			bunny = std::vector<DescribedMesh>(meshData.size());
 			for (int i = 0; i < meshData.size(); i++) {
@@ -721,7 +672,7 @@ namespace Nickel {
 				bunny[i] = DescribedMesh{
 					.transform = {
 						.position = { 1.0f, 1.0f, 1.0f },
-						.scale = {0.7f, 0.7f, 0.7f}
+						.scale = {1.1f, 1.1f, 1.1f}
 					},
 					.mesh = submesh, // TODO: is this useless?
 					.gpuData = GPUMeshData{
@@ -826,6 +777,45 @@ namespace Nickel {
 			cube.gpuData.indexBuffer.Create(device, std::span(indices));
 			cube.gpuData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexData), false);
 			cube.material = rs->simpleMat;
+		}
+
+		{
+			const auto& meshData = *resourceManager->LoadModel("Data/Models/BoxTextured/BoxTextured.gltf");
+			const auto& submesh = meshData[0];
+
+			const u64 vertexCount = submesh.v.size();
+			const u64 indexCount = submesh.i.size();
+
+			auto vertexFormatData = std::vector<VertexPosUV>(vertexCount);
+			{
+				for (int i = 0; i < vertexCount; i++) {
+					const auto& v = submesh.v[i];
+					vertexFormatData[i] = VertexPosUV{
+						.Position = XMFLOAT3(v.position.x, v.position.y, v.position.z),
+						.Normal = XMFLOAT3(v.normal.x, v.normal.y, v.normal.z),
+						.UV = XMFLOAT2(v.uv[0].x, v.uv[0].y)
+					};
+				}
+			}
+
+			auto& box = rs->debugBoxTextured;
+			box = DescribedMesh{
+				.transform = {
+					.position = { 1.0f, 1.0f, 1.0f },
+					.scale = {4.1f, 4.1f, 4.1f}
+				},
+				.mesh = submesh, // TODO: is this useless?
+				.gpuData = GPUMeshData{
+					.vertexCount = vertexCount,
+					.indexCount = indexCount,
+					.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+				},
+				.material = rs->textureMat
+			};
+
+			auto x = submesh.i;
+			box.gpuData.indexBuffer.Create(device, std::span(x));
+			box.gpuData.vertexBuffer.Create<VertexPosUV>(device, std::span(vertexFormatData), false);
 		}
 
 		return true;

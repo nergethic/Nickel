@@ -17,7 +17,7 @@ namespace Nickel::Renderer {
 		D3D11_SAMPLER_DESC desc;
 		ZeroMemory(&desc, sizeof(D3D11_SAMPLER_DESC));
 
-		D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_CLAMP;
+		D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
 		desc.AddressU = addressMode;
 		desc.AddressV = addressMode;
 		desc.AddressW = addressMode;
@@ -34,7 +34,7 @@ namespace Nickel::Renderer {
 	auto ResourceManager::LoadTexture(std::wstring path) -> DXLayer::TextureDX11 {
 		DXLayer::TextureDX11 newTex{ .samplerState = defaultSamplerState };
 		ASSERT_ERROR_RESULT(DirectX::CreateWICTextureFromFile(device, path.c_str(), &newTex.resource, &newTex.srv));
-		// loadedTextures.
+		Assert(newTex.srv != nullptr);
 
 		return newTex;
 	}
@@ -75,15 +75,19 @@ namespace Nickel::Renderer {
 		}
 
 		const u32 uvChannelsCount = mesh.GetNumUVChannels();
-		for (u32 channelIdx = 0; channelIdx < uvChannelsCount; channelIdx++) {
-			if (!mesh.HasTextureCoords(channelIdx))
-				continue;
+		//for (u32 channelIdx = 0; channelIdx < uvChannelsCount; channelIdx++) {
+			//if (!mesh.HasTextureCoords(channelIdx))
+				//continue;
 
-			for (u64 i = 0; i < mesh.mNumVertices; i++) {
-				const auto& uv = mesh.mTextureCoords[channelIdx][i];
-				vertices[i].uv[channelIdx] = Vec2{ uv.x, uv.y };
+		for (u64 i = 0; i < mesh.mNumVertices; i++) {
+			if (mesh.mTextureCoords[0] == nullptr) {
+				vertices[i].uv[0] = Vec2{ 0.0f, 0.0f };
+				continue;
 			}
+			const auto& uv = mesh.mTextureCoords[0][i];
+			vertices[i].uv[0] = Vec2{ uv.x, uv.y };
 		}
+		//}
 
 		const u32 colorChannelsCount = mesh.GetNumColorChannels();
 		for (u32 i = 0; i < uvChannelsCount; i++) {
@@ -112,22 +116,6 @@ namespace Nickel::Renderer {
 		return MeshData{ .v = vertices, .i = indices }; // textures
 	}
 
-	/*
-	inline std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName) {
-		std::vector<Texture> textures;
-		for (u32 i = 0; i < mat->GetTextureCount(type); i++) {
-			aiString str;
-			mat->GetTexture(type, i, &str);
-			Texture texture;
-			texture.id = TextureFromFile(str.C_Str(), directory);
-			texture.type = typeName;
-			texture.path = str;
-			textures.push_back(texture);
-		}
-		return textures;
-	}
-	*/
-
 	auto ResourceManager::ProcessNode(aiNode* node, const aiScene& scene, std::vector<MeshData>& submeshes) -> void {
 		if (submeshes.size() == 5) {
 			int x = 4;
@@ -146,7 +134,12 @@ namespace Nickel::Renderer {
 		Assimp::Importer importer;
 		//const u32 flags = aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices |
 			//aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality;
-		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs); // aiProcess_FlipUVs aiProcess_JoinIdenticalVertices
+		const u32 flags = aiProcess_Triangulate |
+			aiProcess_JoinIdenticalVertices |
+			aiProcess_ConvertToLeftHanded |
+			aiProcess_GenNormals |
+			aiProcess_CalcTangentSpace;
+		const aiScene* scene = importer.ReadFile(path, flags); // aiProcess_FlipUVs aiProcess_JoinIdenticalVertices
 		if (scene == nullptr) {
 			Logger::Error(importer.GetErrorString());
 			return nullptr;

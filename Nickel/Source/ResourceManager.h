@@ -41,6 +41,22 @@ namespace Nickel::Renderer {
 		auto LoadModel(std::string path)->std::vector<MeshData>*;
 		auto GetDefaultSamplerState()->ID3D11SamplerState*;
 
+		/*
+		inline std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
+			std::vector<Texture> textures;
+			for (u32 i = 0; i < mat->GetTextureCount(type); i++) {
+				aiString str;
+				mat->GetTexture(type, i, &str);
+				Texture texture;
+				texture.id = TextureFromFile(str.C_Str(), directory);
+				texture.type = typeName;
+				texture.path = str;
+				textures.push_back(texture);
+			}
+			return textures;
+		}
+		*/
+
 	private:
 		ID3D11Device1* device;
 		ID3D11SamplerState* defaultSamplerState;

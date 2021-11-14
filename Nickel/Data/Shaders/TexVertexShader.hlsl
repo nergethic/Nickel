@@ -68,7 +68,8 @@ VertexShaderOutput TexVertexShader(VertexData IN )
 		pow( r.y, 2.0 ) +
 		pow( r.z + 1.0, 2.0 )
 	);
-	OUT.uv = r.xy / m + 0.5;
+	OUT.uv = IN.uv;
+	//OUT.uv = r.xy / m + 0.5;
 
     return OUT;
 }
