@@ -57,6 +57,12 @@
     <FxCompile Include="Data\Shaders\LineVertexShader.hlsl">
       <Filter>Resource Files\Data\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Data\Shaders\PbrVertexShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Data\Shaders\PbrPixelShader.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Object Include="Data\Suzanne.obj">
@@ -211,6 +217,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\IndexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Cubemap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

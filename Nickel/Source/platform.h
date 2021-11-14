@@ -68,6 +68,12 @@ typedef double f64;
 // #define PushStruct(s) (size_of(s))
 // entity = PushStruct(Arena, Entity);
 
+struct LoadedImageData {
+	u8* data;
+	u32 width;
+	u32 height;
+};
+
 template <typename T>
 inline auto NoConst(const T& x) -> T& {
 	return const_cast<T&>(x);

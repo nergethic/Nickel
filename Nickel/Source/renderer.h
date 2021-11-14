@@ -20,6 +20,9 @@
 #include "Shaders/BackgroundVertexShader.h"
 #include "Shaders/BackgroundPixelShader.h"
 
+#include "Shaders/PbrVertexShader.h"
+#include "Shaders/PbrPixelShader.h"
+
 //#include "Shaders/BackgroundVertexShader.h"
 
 #include "Camera.h" // TODO: move to scene manager
