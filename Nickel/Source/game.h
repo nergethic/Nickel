@@ -7,6 +7,8 @@
 #include "ResourceManager.h"
 #include <vector>
 
+#include "Background.h"
+
 static u32 GLOBAL_WINDOW_WIDTH = 1080;
 static u32 GLOBAL_WINDOW_HEIGHT = 720;
 
@@ -52,6 +54,8 @@ static struct LineVertexData {
 	XMFLOAT3 next;
 	XMFLOAT3 direction;
 };
+
+static Nickel::Background background;
 
 namespace Nickel {
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void;

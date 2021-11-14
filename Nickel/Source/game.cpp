@@ -148,6 +148,8 @@ namespace Nickel {
 
 		rs->mainCamera = std::make_unique<Camera>(45.0f, 1.5f, 0.1f, 100.0f);
 
+		background.Create(device);
+
 		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
@@ -161,7 +163,6 @@ namespace Nickel {
 		rs->lineProgram.Create(rs->device.Get(), std::span{ g_LineVertexShader }, std::span{ g_ColorPixelShader });
 		rs->simpleProgram.Create(rs->device.Get(), std::span{ g_SimpleVertexShader }, std::span{ g_SimplePixelShader });
 		rs->textureProgram.Create(rs->device.Get(), std::span{ g_TexVertexShader }, std::span{ g_TexPixelShader });
-		rs->backgroundProgram.Create(rs->device.Get(), std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
 
 		rs->albedoTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_albedo.jpg");
 		rs->normalTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_normal.jpg");
@@ -171,10 +172,6 @@ namespace Nickel {
 		rs->debugBoxTexture = resourceManager->LoadTexture(L"Data/Models/BoxTextured/CesiumLogoFlat.png");
 
 		rs->matCapTexture = resourceManager->LoadTexture(L"Data/Textures/matcap.jpg");
-
-		auto imgData = resourceManager->LoadImageData("Data/Textures/skybox/galaxy2048.jpg");
-		rs->skyboxTexture = DXLayer::CreateCubeMap(rs->device.Get(), imgData);
-		stbi_image_free(imgData.data);
 
 		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
@@ -218,26 +215,6 @@ namespace Nickel {
 			};
 			textureMat.textures = std::vector<DXLayer::TextureDX11>(1);
 			textureMat.textures[0] = rs->albedoTexture;
-		}
-		
-		{
-			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
-			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-
-			D3D11_DEPTH_STENCIL_DESC desc;
-			defaultDepthStencilState->GetDesc(&desc);
-			desc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
-			desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ZERO;
-			auto& skyboxMat = rs->backgroundMat;
-			skyboxMat = Material{
-				.program = &rs->backgroundProgram,
-				.pipelineState = PipelineState{
-					.rasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc),
-					.depthStencilState = DXLayer::CreateDepthStencilState(device, desc)
-				}
-			};
-			skyboxMat.textures = std::vector<DXLayer::TextureDX11>(1);
-			skyboxMat.textures[0] = rs->skyboxTexture;
 		}
 
 		if (!LoadContent(rs))
@@ -348,7 +325,7 @@ namespace Nickel {
 		camera.lookAtPosition.y += dtMouseY * 50.0f;
 		camera.RecalculateMatrices();
 
-		DrawModel(*rs, cmd, rs->skybox);
+		DrawModel(*rs, cmd, background.skyboxMesh);
 
 		// DrawBunny(cmd, rs, rs->pipelineStates[0]);
 
@@ -609,42 +586,6 @@ namespace Nickel {
 			//};
 			//gpuMeshData.indexBuffer.Create(device, std::span(meshData.i));
 			//gpuMeshData.vertexBuffer.Create<VertexPosColor>(device, std::span(vertexFormatData), false);
-		}
-
-		{ // Skybox
-			const float side = 0.5f;
-			auto vertexData = std::vector<VertexPos>(8);
-			vertexData[0] = VertexPos{.Position = {-side,-side,-side}};
-			vertexData[1] = VertexPos{.Position = {side,-side,-side}};
-			vertexData[2] = VertexPos{.Position = {-side,side,-side}};
-			vertexData[3] = VertexPos{.Position = {side,side,-side}};
-			vertexData[4] = VertexPos{.Position = {-side,-side,side}};
-			vertexData[5] = VertexPos{.Position = {side,-side,side}};
-			vertexData[6] = VertexPos{.Position = {-side,side,side}};
-			vertexData[7] = VertexPos{.Position = {side,side,side}};
-
-			auto indices = std::vector<u32>{
-				0,2,1, 2,3,1,
-				1,3,5, 3,7,5,
-				2,6,3, 3,6,7,
-				4,5,7, 4,7,6,
-				0,4,2, 2,4,6,
-				0,1,4, 1,5,4
-			};
-
-			const auto vertexCount = static_cast<u32>(vertexData.size());
-			const auto indexCount = static_cast<u32>(indices.size());
-
-			auto& skybox = rs->skybox;
-			skybox.transform.scale = { 1.0f, 1.0f, 1.0f };
-			skybox.transform.position = { 0.0f, 0.0f, 0.0f };
-			skybox.gpuData = GPUMeshData{
-				.vertexCount = vertexCount,
-				.indexCount = indexCount
-			};
-			skybox.gpuData.indexBuffer.Create(device, std::span{ indices });
-			skybox.gpuData.vertexBuffer.Create<VertexPos>(device, std::span(vertexData), false);
-			skybox.material = rs->backgroundMat;
 		}
 
 		{ // Test Cube

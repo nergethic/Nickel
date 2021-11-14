@@ -148,7 +148,6 @@ struct RendererState {
 	DXLayer::TextureDX11 metalRoughnessTexture;
 	DXLayer::TextureDX11 emissiveTexture;
 	DXLayer::TextureDX11 matCapTexture;
-	DXLayer::TextureDX11 skyboxTexture;
 	DXLayer::TextureDX11 debugBoxTexture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
@@ -176,18 +175,15 @@ struct RendererState {
 	DXLayer::ShaderProgram lineProgram;
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;
-	DXLayer::ShaderProgram backgroundProgram;
 
 	Material lineMat;
 	Material simpleMat;
 	Material textureMat;
-	Material backgroundMat;
 
 	DescribedMesh debugCube;
 	std::vector<DescribedMesh> bunny;
 	DescribedMesh suzanne;
 	DescribedMesh light;
-	DescribedMesh skybox;
 	DescribedMesh debugBoxTextured;
 	std::vector<DescribedMesh> lines = std::vector<DescribedMesh>(30);
 
