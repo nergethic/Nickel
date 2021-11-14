@@ -91,6 +91,19 @@ struct alignas(16) LineBufferData {
 	f64 spacing;
 };
 
+//alignas(16)
+// #pragma pack(4)
+// alignas(16)
+struct PbrPixelBufferData {
+	XMFLOAT4 lightPositions[4]; // 48 3*[16]
+	XMFLOAT4 lightColors[4]; // 48 3*[16]
+	XMFLOAT4 albedoFactor; // 4
+	f32 metallic; // 8
+	f32 roughness; // 12
+	f32 ao; // 16
+	f32 padding;
+};
+
 // Shader resources
 enum class ConstantBuffer {
 	CB_Appliation,
@@ -114,7 +127,12 @@ struct Material {
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 	std::vector<DXLayer::TextureDX11> textures;
-	ComPtr<ID3D11Buffer> constantBuffer;
+	
+	u32 vertexConstantBufferIndex;
+	ComPtr<ID3D11Buffer> vertexConstantBuffer = nullptr;
+
+	u32 pixelConstantBufferIndex;
+	ComPtr<ID3D11Buffer> pixelConstantBuffer = nullptr;
 };
 
 #include "Mesh.h"
@@ -172,10 +190,12 @@ struct RendererState {
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
+	DXLayer::ShaderProgram pbrProgram;
 	DXLayer::ShaderProgram lineProgram;
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;
 
+	Material pbrMat;
 	Material lineMat;
 	Material simpleMat;
 	Material textureMat;

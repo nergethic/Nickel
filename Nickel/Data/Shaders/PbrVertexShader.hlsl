@@ -22,16 +22,14 @@ struct VertexData
 {
 	float3 position : POSITION;
 	float3 normal: NORMAL;
-	float3 color: COLOR;
+	float3 uv: TEXCOORD0;
 };
 
 struct VertexShaderOutput
 {
 	float3 worldPos : WORLD_POSITION;
 	float3 normal : NORMAL;
-	float4 color : COLOR;
-	float3 view : VIEW;
-	float3 light : LIGHT;
+	float2 uv : TEXCOORD0;
 	float4 position : SV_POSITION;
 };
 
@@ -45,13 +43,7 @@ VertexShaderOutput PbrVertexShader(VertexData IN)
 	OUT.normal = mul(IN.normal, (float3x3)modelMatrix); // world space normal
 	OUT.normal = normalize(IN.normal);
 	//OUT.normal.z = -OUT.normal.z;
-
-	OUT.color = float4(IN.color, 1.0f);
-
-	//OUT.view = normalize(eyePos - OUT.worldPos);
-	//OUT.light = normalize(lightPos - OUT.worldPos); //float3(10.0f, 0.0f, 0.0f);
-	OUT.view = eyePos;
-	OUT.light = lightPos;
+	OUT.uv = IN.uv;
 
 	return OUT;
 }

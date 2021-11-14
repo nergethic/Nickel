@@ -21,14 +21,14 @@ namespace Nickel {
 		}
 
 		const auto& gpuData = mesh.gpuData;
-		const auto& material = mesh.material;
+		const auto& mat = mesh.material;
 
 		if (mesh.gpuData.indexCount == 0) {
 			Logger::Warn("Index count is 0!");
 			return;
 		}
 
-		material.program->Bind(queue);
+		mat.program->Bind(queue);
 		queue->IASetPrimitiveTopology(gpuData.topology);
 
 		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
@@ -37,15 +37,28 @@ namespace Nickel {
 		DXLayer::SetIndexBuffer(*queue, indexBuffer);
 		DXLayer::SetVertexBuffer(*queue, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
 
-		for (auto& tex : material.textures) {
-			queue->PSSetShaderResources(0, 1, &tex.srv);
-			queue->PSSetSamplers(0, 1, &tex.samplerState);
+		if (mat.textures.size() > 0) {
+			queue->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
+			for (int i = 0; i < mat.textures.size(); i++) {
+				const auto& tex = mat.textures[i];
+				queue->PSSetShaderResources(i, 1, &tex.srv); // TODO: this just puts every texture in slot 0 - fix it
+			}
 		}
 		
 		queue->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
-		const auto constantBuffer = material.constantBuffer.Get();
-		if (constantBuffer != nullptr)
-			queue->VSSetConstantBuffers(3, 1, &constantBuffer); // TODO: figure out a way to do this nicely
+		queue->PSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
+
+		const auto vertexConstantBuffer = mat.vertexConstantBuffer.Get();
+		if (vertexConstantBuffer != nullptr) {
+			Assert(mat.vertexConstantBufferIndex < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
+			queue->VSSetConstantBuffers(mat.vertexConstantBufferIndex, 1, &vertexConstantBuffer); // TODO: figure out a way to do this nicely
+		}
+
+		const auto pixelConstantBuffer = mat.pixelConstantBuffer.Get();
+		if (pixelConstantBuffer != nullptr) {
+			Assert(mat.pixelConstantBufferIndex < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
+			queue->PSSetConstantBuffers(mat.pixelConstantBufferIndex, 1, &pixelConstantBuffer);
+		}
 
 		SetPipelineState(*queue, &rs.g_Viewport, mesh.material.pipelineState);
 		DXLayer::DrawIndexed(cmd, mesh.gpuData.indexCount, 0, 0);
@@ -58,7 +71,8 @@ namespace Nickel {
 		// update:
 		const auto t = mesh.transform;
 		const auto& pos = t.position + offset;
-		auto worldMat = XMMatrixRotationY(t.rotation.y) * XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+		auto worldMat = XMMatrixRotationX(t.rotation.x) * XMMatrixRotationY(t.rotation.y) * XMMatrixRotationZ(t.rotation.z)
+			* XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) * XMMatrixTranslation(pos.x, pos.y, pos.z);
 
 		const auto& viewProjectionMatrix = rs.mainCamera.get()->GetViewProjectionMatrix();
 
@@ -160,6 +174,7 @@ namespace Nickel {
 		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// Create shader programs
+		rs->pbrProgram.Create(rs->device.Get(), std::span{ g_PbrVertexShader }, std::span{ g_PbrPixelShader });
 		rs->lineProgram.Create(rs->device.Get(), std::span{ g_LineVertexShader }, std::span{ g_ColorPixelShader });
 		rs->simpleProgram.Create(rs->device.Get(), std::span{ g_SimpleVertexShader }, std::span{ g_SimplePixelShader });
 		rs->textureProgram.Create(rs->device.Get(), std::span{ g_TexVertexShader }, std::span{ g_TexPixelShader });
@@ -217,6 +232,34 @@ namespace Nickel {
 			textureMat.textures[0] = rs->albedoTexture;
 		}
 
+		{ // PBR mat
+			auto& pbrMat = rs->pbrMat;
+			pbrMat = Material{
+				.program = &rs->pbrProgram,
+				.pipelineState = PipelineState{
+					.rasterizerState = defaultRasterizerState,
+					.depthStencilState = defaultDepthStencilState
+				},
+				.pixelConstantBufferIndex = 3,
+				.pixelConstantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(PbrPixelBufferData))
+			};
+			pbrMat.textures = std::vector<DXLayer::TextureDX11>(5);
+			pbrMat.textures[0] = rs->albedoTexture;
+			pbrMat.textures[1] = rs->normalTexture;
+			pbrMat.textures[2] = rs->metalRoughnessTexture;
+			pbrMat.textures[3] = rs->aoTexture;
+
+			PbrPixelBufferData bufferData{
+				.lightPositions = {XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0)},
+				.lightColors = {XMFLOAT4(0.1f, 0.1f, 0.6f, 0), XMFLOAT4(1.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 1.0f, 0.0f, 0), XMFLOAT4(0.4f, 0.4f, 0.4f, 0)},
+				.albedoFactor = XMFLOAT4(0.2f, 0.05f, 0.75f, 0.0f),
+				.metallic = 0.0f,
+				.roughness = 0.4f,
+				.ao = 0.5f
+			};
+			rs->cmdQueue.queue.Get()->UpdateSubresource1(pbrMat.pixelConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
+		}
+
 		if (!LoadContent(rs))
 			Logger::Error("Content couldn't be loaded");
 
@@ -239,9 +282,18 @@ namespace Nickel {
 
 	static f32 previousMouseX = 0.5f;
 	static f32 previousMouseY = 0.5f;
+	static XMFLOAT4 light1Pos = { 0.0, 0.0, 0.0, 0.0 };
+	static XMFLOAT4 light2Pos = { 0.0, 0.0, 0.0, 0.0 };
+	static XMFLOAT4 light3Pos = { 0.0, 0.0, 0.0, 0.0 };
+	static XMFLOAT4 light4Pos = { 0.0, 0.0, 0.0, 0.0 };
+	static f32 timer = 0.0f;
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
+
+		timer += 0.01f;
+		if (timer > 1000.0f)
+			timer -= 1000.0f;
 
 		static float angle = -90.0f;
 		float radius = 2.1f;
@@ -258,6 +310,17 @@ namespace Nickel {
 		auto& queue = *cmd.queue.Get();
 
 		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
+
+		light1Pos = XMFLOAT4(3.0f*cos(timer), 3.0f*sin(timer), 0.0, 0.0);
+		PbrPixelBufferData bufferData{
+			.lightPositions = {light1Pos, light2Pos, light3Pos, light4Pos},
+			.lightColors = {XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0)},
+			.albedoFactor = XMFLOAT4(0.2f, 0.05f, 0.75f, 0.0f),
+			.metallic = 0.6f,
+			.roughness = 0.4f,
+			.ao = 1.0f
+		};
+		rs->cmdQueue.queue.Get()->UpdateSubresource1(rs->pbrMat.pixelConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
 
 		// RENDER ---------------------------
 		Assert(rs->defaultRenderTargetView != nullptr);
@@ -311,7 +374,9 @@ namespace Nickel {
 		for (int y = -2; y <= 2; y++) {
 			for (int x = -2; x <= 2; x++) {
 				for (int i = 0; i < rs->bunny.size(); i++) {
-					DrawModel(*rs, cmd, rs->bunny[i], {x * 3.0f, 0.0f, y * 3.0f});
+					const auto t = rs->bunny[i].transform;
+					rs->bunny[i].transform.rotation.y += 0.001f;
+					DrawModel(*rs, cmd, rs->bunny[i], {x * 3.0f, y * 3.0f, -4.0f});
 				}
 			}
 		}
@@ -499,13 +564,14 @@ namespace Nickel {
 					.rasterizerState = defaultRasterizerState,
 					.depthStencilState = defaultDepthStencilState
 				},
-				.constantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData))
+				.vertexConstantBufferIndex = 3,
+				.vertexConstantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData))
 			};
 			LineBufferData bufferData{
 				.thickness = 0.04f,
 				.miter = 0
 			};
-			rs->cmdQueue.queue.Get()->UpdateSubresource1(lineMat.constantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
+			rs->cmdQueue.queue.Get()->UpdateSubresource1(lineMat.vertexConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
 
 
 			const auto pointOffset = Vec3{ 0.5f, 0.0f, 0.5f };
@@ -554,7 +620,8 @@ namespace Nickel {
 				bunny[i] = DescribedMesh{
 					.transform = {
 						.position = { 1.0f, 1.0f, 1.0f },
-						.scale = {1.1f, 1.1f, 1.1f}
+						.scale = {1.1f, 1.1f, 1.1f},
+						.rotation = {XMConvertToRadians(-60.0f), 0.0f, 0.0f}
 					},
 					.mesh = submesh, // TODO: is this useless?
 					.gpuData = GPUMeshData{
@@ -562,7 +629,7 @@ namespace Nickel {
 						.indexCount = indexCount,
 						.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 					},
-					.material = rs->textureMat
+					.material = rs->pbrMat
 				};
 
 				auto x = submesh.i;
