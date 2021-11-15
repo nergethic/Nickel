@@ -5,27 +5,8 @@ Texture2D aoTex : register(t3);
 
 SamplerState sampleType : register(s0);
 
-static const float PI = 3.14159265359;
-
-cbuffer PerApplication : register(b0)
-{
-    matrix projectionMatrix;
-    float3 clientData;
-}
-
-cbuffer PerFrame : register(b1)
-{
-    matrix viewMatrix;
-    float3 eyePos;
-    float3 lightPos;
-}
-
-cbuffer PerObject : register(b2)
-{
-    matrix modelMatrix;
-    matrix viewProjectionMatrix;
-    matrix modelViewProjectionMatrix;
-}
+#include "PbrHelper.hlsl"
+#include "CommonConstantBuffers.hlsl"
 
 cbuffer ShaderData : register(b3)
 {
@@ -133,11 +114,8 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
     float3 ambient = float3(0.13, 0.13, 0.13) * albedoTexel.rgb * ao;
     float3 color = ambient + Lo;
 
-    // HDR tonemapping
-    color = color / (color + float3(1.0, 1.0, 1.0));
-
-    const float colorPow = 1.0 / 2.2;
-    color = pow(color, float3(colorPow, colorPow, colorPow));
+    color = ToneMapHDR(color);
+    color = CorrectGamma(color);
 
     return float4(color.rgb, 1.0);
 }

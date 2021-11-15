@@ -1,6 +1,8 @@
 TextureCube tex : register(t0);
 SamplerState ss : register(s0);
 
+#include "PbrHelper.hlsl"
+
 /*
 float3 cubemapSeamlessFixDirection(float3 dir, const float scale) {
     // http://seblagarde.wordpress.com/2012/06/10/amd-cubemapgen-for-physically-based-rendering/
@@ -33,12 +35,10 @@ float4 textureCubeFixed(const samplerCube tex, const float3 direction) {
 */
 
 float4 BackgroundPixelShader(float3 worldPos : WORLD_POSITION) : SV_TARGET{
-    //float3 dir = normalize(vViewNormal);
-    //direction = uEnvironmentTransform * direction;
-    //vec4 samplerColor = uEnvBrightness * textureCubeFixed(envMap, direction);
+    float3 color = tex.Sample(ss, worldPos);
 
+    color = ToneMapHDR(color);
+    color = CorrectGamma(color);
 
-    //return samplerColor;
-    //return float4(0.0, 1.0, 0.0, 0.0);
-    return tex.Sample(ss, worldPos);
+    return float4(color, 1.0);
 }

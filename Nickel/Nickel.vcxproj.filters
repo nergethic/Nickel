@@ -71,6 +71,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Data\Shaders\PbrHelper.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </None>
+    <None Include="Data\Shaders\CommonConstantBuffers.hlsl">
+      <Filter>Resource Files\Data\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\game.cpp">
