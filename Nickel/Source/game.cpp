@@ -12,8 +12,8 @@ namespace Nickel {
 		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
 	}
 
-	auto Submit(RendererState& rs, const DXLayer::CmdQueue& cmd, const DescribedMesh& mesh) -> void {
-		auto queue = cmd.queue.Get();
+	auto Submit(RendererState& rs, const DXLayer::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
+		auto cmd = cmdQueue.queue.Get();
 		const auto program = mesh.material.program;
 		if (program == nullptr) {
 			Logger::Error("Mesh material program is null");
@@ -21,47 +21,47 @@ namespace Nickel {
 		}
 
 		const auto& gpuData = mesh.gpuData;
-		const auto& mat = mesh.material;
+		auto& mat = mesh.material;
 
 		if (mesh.gpuData.indexCount == 0) {
 			Logger::Warn("Index count is 0!");
 			return;
 		}
 
-		mat.program->Bind(queue);
-		queue->IASetPrimitiveTopology(gpuData.topology);
+		mat.program->Bind(cmd);
+		cmd->IASetPrimitiveTopology(gpuData.topology);
 
 		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
 		const auto vertexBuffer = gpuData.vertexBuffer.buffer.get();
 
-		DXLayer::SetIndexBuffer(*queue, indexBuffer);
-		DXLayer::SetVertexBuffer(*queue, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
+		DXLayer::SetIndexBuffer(*cmd, indexBuffer);
+		DXLayer::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
 
 		if (mat.textures.size() > 0) {
-			queue->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
+			cmd->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
 			for (int i = 0; i < mat.textures.size(); i++) {
 				const auto& tex = mat.textures[i];
-				queue->PSSetShaderResources(i, 1, &tex.srv); // TODO: this just puts every texture in slot 0 - fix it
+				cmd->PSSetShaderResources(i, 1, &tex.srv); // TODO: this just puts every texture in slot 0 - fix it
 			}
 		}
 		
-		queue->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
-		queue->PSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
+		cmd->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
+		cmd->PSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
 
-		const auto vertexConstantBuffer = mat.vertexConstantBuffer.Get();
+		const auto vertexConstantBuffer = mat.vertexConstantBuffer.buffer.Get();
 		if (vertexConstantBuffer != nullptr) {
-			Assert(mat.vertexConstantBufferIndex < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
-			queue->VSSetConstantBuffers(mat.vertexConstantBufferIndex, 1, &vertexConstantBuffer); // TODO: figure out a way to do this nicely
+			Assert(mat.vertexConstantBuffer.index < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
+			cmd->VSSetConstantBuffers(mat.vertexConstantBuffer.index, 1, &vertexConstantBuffer);
 		}
 
-		const auto pixelConstantBuffer = mat.pixelConstantBuffer.Get();
+		const auto pixelConstantBuffer = mat.pixelConstantBuffer.buffer.Get();
 		if (pixelConstantBuffer != nullptr) {
-			Assert(mat.pixelConstantBufferIndex < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
-			queue->PSSetConstantBuffers(mat.pixelConstantBufferIndex, 1, &pixelConstantBuffer);
+			Assert(mat.pixelConstantBuffer.index < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
+			cmd->PSSetConstantBuffers(mat.pixelConstantBuffer.index, 1, &pixelConstantBuffer);
 		}
 
-		SetPipelineState(*queue, &rs.g_Viewport, mesh.material.pipelineState);
-		DXLayer::DrawIndexed(cmd, mesh.gpuData.indexCount, 0, 0);
+		SetPipelineState(*cmd, &rs.g_Viewport, mesh.material.pipelineState);
+		DXLayer::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
 	}
 
 	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
@@ -71,8 +71,9 @@ namespace Nickel {
 		// update:
 		const auto t = mesh.transform;
 		const auto& pos = t.position + offset;
-		auto worldMat = XMMatrixRotationX(t.rotation.x) * XMMatrixRotationY(t.rotation.y) * XMMatrixRotationZ(t.rotation.z)
-			* XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) * XMMatrixTranslation(pos.x, pos.y, pos.z);
+		auto worldMat = XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z)
+			* XMMatrixRotationRollPitchYawFromVector(FXMVECTOR{ t.rotation.x, t.rotation.y, t.rotation.z })
+			* XMMatrixTranslation(pos.x, pos.y, pos.z);
 
 		const auto& viewProjectionMatrix = rs.mainCamera.get()->GetViewProjectionMatrix();
 
@@ -81,7 +82,7 @@ namespace Nickel {
 		data.viewProjectionMatrix = XMMatrixTranspose(viewProjectionMatrix);
 		data.modelViewProjectionMatrix = XMMatrixTranspose(worldMat * viewProjectionMatrix);
 
-		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object], 0, nullptr, &data, 0, 0, 0);
+		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object], 0, nullptr, &data, 0, 0, 0);
 
 		Submit(rs, cmd, mesh);		
 	}
@@ -169,9 +170,9 @@ namespace Nickel {
 		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
 		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(PerApplicationData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Object] = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(PerApplicationData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object] = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// Create shader programs
 		rs->pbrProgram.Create(rs->device.Get(), std::span{ g_PbrVertexShader }, std::span{ g_PbrPixelShader });
@@ -240,8 +241,10 @@ namespace Nickel {
 					.rasterizerState = defaultRasterizerState,
 					.depthStencilState = defaultDepthStencilState
 				},
-				.pixelConstantBufferIndex = 3,
-				.pixelConstantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(PbrPixelBufferData))
+				.pixelConstantBuffer = {
+					.buffer = DXLayer::CreateConstantBuffer(device, sizeof(PbrPixelBufferData)),
+					.index = 3
+				}
 			};
 			pbrMat.textures = std::vector<DXLayer::TextureDX11>(5);
 			pbrMat.textures[0] = rs->albedoTexture;
@@ -257,7 +260,7 @@ namespace Nickel {
 				.roughness = 0.4f,
 				.ao = 0.5f
 			};
-			rs->cmdQueue.queue.Get()->UpdateSubresource1(pbrMat.pixelConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
+			pbrMat.pixelConstantBuffer.Update(rs->cmdQueue.queue.Get(), bufferData);
 		}
 
 		if (!LoadContent(rs))
@@ -277,7 +280,7 @@ namespace Nickel {
 			.clientData = XMFLOAT3(clientWidth,clientHeight,aspectRatio)
 		};
 
-		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Appliation], 0, nullptr, &data, 0, 0, 0);
+		rs->cmdQueue.queue->UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation], 0, nullptr, &data, 0, 0, 0);
 	}
 
 	static f32 previousMouseX = 0.5f;
@@ -309,18 +312,22 @@ namespace Nickel {
 		auto& cmd = rs->cmdQueue;
 		auto& queue = *cmd.queue.Get();
 
-		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBuffer::CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
+		queue.UpdateSubresource1(rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame], 0, nullptr, &frameData, 0, 0, 0);
 
-		light1Pos = XMFLOAT4(3.0f*cos(timer), 3.0f*sin(timer), 0.0, 0.0);
+		//light1Pos = XMFLOAT4(3.0f*cos(timer), 3.0f*sin(timer), 0.0, 0.0);
+		Vec3 newLightPos = { camera.position.x, camera.position.y-2.0f, static_cast<f32>(-4.0f + sin(timer) * 5.0f) };
+		light4Pos = XMFLOAT4(newLightPos.x, newLightPos.y, newLightPos.z, 0.0f);
+		rs->debugCube.transform.position = newLightPos;
+
 		PbrPixelBufferData bufferData{
 			.lightPositions = {light1Pos, light2Pos, light3Pos, light4Pos},
-			.lightColors = {XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0)},
+			.lightColors = {XMFLOAT4(200.0f, 200.0f, 200.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0)},
 			.albedoFactor = XMFLOAT4(0.2f, 0.05f, 0.75f, 0.0f),
 			.metallic = 0.6f,
 			.roughness = 0.4f,
 			.ao = 1.0f
 		};
-		rs->cmdQueue.queue.Get()->UpdateSubresource1(rs->pbrMat.pixelConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
+		rs->pbrMat.pixelConstantBuffer.Update(rs->cmdQueue.queue.Get(), bufferData);
 
 		// RENDER ---------------------------
 		Assert(rs->defaultRenderTargetView != nullptr);
@@ -375,7 +382,7 @@ namespace Nickel {
 			for (int x = -2; x <= 2; x++) {
 				for (int i = 0; i < rs->bunny.size(); i++) {
 					const auto t = rs->bunny[i].transform;
-					rs->bunny[i].transform.rotation.y += 0.001f;
+					rs->bunny[i].transform.rotation.y += 0.0004f;
 					DrawModel(*rs, cmd, rs->bunny[i], {x * 3.0f, y * 3.0f, -4.0f});
 				}
 			}
@@ -564,15 +571,16 @@ namespace Nickel {
 					.rasterizerState = defaultRasterizerState,
 					.depthStencilState = defaultDepthStencilState
 				},
-				.vertexConstantBufferIndex = 3,
-				.vertexConstantBuffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData))
+				.vertexConstantBuffer = {
+					.buffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData)),
+					.index = 3
+				}
 			};
 			LineBufferData bufferData{
 				.thickness = 0.04f,
 				.miter = 0
 			};
-			rs->cmdQueue.queue.Get()->UpdateSubresource1(lineMat.vertexConstantBuffer.Get(), 0, nullptr, &bufferData, 0, 0, 0);
-
+			lineMat.vertexConstantBuffer.Update(rs->cmdQueue.queue.Get(), bufferData);
 
 			const auto pointOffset = Vec3{ 0.5f, 0.0f, 0.5f };
 			// auto line1 = GenerateLineInDir(Vec3{ 0.0, 0.0, 0.0 }, pointOffset, Vec3{ 0.0, 0.0, 1.0 }, 10);

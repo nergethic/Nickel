@@ -10,7 +10,7 @@ struct VertexData
 struct VertexShaderOutput
 {
 	float3 worldPos : WORLD_POSITION;
-	float3 normal : NORMAL;
+	float3 normalWS : NORMAL_WS;
 	float2 uv : TEXCOORD0;
 	float4 position : SV_POSITION;
 };
@@ -22,9 +22,8 @@ VertexShaderOutput PbrVertexShader(VertexData IN)
 	OUT.position = mul(float4(IN.position, 1.0f), modelViewProjectionMatrix);
 	OUT.worldPos = mul(float4(IN.position, 1.0f), modelMatrix).xyz;
 
-	OUT.normal = mul(IN.normal, (float3x3)modelMatrix); // world space normal
-	OUT.normal = normalize(IN.normal);
-	//OUT.normal.z = -OUT.normal.z;
+	OUT.normalWS = normalize(mul(IN.normal, (float3x3)modelMatrix)); // world space normal
+	
 	OUT.uv = IN.uv;
 
 	return OUT;

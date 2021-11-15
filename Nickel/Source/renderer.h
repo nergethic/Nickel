@@ -23,6 +23,8 @@
 #include "Shaders/PbrVertexShader.h"
 #include "Shaders/PbrPixelShader.h"
 
+#include "Shaders/ConvoluteBackgroundPixelShader.h"
+
 //#include "Shaders/BackgroundVertexShader.h"
 
 #include "Camera.h" // TODO: move to scene manager
@@ -104,8 +106,7 @@ struct PbrPixelBufferData {
 	f32 padding;
 };
 
-// Shader resources
-enum class ConstantBuffer {
+enum class ConstantBufferType {
 	CB_Appliation,
 	CB_Frame,
 	CB_Object,
@@ -122,17 +123,24 @@ struct TextureData {
 	std::string name;
 };
 
+struct ConstantBuffer {
+	ComPtr<ID3D11Buffer> buffer = nullptr;
+	u32 index = 0;
+
+	template <typename T>
+	auto Update(ID3D11DeviceContext1* cmd, const T& data) -> void {
+		cmd->UpdateSubresource1(buffer.Get(), 0, nullptr, std::addressof(data), 0, 0, 0);
+	}
+};
+
 struct Material {
 	Nickel::Renderer::DXLayer::ShaderProgram* program;
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
 	std::vector<DXLayer::TextureDX11> textures;
 	
-	u32 vertexConstantBufferIndex;
-	ComPtr<ID3D11Buffer> vertexConstantBuffer = nullptr;
-
-	u32 pixelConstantBufferIndex;
-	ComPtr<ID3D11Buffer> pixelConstantBuffer = nullptr;
+	ConstantBuffer vertexConstantBuffer;
+	ConstantBuffer pixelConstantBuffer;
 };
 
 #include "Mesh.h"
@@ -168,7 +176,7 @@ struct RendererState {
 	DXLayer::TextureDX11 matCapTexture;
 	DXLayer::TextureDX11 debugBoxTexture;
 
-	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBuffer::NumConstantBuffers];
+	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBufferType::NumConstantBuffers];
 
 	// Demo parameters
 	XMMATRIX g_WorldMatrix;
@@ -194,11 +202,13 @@ struct RendererState {
 	DXLayer::ShaderProgram lineProgram;
 	DXLayer::ShaderProgram simpleProgram;
 	DXLayer::ShaderProgram textureProgram;
+	DXLayer::ShaderProgram convoluteIrradianceBackgroundProgram;
 
 	Material pbrMat;
 	Material lineMat;
 	Material simpleMat;
 	Material textureMat;
+	Material convoluteIrradianceBackgroundMat;
 
 	DescribedMesh debugCube;
 	std::vector<DescribedMesh> bunny;

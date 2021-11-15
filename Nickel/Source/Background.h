@@ -14,6 +14,9 @@ namespace Nickel {
 		DXLayer::ShaderProgram shaderProgram;
 		Material material;
 
+		DXLayer::ShaderProgram irradianceshaderProgram;
+		Material irradianceMaterial;
+
 	public:
 		DescribedMesh skyboxMesh;
 
@@ -25,6 +28,29 @@ namespace Nickel {
 			skyboxMesh = CreateSkyboxMesh(device);
 			skyboxMesh.material = material;
 		};
+
+		inline auto Bind(ID3D11DeviceContext1* cmd) -> void {
+			irradianceMaterial.program->Bind(cmd);
+			//irradianceMaterial.pixelConstantBuffer.Set
+			/*
+			irradianceShader.use();
+			irradianceShader.setInt("environmentMap", 0);
+			irradianceShader.setMat4("projection", captureProjection);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+			glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
+			glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+			for (unsigned int i = 0; i < 6; ++i) {
+				irradianceShader.setMat4("view", captureViews[i]);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				renderCube();
+			}
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			*/
+		}
 
 	private:
 		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DXLayer::TextureDX11 {

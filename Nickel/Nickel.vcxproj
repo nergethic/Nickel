@@ -204,6 +204,14 @@
     <None Include="Data\Shaders\CommonConstantBuffers.hlsl">
       <FileType>Document</FileType>
     </None>
+    <FxCompile Include="Data\Shaders\ConvoluteBackgroundPixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ConvoluteBackgroundPixelShader</EntryPointName>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_ConvoluteBackgroundPixelShader</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)Source\Shaders\ConvoluteBackgroundPixelShader.h</HeaderFileOutput>
+    </FxCompile>
     <FxCompile Include="Data\Shaders\LineVertexShader.hlsl">
       <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_LineVertexShader</VariableName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

@@ -21,7 +21,7 @@ cbuffer ShaderData : register(b3)
 struct PixelShaderInput
 {
     float3 worldPos : WORLD_POSITION;
-    float3 normal : NORMAL;
+    float3 normalWS : NORMAL_WS;
     float2 uv : TEXCOORD0;
 };
 
@@ -55,7 +55,7 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
     const float roughness = metalRoughnessTexel.g;
     const float ao = aoTex.Sample(sampleType, IN.uv).r;
 
-    float3 N = GetNormalFromMap(normalize(IN.normal), IN.worldPos, IN.uv);
+    float3 N = GetNormalFromMap(normalize(IN.normalWS), IN.worldPos, IN.uv);
     float3 V = normalize(eyePos - IN.worldPos);
 
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedoTexel.rgb, metallic);
