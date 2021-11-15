@@ -251,6 +251,7 @@ namespace Nickel {
 			pbrMat.textures[1] = rs->normalTexture;
 			pbrMat.textures[2] = rs->metalRoughnessTexture;
 			pbrMat.textures[3] = rs->aoTexture;
+			pbrMat.textures[4] = rs->emissiveTexture;
 
 			PbrPixelBufferData bufferData{
 				.lightPositions = {XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0)},

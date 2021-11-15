@@ -2,6 +2,7 @@ Texture2D albedoTex : register(t0);
 Texture2D normalTex : register(t1);
 Texture2D metalRoughnessTex : register(t2);
 Texture2D aoTex : register(t3);
+Texture2D emissionTex : register(t4);
 
 SamplerState sampleType : register(s0);
 
@@ -49,11 +50,12 @@ float3 GetNormalFromMap(float3 normal, float3 worldPos, float2 uv) {
 
 float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
 {
-    const float3 albedoTexel = pow(albedoTex.Sample(sampleType, IN.uv), 2.2);
+    const float3 albedoTexel = pow(albedoTex.Sample(sampleType, IN.uv).rgb, 2.2);
     const float2 metalRoughnessTexel = metalRoughnessTex.Sample(sampleType, IN.uv).rg;
     const float metallic = metalRoughnessTexel.r;
     const float roughness = metalRoughnessTexel.g;
     const float ao = aoTex.Sample(sampleType, IN.uv).r;
+    const float3 emissionTexel = pow(emissionTex.Sample(sampleType, IN.uv).rgb, 2.2);
 
     float3 N = GetNormalFromMap(normalize(IN.normalWS), IN.worldPos, IN.uv);
     float3 V = normalize(eyePos - IN.worldPos);
@@ -98,7 +100,7 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
     }
 
     float3 ambient = float3(0.13, 0.13, 0.13) * albedoTexel.rgb * ao;
-    float3 color = ambient + Lo;
+    float3 color = ambient + Lo + emissionTexel;
 
     color = ToneMapHDR(color);
     color = CorrectGamma(color);
