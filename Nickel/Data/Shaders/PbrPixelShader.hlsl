@@ -25,40 +25,26 @@ struct PixelShaderInput
     float2 uv : TEXCOORD0;
 };
 
-float DistributionGGX(float3 N, float3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
+float3 GetNormalFromMap(float3 normal, float3 worldPos, float2 uv) {
+    float3 tangentNormal = normalTex.Sample(sampleType, uv).rgb;
+    tangentNormal = normalize(tangentNormal * 2.0 - 1.0);
 
-    float num = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
+    float3 Q1 = ddx(worldPos);
+    float3 Q2 = ddy(worldPos);
+    float2 st1 = ddx(uv);
+    float2 st2 = ddy(uv);
 
-    return num / denom;
-}
+    //float3 Normal = normalize(normal);
+    //float3 Tangent = normalize(Q1 * st2.y - Q2 * st1.y);
+    //float3 Binormal = -normalize(cross(Normal, Tangent));
 
-float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
+    float3 Normal = normalize(normal);
+    float3 Tangent = -normalize(Q1 * st2.y - Q2 * st1.y);
+    float3 Binormal = normalize(cross(Normal, Tangent));
 
-    float num = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
+    float3x3 TBN = float3x3(Tangent, Binormal, Normal);
 
-    return num / denom;
-}
-
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
-}
-
-float3 FresnelSchlick(float cosTheta, float3 F0) {
-    return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+    return normalize(mul(tangentNormal, TBN));
 }
 
 float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
@@ -69,7 +55,7 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
     const float roughness = metalRoughnessTexel.g;
     const float ao = aoTex.Sample(sampleType, IN.uv).r;
 
-    float3 N = normalize(IN.normal);
+    float3 N = GetNormalFromMap(normalize(IN.normal), IN.worldPos, IN.uv);
     float3 V = normalize(eyePos - IN.worldPos);
 
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedoTexel.rgb, metallic);
