@@ -198,6 +198,7 @@ namespace Nickel {
 			L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
 		};
 		rs->radianceTexture = DXLayer::CreateCubeMap(device, radianceFacePaths);
+		rs->brdfLUT = resourceManager->LoadTexture(L"Data/Textures/brdfLUT.jpg");
 
 		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
 		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
@@ -256,7 +257,7 @@ namespace Nickel {
 					.index = 3
 				}
 			};
-			pbrMat.textures = std::vector<DXLayer::TextureDX11>(7);
+			pbrMat.textures = std::vector<DXLayer::TextureDX11>(8);
 			pbrMat.textures[0] = rs->albedoTexture;
 			pbrMat.textures[1] = rs->normalTexture;
 			pbrMat.textures[2] = rs->metalRoughnessTexture;
@@ -264,6 +265,7 @@ namespace Nickel {
 			pbrMat.textures[4] = rs->emissiveTexture;
 			pbrMat.textures[5] = background.texture;
 			pbrMat.textures[6] = rs->radianceTexture;
+			pbrMat.textures[7] = rs->brdfLUT;
 
 			PbrPixelBufferData bufferData{
 				.lightPositions = {XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0)},

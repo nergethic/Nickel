@@ -45,3 +45,8 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 float3 FresnelSchlick(float cosTheta, float3 F0) {
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
+
+float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
+    const float oneMinusRoughness = 1.0 - roughness;
+    return F0 + (max(float3(oneMinusRoughness, oneMinusRoughness, oneMinusRoughness), F0) - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+}

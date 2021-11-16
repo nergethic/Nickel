@@ -7,6 +7,8 @@ Texture2D emissionTex : register(t4);
 TextureCube irradianceMap : register(t5);
 TextureCube radianceMap : register(t6);
 
+Texture2D brdfLUT : register(t7);
+
 SamplerState sampleType : register(s0);
 
 #include "PbrHelper.hlsl"
@@ -62,6 +64,7 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
 
     float3 N = GetNormalFromMap(normalize(IN.normalWS), IN.worldPos, IN.uv);
     float3 V = normalize(eyePos - IN.worldPos);
+    float3 R = reflect(-V, N);
 
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedoTexel.rgb, metallic);
 
@@ -102,12 +105,20 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
         Lo += (kD * albedoTexel.rgb / PI + specular) * radiance * NdotL;
     }
 
+    // ambient lighting (we now use IBL as the ambient term)
+    float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+
+    float3 prefilteredColor = radianceMap.Sample(sampleType, R).rgb; // roughness * MAX_REFLECTION_LOD
+    const float2 brdfLutUv = float2(max(dot(N, V), 0.0), roughness);
+    float2 brdf = brdfLUT.Sample(sampleType, brdfLutUv).rg;
+    float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
     // float3 ambient =  // texture(irradianceMap, N).rgb;
     float3 kS = FresnelSchlick(max(dot(N, V), 0.0), F0);
     float3 kD = 1.0 - kS;
     float3 irradiance = irradianceMap.Sample(sampleType, N).rgb;
     float3 diffuse = irradiance * albedoTexel;
-    float3 ambient = (kD * diffuse) * ao;
+    float3 ambient = (kD * diffuse + specular) * ao;
     //float3 ambient = float3(0.13, 0.13, 0.13) * albedoTexel.rgb * ao;
     float3 color = ambient + Lo + emissionTexel;
 
