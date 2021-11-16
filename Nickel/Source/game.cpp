@@ -1,5 +1,5 @@
 #include "game.h"
-#include "renderer.h"
+#include "Renderer/renderer.h"
 
 namespace Nickel {
 	using namespace Renderer;
@@ -185,6 +185,13 @@ namespace Nickel {
 		rs->aoTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_AO.jpg");
 		rs->metalRoughnessTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_metalRoughness.jpg");
 		rs->emissiveTexture = resourceManager->LoadTexture(L"Data/Models/DamagedHelmet/Default_emissive.jpg");
+
+		//rs->albedoTexture = resourceManager->LoadTexture(L"Data/Models/HornetHelmet/textures/03___Default_baseColor.jpg");
+		//rs->normalTexture = resourceManager->LoadTexture(L"Data/Models/HornetHelmet/textures/03___Default_normal.jpg");
+		//rs->aoTexture = resourceManager->LoadTexture(L"Data/Models/HornetHelmet/Default_AO.jpg");
+		//rs->metalRoughnessTexture = resourceManager->LoadTexture(L"Data/Models/HornetHelmet/textures/03___Default_metallicRoughness.png");
+		//rs->emissiveTexture = resourceManager->LoadTexture(L"Data/Models/HornetHelmet/textures/03___Default_emissive.jpg");
+
 		rs->debugBoxTexture = resourceManager->LoadTexture(L"Data/Models/BoxTextured/CesiumLogoFlat.png");
 
 		rs->matCapTexture = resourceManager->LoadTexture(L"Data/Textures/matcap.jpg");
@@ -620,6 +627,7 @@ namespace Nickel {
 			// LoadBunnyMesh(meshData);
 			//const auto& meshData = *resourceManager->LoadModel("Data/Models/backpack/backpack.obj");
 			const auto& meshData = *resourceManager->LoadModel("Data/Models/DamagedHelmet/DamagedHelmet.gltf");
+			//const auto& meshData = *resourceManager->LoadModel("Data/Models/HornetHelmet/scene.gltf");
 			auto& bunny = rs->bunny;
 			bunny = std::vector<DescribedMesh>(meshData.size());
 			for (int i = 0; i < meshData.size(); i++) {

@@ -1,7 +1,7 @@
 #include "Windows.h"
 #include "platform.h"
 #include "game.h"
-#include "renderer.h"
+//#include "Renderer/renderer.h"
 
 static bool running = true;
 static WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };

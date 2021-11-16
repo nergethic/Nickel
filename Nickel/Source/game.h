@@ -1,7 +1,7 @@
 #pragma once
 
 #include "platform.h"
-#include "renderer.h"
+#include "Renderer/renderer.h"
 #include "Math.h"
 #include "ObjLoader.h"
 #include "ResourceManager.h"

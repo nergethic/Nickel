@@ -2,7 +2,7 @@
 
 #include "platform.h"
 #include "Math.h"
-#include "DirectXIncludes.h"
+#include "Renderer/DirectXIncludes.h"
 
 namespace Nickel {
 	class Camera {

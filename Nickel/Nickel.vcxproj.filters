@@ -31,6 +31,24 @@
     <Filter Include="Source Files\imgui">
       <UniqueIdentifier>{9d0b1cd7-a048-467a-9132-f57130b3a097}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Renderer">
+      <UniqueIdentifier>{672899f9-3976-47be-b2cd-853337b43bd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Renderer">
+      <UniqueIdentifier>{7ede8265-683d-4330-a3a7-0023c5640fe7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Renderer\Direct3D11">
+      <UniqueIdentifier>{441150ff-5f35-413a-a9d0-22829c290f48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Renderer\Direct3D12">
+      <UniqueIdentifier>{314a7fd8-6afb-49bb-95c3-f436e3e48d5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Renderer\Direct3D11">
+      <UniqueIdentifier>{069a0581-05f0-49ec-938b-def8d0b4c984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Renderer\Direct3D12">
+      <UniqueIdentifier>{6cd90e17-4282-4825-af2c-d617dd19c165}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\Shaders\SimplePixelShader.hlsl">
@@ -88,16 +106,10 @@
     <ClCompile Include="Source\ObjLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\win32_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\ShaderProgram.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\DX11Layer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Mesh.cpp">
@@ -139,6 +151,18 @@
     <ClCompile Include="Source\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\DX11Layer.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\renderer.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D11\D3D11Interface.cpp">
+      <Filter>Source Files\Renderer\Direct3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D11\D3D11Core.cpp">
+      <Filter>Source Files\Renderer\Direct3D11</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
@@ -159,12 +183,6 @@
     <ClInclude Include="Source\Shaders\VertexShader.h">
       <Filter>Source Files\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="Source\renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\DX11Layer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -175,9 +193,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\DirectXIncludes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\ResourceManager.h">
@@ -230,6 +245,24 @@
     </ClInclude>
     <ClInclude Include="Source\Background.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\DirectXIncludes.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\DX11Layer.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\RendererPlatformInterface.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\renderer.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\D3D11Interface.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\D3D11Core.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
