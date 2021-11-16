@@ -175,6 +175,7 @@ struct RendererState {
 	DXLayer::TextureDX11 emissiveTexture;
 	DXLayer::TextureDX11 matCapTexture;
 	DXLayer::TextureDX11 debugBoxTexture;
+	DXLayer::TextureDX11 radianceTexture;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBufferType::NumConstantBuffers];
 

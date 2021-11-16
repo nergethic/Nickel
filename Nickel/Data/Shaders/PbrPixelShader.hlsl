@@ -5,6 +5,7 @@ Texture2D aoTex : register(t3);
 Texture2D emissionTex : register(t4);
 
 TextureCube irradianceMap : register(t5);
+TextureCube radianceMap : register(t6);
 
 SamplerState sampleType : register(s0);
 

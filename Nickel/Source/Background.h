@@ -69,12 +69,12 @@ namespace Nickel {
 			*/
 
 			const wchar_t* files[6] = {
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posx.hdr",
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negx.hdr",
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posy.hdr",
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negy.hdr",
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posz.hdr",
-				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_posx.hdr",
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_negx.hdr",
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_posy.hdr",
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_negy.hdr",
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_posz.hdr",
+				L"Data/Textures/skybox/irradianceCubemap/output_iem_negz.hdr"
 			};
 			
 			auto result = DXLayer::CreateCubeMap(device, files);
