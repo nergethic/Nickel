@@ -71,5 +71,5 @@ namespace Nickel::Renderer::DXLayer {
 	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
 
 	auto GetDefaultSamplerState(ID3D11Device1* device) -> ID3D11SamplerState*;
-	auto CreateCubeMap(ID3D11Device1* device, const LoadedImageData& imgData) -> DXLayer::TextureDX11;
+	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DXLayer::TextureDX11;
 }

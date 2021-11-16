@@ -18,6 +18,20 @@ namespace Nickel::Renderer {
 	auto ResourceManager::LoadTexture(std::wstring path) -> DXLayer::TextureDX11 {
 		DXLayer::TextureDX11 newTex{ .samplerState = DXLayer::GetDefaultSamplerState(device)};
 		ASSERT_ERROR_RESULT(DirectX::CreateWICTextureFromFile(device, path.c_str(), &newTex.resource, &newTex.srv));
+		
+		/*
+		_In_ ID3D11Device* d3dDevice,
+        _In_opt_ ID3D11DeviceContext* d3dContext,
+        _In_z_ const wchar_t* szFileName,
+        _In_ size_t maxsize,
+        _In_ D3D11_USAGE usage,
+        _In_ unsigned int bindFlags,
+        _In_ unsigned int cpuAccessFlags,
+        _In_ unsigned int miscFlags,
+        _In_ unsigned int loadFlags,
+        _Outptr_opt_ ID3D11Resource** texture,
+        _Outptr_opt_ ID3D11ShaderResourceView** textureView);
+		*/
 		Assert(newTex.srv != nullptr);
 
 		return newTex;
@@ -30,6 +44,19 @@ namespace Nickel::Renderer {
 
 		return {
 			img, static_cast<u32>(width), static_cast<u32>(height)
+		};
+	}
+
+	auto ResourceManager::LoadHDRImageData(std::string path) -> LoadedImageData {
+		i32 width, height, channels;
+		//stbi_set_flip_vertically_on_load(true);
+		bool asd = stbi_is_hdr(path.c_str());
+		stbi_hdr_to_ldr_gamma(2.2f);
+		f32* img = stbi_loadf(path.c_str(), &width, &height, &channels, 0);
+		Assert(img != nullptr);
+
+		return {
+			reinterpret_cast<u8*>(img), static_cast<u32>(width), static_cast<u32>(height)
 		};
 	}
 

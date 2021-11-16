@@ -30,6 +30,7 @@ namespace Nickel::Renderer {
 		// NOTE: supports BMP, JPEG, PNG, TIFF, GIF
 		auto LoadTexture(std::wstring path)->DXLayer::TextureDX11;
 		auto LoadImageData(std::string path)->LoadedImageData;
+		auto LoadHDRImageData(std::string path)->LoadedImageData;
 		auto ProcessMesh(const aiMesh& mesh, const aiScene& scene)->MeshData;
 		auto ProcessNode(aiNode* node, const aiScene& scene, std::vector<MeshData>& submeshes) -> void;
 		auto LoadModel(std::string path)->std::vector<MeshData>*;

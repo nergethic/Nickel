@@ -38,7 +38,7 @@ float4 BackgroundPixelShader(float3 worldPos : WORLD_POSITION) : SV_TARGET{
     float3 color = tex.Sample(ss, worldPos);
 
     color = ToneMapHDR(color);
-    color = CorrectGamma(color);
+    // color = CorrectGamma(color);
 
     return float4(color, 1.0);
 }

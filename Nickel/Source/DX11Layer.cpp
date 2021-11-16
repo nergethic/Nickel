@@ -325,10 +325,10 @@ namespace Nickel::Renderer::DXLayer {
 			textureDesc.SampleDesc.Quality = 0;
 		}
 
-		ID3D11Texture2D* depthStencilBuffer = nullptr;
-		ASSERT_ERROR_RESULT(device->CreateTexture2D(&textureDesc, nullptr, &depthStencilBuffer));
+		ID3D11Texture2D* texture = nullptr;
+		ASSERT_ERROR_RESULT(device->CreateTexture2D(&textureDesc, nullptr, &texture));
 
-		return depthStencilBuffer;
+		return texture;
 	}
 
 	auto CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc) -> ID3D11SamplerState* {
@@ -338,7 +338,7 @@ namespace Nickel::Renderer::DXLayer {
 	}
 
 	auto CreateDepthStencilTexture(ID3D11Device1* device, UINT width, UINT height) -> ID3D11Texture2D* {
-		return CreateTexture(device, width, height, DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL);
+		return CreateTexture(device, width, height, DXGI_FORMAT::DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL, 1);
 	}
 
 	auto CreateDepthStencilView(ID3D11Device1* device, ID3D11Resource* depthStencilTexture) -> ID3D11DepthStencilView* {
@@ -486,16 +486,28 @@ namespace Nickel::Renderer::DXLayer {
 		return DXLayer::CreateSamplerState(device, desc);
 	}
 
-	auto CreateCubeMap(ID3D11Device1* device, const LoadedImageData& imgData) -> DXLayer::TextureDX11 {
-		// auto resourceManager = ResourceManager::GetInstance();
-		// auto imgData = resourceManager->LoadImageData(path);
+	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DXLayer::TextureDX11 {
+		DirectX::TexMetadata meta[6];
+		DirectX::ScratchImage imgsData[6];
+		for (int i = 0; i < 6; i++) {
+			DirectX::LoadFromHDRFile(imgData[i], &meta[i], imgsData[i]);
+		}
+		
+		//TexMetadata m;
+		//ScratchImage image;
+		// auto x = LoadFromHDRFile(szFile, &m, image);
 
+		//const u32 imgWidth = imgData[0].width;
+		//const u32 imgHeight = imgData[0].height;
+		//for (const auto& img : imgData)
+			//Assert(img.width == imgWidth && img.height == imgHeight);
+		
 		auto texDesc = D3D11_TEXTURE2D_DESC{
-			.Width = imgData.width,
-			.Height = imgData.height,
+			.Width = static_cast<u32>(meta[0].width),
+			.Height = static_cast<u32>(meta[0].height),
 			.MipLevels = 1,
 			.ArraySize = 6,
-			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+			.Format = meta->format,
 			.SampleDesc = DXGI_SAMPLE_DESC{
 				.Count = 1,
 				.Quality = 0,
@@ -507,20 +519,12 @@ namespace Nickel::Renderer::DXLayer {
 		};
 
 		D3D11_SUBRESOURCE_DATA pData[6];
-		std::vector<Color8> imgs[6];
+		const auto texelSize = sizeof(imgsData[0].GetPixels()[0]);
 
 		for (int cubeMapFaceIdx = 0; cubeMapFaceIdx < 6; cubeMapFaceIdx++) {
-			//imgs[cubeMapFaceIdx].resize(imgData.width*imgData.height);
-
-			// fill with red color  
-			//std::fill(
-				//imgs[cubeMapFaceIdx].begin(),
-				//imgs[cubeMapFaceIdx].end(),
-				//Color(255, 0, 0, 255));
-
-			//pData[cubeMapFaceIdx].pSysMem = &imgs[cubeMapFaceIdx][0]; // description.data;
-			pData[cubeMapFaceIdx].pSysMem = imgData.data;
-			pData[cubeMapFaceIdx].SysMemPitch = imgData.width * 4;
+			pData[cubeMapFaceIdx].pSysMem = imgsData[cubeMapFaceIdx].GetPixels();
+			auto pitch = imgsData[cubeMapFaceIdx].GetImages()[0].rowPitch;
+			pData[cubeMapFaceIdx].SysMemPitch = pitch;
 			pData[cubeMapFaceIdx].SysMemSlicePitch = 0;
 		}
 

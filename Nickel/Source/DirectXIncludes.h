@@ -26,6 +26,8 @@
 #include <wrl/client.h>
 #include "Platform.h"
 
+#include <DirectXTex.h>
+
 #if defined(_DEBUG)
 	#define ASSERT_ERROR_RESULT(res) { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer::AssertD3DResult(_result, GetSourceLocation(std::source_location::current())); }
 	#define LOG_ERROR_RESULT(res)    { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer::LogD3DResult(_result, GetSourceLocation(std::source_location::current())); }

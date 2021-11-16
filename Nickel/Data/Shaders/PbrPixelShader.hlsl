@@ -4,6 +4,8 @@ Texture2D metalRoughnessTex : register(t2);
 Texture2D aoTex : register(t3);
 Texture2D emissionTex : register(t4);
 
+TextureCube irradianceMap : register(t5);
+
 SamplerState sampleType : register(s0);
 
 #include "PbrHelper.hlsl"
@@ -99,7 +101,13 @@ float4 PbrPixelShader(PixelShaderInput IN) : SV_TARGET
         Lo += (kD * albedoTexel.rgb / PI + specular) * radiance * NdotL;
     }
 
-    float3 ambient = float3(0.13, 0.13, 0.13) * albedoTexel.rgb * ao;
+    // float3 ambient =  // texture(irradianceMap, N).rgb;
+    float3 kS = FresnelSchlick(max(dot(N, V), 0.0), F0);
+    float3 kD = 1.0 - kS;
+    float3 irradiance = irradianceMap.Sample(sampleType, N).rgb;
+    float3 diffuse = irradiance * albedoTexel;
+    float3 ambient = (kD * diffuse) * ao;
+    //float3 ambient = float3(0.13, 0.13, 0.13) * albedoTexel.rgb * ao;
     float3 color = ambient + Lo + emissionTexel;
 
     color = ToneMapHDR(color);

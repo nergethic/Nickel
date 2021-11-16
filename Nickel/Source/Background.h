@@ -9,7 +9,7 @@ namespace Nickel {
 	};
 
 	class Background {
-		const std::string texturePath = "Data/Textures/skybox/galaxy2048.jpg";
+		const std::string texturePath = "Data/Textures/skybox/irradianceCubemap/output_pmrem"; // /galaxy2048.jpg
 
 		DXLayer::ShaderProgram shaderProgram;
 		Material material;
@@ -18,12 +18,14 @@ namespace Nickel {
 		Material irradianceMaterial;
 
 	public:
+		DXLayer::TextureDX11 texture;
 		DescribedMesh skyboxMesh;
 
 		inline auto Create(ID3D11Device1* device) {
 			shaderProgram.Create(device, std::span{ g_BackgroundVertexShader }, std::span{ g_BackgroundPixelShader });
 			material = CreateMaterial(device);
-			material.textures[0] = CreateCubemapTexture(device, texturePath);
+			texture = CreateCubemapTexture(device, texturePath);
+			material.textures[0] = texture;
 
 			skyboxMesh = CreateSkyboxMesh(device);
 			skyboxMesh.material = material;
@@ -54,9 +56,30 @@ namespace Nickel {
 
 	private:
 		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DXLayer::TextureDX11 {
-			auto imgData = ResourceManager::GetInstance()->LoadImageData(path);
-			auto result = DXLayer::CreateCubeMap(device, imgData);
-			stbi_image_free(imgData.data);
+			const auto rm = ResourceManager::GetInstance();
+			/*
+			LoadedImageData imgs[6] {
+				rm->LoadHDRImageData(path + "_posx.hdr"),
+				rm->LoadHDRImageData(path + "_negx.hdr"),
+				rm->LoadHDRImageData(path + "_posy.hdr"),
+				rm->LoadHDRImageData(path + "_negy.hdr"),
+				rm->LoadHDRImageData(path + "_posz.hdr"),
+				rm->LoadHDRImageData(path + "_negz.hdr")
+			};
+			*/
+
+			const wchar_t* files[6] = {
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posx.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negx.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posy.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negy.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posz.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
+			};
+			
+			auto result = DXLayer::CreateCubeMap(device, files);
+			//for (u32 i = 0; i < ArrayCount(imgs); i++)
+				//stbi_image_free(imgs[i].data);
 
 			return result;
 		}

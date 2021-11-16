@@ -246,12 +246,13 @@ namespace Nickel {
 					.index = 3
 				}
 			};
-			pbrMat.textures = std::vector<DXLayer::TextureDX11>(5);
+			pbrMat.textures = std::vector<DXLayer::TextureDX11>(6);
 			pbrMat.textures[0] = rs->albedoTexture;
 			pbrMat.textures[1] = rs->normalTexture;
 			pbrMat.textures[2] = rs->metalRoughnessTexture;
 			pbrMat.textures[3] = rs->aoTexture;
 			pbrMat.textures[4] = rs->emissiveTexture;
+			pbrMat.textures[5] = background.texture;
 
 			PbrPixelBufferData bufferData{
 				.lightPositions = {XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0)},
@@ -322,7 +323,7 @@ namespace Nickel {
 
 		PbrPixelBufferData bufferData{
 			.lightPositions = {light1Pos, light2Pos, light3Pos, light4Pos},
-			.lightColors = {XMFLOAT4(200.0f, 200.0f, 200.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(0.0f, 0.0f, 0.0f, 0), XMFLOAT4(300.0f, 300.0f, 300.0f, 0)},
+			.lightColors = {XMFLOAT4(50.0f * 0.0392f, 50.0f * 0.0392f, 50.0f * 0.0512f, 0), XMFLOAT4(0.0392f, 0.0392f, 0.0512f, 0), XMFLOAT4(0.0392f, 0.0392f, 0.0512f, 0), XMFLOAT4(200.0f, 200.0f, 200.0f, 0)},
 			.albedoFactor = XMFLOAT4(0.2f, 0.05f, 0.75f, 0.0f),
 			.metallic = 0.6f,
 			.roughness = 0.4f,
