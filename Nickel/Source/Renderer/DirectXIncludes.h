@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0) // ignores warnings from external headers
 // Link library dependencies
+#pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib") // TODO: check why this doesn't have stuff from dxgi1_3.h (CreateDXGIFactory2)
 #pragma comment(lib, "d3dcompiler.lib")
@@ -16,9 +17,10 @@
 #include <DirectXColors.h>
 #include <WICTextureLoader.h>
 #include <dxgi.h>
-#include <dxgi1_3.h>
+#include <dxgi1_6.h>
 
 #pragma error(push, 0)
+#include "../include/d3d12.h"
 #include "../include/d3dx12.h"
 #pragma error(pop)
 
@@ -43,8 +45,6 @@ inline auto SafeRelease(T& ptr) -> void {
 		ptr->Release();
 		ptr = nullptr;
 	}
-
-	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
 };
 
 struct DxDeleter {

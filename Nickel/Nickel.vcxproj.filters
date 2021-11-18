@@ -163,6 +163,12 @@
     <ClCompile Include="Source\Renderer\Direct3D11\D3D11Core.cpp">
       <Filter>Source Files\Renderer\Direct3D11</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Core.cpp">
+      <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Interface.cpp">
+      <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
@@ -263,6 +269,12 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D11\D3D11Core.h">
       <Filter>Header Files\Renderer\Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Interface.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Core.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

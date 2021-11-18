@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "RendererPlatformInterface.h"
 #include "Direct3D11/D3D11Interface.h"
+#include "Direct3D12/D3D12Interface.h"
 
 static UINT MSAA_LEVEL = 4; // TODO: move this to config file
 
@@ -15,7 +16,7 @@ namespace Nickel::Renderer {
 
 					
 			case GraphicsPlatform::Direct3D12: {
-				// TODO
+				DX12Layer::GetPlatformInterface(gfx);
 			} break;
 
 			default:

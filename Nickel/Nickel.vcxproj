@@ -297,6 +297,8 @@
     <ClCompile Include="Source\ObjLoader.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D11\D3D11Core.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D11\D3D11Interface.cpp" />
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Core.cpp" />
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Interface.cpp" />
     <ClCompile Include="Source\Renderer\DX11Layer.cpp" />
     <ClCompile Include="Source\Renderer\renderer.cpp" />
     <ClCompile Include="Source\ResourceManager.cpp" />
@@ -326,6 +328,8 @@
     <ClInclude Include="Source\platform.h" />
     <ClInclude Include="Source\Renderer\Direct3D11\D3D11Core.h" />
     <ClInclude Include="Source\Renderer\Direct3D11\D3D11Interface.h" />
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Core.h" />
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Interface.h" />
     <ClInclude Include="Source\Renderer\DirectXIncludes.h" />
     <ClInclude Include="Source\Renderer\DX11Layer.h" />
     <ClInclude Include="Source\Renderer\renderer.h" />
