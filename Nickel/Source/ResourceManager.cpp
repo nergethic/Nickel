@@ -15,8 +15,8 @@ namespace Nickel::Renderer {
 		device = _device;
 	}
 
-	auto ResourceManager::LoadTexture(std::wstring path) -> DXLayer::TextureDX11 {
-		DXLayer::TextureDX11 newTex{ .samplerState = DXLayer::GetDefaultSamplerState(device)};
+	auto ResourceManager::LoadTexture(std::wstring path) -> DXLayer11::TextureDX11 {
+		DXLayer11::TextureDX11 newTex{ .samplerState = DXLayer11::GetDefaultSamplerState(device)};
 		ASSERT_ERROR_RESULT(DirectX::CreateWICTextureFromFile(device, path.c_str(), &newTex.resource, &newTex.srv));
 		
 		/*

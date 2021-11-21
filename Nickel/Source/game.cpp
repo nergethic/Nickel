@@ -12,7 +12,7 @@ namespace Nickel {
 		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
 	}
 
-	auto Submit(RendererState& rs, const DXLayer::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
+	auto Submit(RendererState& rs, const DXLayer11::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
 		auto cmd = cmdQueue.queue.Get();
 		const auto program = mesh.material.program;
 		if (program == nullptr) {
@@ -34,8 +34,8 @@ namespace Nickel {
 		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
 		const auto vertexBuffer = gpuData.vertexBuffer.buffer.get();
 
-		DXLayer::SetIndexBuffer(*cmd, indexBuffer);
-		DXLayer::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
+		DXLayer11::SetIndexBuffer(*cmd, indexBuffer);
+		DXLayer11::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
 
 		if (mat.textures.size() > 0) {
 			cmd->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
@@ -61,10 +61,10 @@ namespace Nickel {
 		}
 
 		SetPipelineState(*cmd, &rs.g_Viewport, mesh.material.pipelineState);
-		DXLayer::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
+		DXLayer11::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
 	}
 
-	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
+	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer11::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
 		auto c = cmd.queue.Get();
 		Assert(c != nullptr);
 
@@ -165,14 +165,14 @@ namespace Nickel {
 
 		background.Create(device);
 
-		rs->defaultDepthStencilBuffer = DXLayer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
+		rs->defaultDepthStencilBuffer = DXLayer11::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
-		rs->defaultDepthStencilView = DXLayer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
+		rs->defaultDepthStencilView = DXLayer11::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
 		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation] = DXLayer::CreateConstantBuffer(device, sizeof(PerApplicationData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object] = DXLayer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame] = DXLayer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation] = DXLayer11::CreateConstantBuffer(device, sizeof(PerApplicationData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object] = DXLayer11::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame] = DXLayer11::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// Create shader programs
 		rs->pbrProgram.Create(rs->device.Get(), std::span{ g_PbrVertexShader }, std::span{ g_PbrPixelShader });
@@ -204,11 +204,11 @@ namespace Nickel {
 			L"Data/Textures/skybox/radianceCubemap/output_pmrem_posz.hdr",
 			L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
 		};
-		rs->radianceTexture = DXLayer::CreateCubeMap(device, radianceFacePaths);
+		rs->radianceTexture = DXLayer11::CreateCubeMap(device, radianceFacePaths);
 		rs->brdfLUT = resourceManager->LoadTexture(L"Data/Textures/brdfLUT.jpg");
 
-		auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-		auto defaultRasterizerState = DXLayer::CreateDefaultRasterizerState(device);
+		auto defaultDepthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+		auto defaultRasterizerState = DXLayer11::CreateDefaultRasterizerState(device);
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
 		D3D11_BLEND_DESC1 stateDesc = { 0 };
@@ -237,7 +237,7 @@ namespace Nickel {
 		}
 		
 		
-		// simpleMat.constantBuffer = DXLayer::CreateConstantBuffer(device, )
+		// simpleMat.constantBuffer = DXLayer11::CreateConstantBuffer(device, )
 		{
 			auto& textureMat = rs->textureMat;
 			textureMat = Material{
@@ -247,7 +247,7 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				}
 			};
-			textureMat.textures = std::vector<DXLayer::TextureDX11>(1);
+			textureMat.textures = std::vector<DXLayer11::TextureDX11>(1);
 			textureMat.textures[0] = rs->albedoTexture;
 		}
 
@@ -260,11 +260,11 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				},
 				.pixelConstantBuffer = {
-					.buffer = DXLayer::CreateConstantBuffer(device, sizeof(PbrPixelBufferData)),
+					.buffer = DXLayer11::CreateConstantBuffer(device, sizeof(PbrPixelBufferData)),
 					.index = 3
 				}
 			};
-			pbrMat.textures = std::vector<DXLayer::TextureDX11>(8);
+			pbrMat.textures = std::vector<DXLayer11::TextureDX11>(8);
 			pbrMat.textures[0] = rs->albedoTexture;
 			pbrMat.textures[1] = rs->normalTexture;
 			pbrMat.textures[2] = rs->metalRoughnessTexture;
@@ -354,11 +354,11 @@ namespace Nickel {
 		// RENDER ---------------------------
 		Assert(rs->defaultRenderTargetView != nullptr);
 		Assert(rs->defaultDepthStencilView != nullptr);
-		DXLayer::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+		DXLayer11::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 		queue.RSSetViewports(1, &rs->g_Viewport);
 
-		DXLayer::ClearFlag clearFlag = DXLayer::ClearFlag::CLEAR_COLOR | DXLayer::ClearFlag::CLEAR_DEPTH;
-		DXLayer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
+		DXLayer11::ClearFlag clearFlag = DXLayer11::ClearFlag::CLEAR_COLOR | DXLayer11::ClearFlag::CLEAR_DEPTH;
+		DXLayer11::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -581,11 +581,11 @@ namespace Nickel {
 		auto resourceManager = ResourceManager::GetInstance();
 
 		{ // convert vertex data to be LineVertexData compatible
-			auto defaultDepthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
+			auto defaultDepthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+			auto rasterizerDesc = DXLayer11::GetDefaultRasterizerDescription();
 			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
 			//rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
-			auto defaultRasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc);
+			auto defaultRasterizerState = DXLayer11::CreateRasterizerState(device, rasterizerDesc);
 			auto& lineMat = rs->lineMat;
 			lineMat = Material{
 				.program = &rs->lineProgram,
@@ -594,7 +594,7 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				},
 				.vertexConstantBuffer = {
-					.buffer = DXLayer::CreateConstantBuffer(device, sizeof(LineBufferData)),
+					.buffer = DXLayer11::CreateConstantBuffer(device, sizeof(LineBufferData)),
 					.index = 3
 				}
 			};
@@ -765,7 +765,7 @@ namespace Nickel {
 		return true;
 	}
 
-	auto SetDefaultPass(const DXLayer::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
+	auto SetDefaultPass(const DXLayer11::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
 		Assert(cmd.queue != nullptr);
 		cmd.queue->OMSetRenderTargets(1, renderTargetView, &depthStencilView);
 	}

@@ -14,7 +14,7 @@ namespace Nickel::Renderer {
             Assert(buffer.get() == nullptr);
             auto data = D3D11_SUBRESOURCE_DATA{ .pSysMem = vertexData.data() };
 
-            auto rawBuffer = DXLayer::CreateVertexBuffer(device, (sizeof(VertexT) * vertexData.size()), dynamic, &data);
+            auto rawBuffer = DXLayer11::CreateVertexBuffer(device, (sizeof(VertexT) * vertexData.size()), dynamic, &data);
             //buffer = rawBuffer;
             buffer = std::unique_ptr<ID3D11Buffer, DxDeleter>(rawBuffer);
             stride = sizeof(VertexT);

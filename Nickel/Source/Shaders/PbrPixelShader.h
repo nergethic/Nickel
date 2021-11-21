@@ -85,10 +85,10 @@ dcl_temps 14
 //   v2.x <- IN.uv.x; v2.y <- IN.uv.y; 
 //   o0.x <- <PbrPixelShader return value>.x; o0.y <- <PbrPixelShader return value>.y; o0.z <- <PbrPixelShader return value>.z; o0.w <- <PbrPixelShader return value>.w
 //
-#line 1 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 1 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
 mov r0.x, l(3.141593)  // r0.x <- PI
 
-#line 58 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 58 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
 sample_indexable(texture2d)(float,float,float,float) r0.yzw, v2.xyxx, t0.wxyz, s0
 log r0.yzw, r0.yyzw
 mul r0.yzw, r0.yyzw, l(0.000000, 2.200000, 2.200000, 2.200000)
@@ -254,7 +254,7 @@ loop
   mov r10.xyz, r10.xyzx
   mov r3.w, r1.y
 
-#line 14 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 14 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
   mul r3.w, r3.w, r3.w  // r3.w <- a
 
 #line 15
@@ -283,7 +283,7 @@ loop
 #line 23
   div r3.w, r3.w, r4.w  // r3.w <- <DistributionGGX return value>
 
-#line 82 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 82 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
   mov r3.w, r3.w  // r3.w <- NDF
 
 #line 83
@@ -293,7 +293,7 @@ loop
   mov r9.xyz, r9.xyzx
   mov r4.w, r1.y
 
-#line 37 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 37 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
   dp3 r5.w, r12.xyzx, r13.xyzx
   max r5.w, r5.w, l(0.000000)  // r5.w <- NdotV
 
@@ -357,7 +357,7 @@ loop
 #line 42
   mul r4.w, r5.w, r4.w  // r4.w <- <GeometrySmith return value>
 
-#line 83 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 83 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
   mov r4.w, r4.w  // r4.w <- G
 
 #line 84
@@ -367,7 +367,7 @@ loop
   min r5.w, r5.w, l(1.000000)
   mov r10.xyz, r6.xyzx
 
-#line 46 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 46 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
   mov r12.xyz, -r10.xyzx
   add r12.xyz, r12.xyzx, l(1.000000, 1.000000, 1.000000, 0.000000)
   mov r5.w, -r5.w
@@ -382,7 +382,7 @@ loop
   mul r12.xyz, r5.wwww, r12.xyzx
   add r10.xyz, r10.xyzx, r12.xyzx  // r10.x <- <FresnelSchlick return value>.x; r10.y <- <FresnelSchlick return value>.y; r10.z <- <FresnelSchlick return value>.z
 
-#line 84 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 84 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
   mov r10.xyz, r10.xyzx  // r10.x <- F.x; r10.y <- F.y; r10.z <- F.z
 
 #line 86
@@ -437,7 +437,7 @@ max r0.x, r0.x, l(0.000000)
 mov r6.xyz, r6.xyzx
 mov r1.y, r1.y
 
-#line 50 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 50 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
 mov r1.w, -r1.y
 add r1.w, r1.w, l(1.000000)  // r1.w <- oneMinusRoughness
 
@@ -457,7 +457,7 @@ mul r0.x, r0.x, r1.w
 mul r7.xyz, r0.xxxx, r7.xyzx
 add r7.xyz, r6.xyzx, r7.xyzx  // r7.x <- <FresnelSchlickRoughness return value>.x; r7.y <- <FresnelSchlickRoughness return value>.y; r7.z <- <FresnelSchlickRoughness return value>.z
 
-#line 109 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 109 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
 mov r7.xyz, r7.xyzx  // r7.x <- F.x; r7.y <- F.y; r7.z <- F.z
 
 #line 111
@@ -484,7 +484,7 @@ dp3 r0.x, r3.xyzx, r4.xyzx
 max r0.x, r0.x, l(0.000000)
 mov r6.xyz, r6.xyzx
 
-#line 46 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 46 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
 mov r4.xyz, -r6.xyzx
 add r4.xyz, r4.xyzx, l(1.000000, 1.000000, 1.000000, 0.000000)
 mov r0.x, -r0.x
@@ -499,7 +499,7 @@ mul r0.x, r0.x, r2.w
 mul r4.xyz, r0.xxxx, r4.xyzx
 add r4.xyz, r4.xyzx, r6.xyzx  // r4.x <- <FresnelSchlick return value>.x; r4.y <- <FresnelSchlick return value>.y; r4.z <- <FresnelSchlick return value>.z
 
-#line 117 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 117 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
 mov r4.xyz, r4.xyzx  // r4.x <- kS.x; r4.y <- kS.y; r4.z <- kS.z
 
 #line 118
@@ -525,14 +525,14 @@ add r0.xyz, r2.xyzx, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color
 #line 125
 nop 
 
-#line 5 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 5 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
 add r1.xyz, r0.xyzx, l(1.000000, 1.000000, 1.000000, 0.000000)
 div r0.xyz, r0.xyzx, r1.xyzx  // r0.x <- <ToneMapHDR return value>.x; r0.y <- <ToneMapHDR return value>.y; r0.z <- <ToneMapHDR return value>.z
 
-#line 126 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 126 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
 nop 
 
-#line 9 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
+#line 9 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrHelper.hlsl"
 mov r0.w, l(0.454545)  // r0.w <- powN
 
 #line 10
@@ -540,7 +540,7 @@ log r0.xyz, r0.xyzx
 mul r0.xyz, r0.xyzx, r0.wwww
 exp r0.xyz, r0.xyzx  // r0.x <- <CorrectGamma return value>.x; r0.y <- <CorrectGamma return value>.y; r0.z <- <CorrectGamma return value>.z
 
-#line 126 "E:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
+#line 126 "H:\Projects\Nickel\Nickel\Data\Shaders\PbrPixelShader.hlsl"
 mov r0.xyz, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color.z
 
 #line 128
@@ -552,10 +552,10 @@ ret
 
 const BYTE g_PbrPixelShader[] =
 {
-     68,  88,  66,  67, 163, 158, 
-    129,  64,  16, 200, 136, 223, 
-    150, 190,  38, 148, 138,   4, 
-      2,  85,   1,   0,   0,   0, 
+     68,  88,  66,  67,  17, 242, 
+    195,  82, 142,  86, 165,  18, 
+     60, 166, 230, 160, 149, 104, 
+    123, 216,   1,   0,   0,   0, 
       0, 209,   0,   0,   6,   0, 
       0,   0,  56,   0,   0,   0, 
     136,   5,   0,   0,   4,   6, 
@@ -2472,11 +2472,11 @@ const BYTE g_PbrPixelShader[] =
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
-    148,  46,  49,   1, 216, 200, 
-    147,  97,   1,   0,   0,   0, 
-     23, 224,   0, 135, 254,  38, 
-    233,  64, 178,  60,   3, 229, 
-    101,  83, 229,  26,   0,   0, 
+    148,  46,  49,   1,  15, 146, 
+    153,  97,   1,   0,   0,   0, 
+    241, 253, 173,  43,  44,  95, 
+    155,  66, 183, 131,  33,  68, 
+     29, 241, 201,   7,   0,   0, 
       0,   0,   0,   0,   0,   0, 
       1,   0,   0,   0,   1,   0, 
       0,   0,   0,   0,   0,   0, 
@@ -2660,11 +2660,11 @@ const BYTE g_PbrPixelShader[] =
       1,   0, 216, 221,   2,   0, 
     131,  67,   0,   0, 103, 135, 
       3,   0, 200, 218,   3,   0, 
-     74, 146,   2,   0,  16, 206, 
+    130, 197,   3,   0,  16, 206, 
       3,   0, 226, 163,   0,   0, 
-    246, 129,   2,   0, 202, 198, 
+    158, 197,   3,   0, 202, 198, 
       2,   0, 238, 175,   0,   0, 
-     96,  48,   1,   0, 196, 136, 
+    184,  54,   1,   0, 196, 136, 
       2,   0,  54, 229,   1,   0, 
      21, 230,   0,   0, 134,  90, 
       0,   0, 122, 245,   1,   0, 
@@ -3924,7 +3924,7 @@ const BYTE g_PbrPixelShader[] =
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0, 254, 239, 
     254, 239,   1,   0,   0,   0, 
-    104,  27,   0,   0,   0,  69, 
+    104,  27,   0,   0,   0,  72, 
      58,  92,  80, 114, 111, 106, 
     101,  99, 116, 115,  92,  78, 
     105,  99, 107, 101, 108,  92, 
@@ -3934,7 +3934,7 @@ const BYTE g_PbrPixelShader[] =
     115,  92,  80,  98, 114,  80, 
     105, 120, 101, 108,  83, 104, 
      97, 100, 101, 114,  46, 104, 
-    108, 115, 108,   0,   0, 101, 
+    108, 115, 108,   0,   0, 104, 
      58,  92, 112, 114, 111, 106, 
     101,  99, 116, 115,  92, 110, 
     105,  99, 107, 101, 108,  92, 
@@ -3944,7 +3944,7 @@ const BYTE g_PbrPixelShader[] =
     115,  92, 112,  98, 114, 112, 
     105, 120, 101, 108, 115, 104, 
      97, 100, 101, 114,  46, 104, 
-    108, 115, 108,   0,  69,  58, 
+    108, 115, 108,   0,  72,  58, 
      92,  80, 114, 111, 106, 101, 
      99, 116, 115,  92,  78, 105, 
      99, 107, 101, 108,  92,  78, 
@@ -3953,7 +3953,7 @@ const BYTE g_PbrPixelShader[] =
     104,  97, 100, 101, 114, 115, 
      92,  80,  98, 114,  72, 101, 
     108, 112, 101, 114,  46, 104, 
-    108, 115, 108,   0, 101,  58, 
+    108, 115, 108,   0, 104,  58, 
      92, 112, 114, 111, 106, 101, 
      99, 116, 115,  92, 110, 105, 
      99, 107, 101, 108,  92, 110, 
@@ -3962,7 +3962,7 @@ const BYTE g_PbrPixelShader[] =
     104,  97, 100, 101, 114, 115, 
      92, 112,  98, 114, 104, 101, 
     108, 112, 101, 114,  46, 104, 
-    108, 115, 108,   0,  69,  58, 
+    108, 115, 108,   0,  72,  58, 
      92,  80, 114, 111, 106, 101, 
      99, 116, 115,  92,  78, 105, 
      99, 107, 101, 108,  92,  78, 
@@ -3973,7 +3973,7 @@ const BYTE g_PbrPixelShader[] =
     110,  67, 111, 110, 115, 116, 
      97, 110, 116,  66, 117, 102, 
     102, 101, 114, 115,  46, 104, 
-    108, 115, 108,   0, 101,  58, 
+    108, 115, 108,   0, 104,  58, 
      92, 112, 114, 111, 106, 101, 
      99, 116, 115,  92, 110, 105, 
      99, 107, 101, 108,  92, 110, 
@@ -4009,8 +4009,8 @@ const BYTE g_PbrPixelShader[] =
      32,  97, 111,  84, 101, 120, 
      32,  58,  32, 114, 101, 103, 
      27, 226,  48,   1, 216,   0, 
-      0,   0, 201,  62, 147, 119, 
-    251, 218, 215,   1,   1,   0, 
+      0,   0, 100, 183, 243,  86, 
+    110, 222, 215,   1,   1,   0, 
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
@@ -7177,21 +7177,21 @@ const BYTE g_PbrPixelShader[] =
       8,  16,   0,   0,  23,   0, 
       1,   0,  24,  16,   0,   0, 
      14,   0,  23,  21,   5,  16, 
-      0,   0,   3,   2, 128, 137, 
+      0,   0,   3,   2, 112, 205, 
       0,   0, 242, 241,  10,   0, 
      24,  21,  26,  16,   0,   0, 
       1,   0,   1,   0,  10,   0, 
      24,  21,  27,  16,   0,   0, 
       1,   0,   0,   2,  14,   0, 
      23,  21,   5,  16,   0,   0, 
-      6,   2, 128, 137,   0,   0, 
+      6,   2, 112, 205,   0,   0, 
     242, 241,  10,   0,  24,  21, 
      29,  16,   0,   0,   1,   0, 
       1,   0,  10,   0,  24,  21, 
      30,  16,   0,   0,   1,   0, 
       0,   2,  14,   0,  23,  21, 
       0,   0,   0,   0,  10,   2, 
-    128, 137,   0,   0, 242, 241, 
+    112, 205,   0,   0, 242, 241, 
      10,   0,  24,  21,  32,  16, 
       0,   0,   1,   0,   1,   0, 
      10,   0,  24,  21,  33,  16, 
@@ -8422,17 +8422,17 @@ const BYTE g_PbrPixelShader[] =
     106, 101,  99, 116, 105, 111, 
     110,  77,  97, 116, 114, 105, 
     120,  59,  13,  10, 125,   0, 
-     17,   0,   0,   0, 120,   0, 
-      0,   0, 174,   0,   0,   0, 
-     73,  20,   0,   0, 228,   0, 
+     17,   0,   0,   0,  73,  20, 
+      0,   0,   0,   0,   0,   0, 
+     61,   0,   0,   0,   1,   0, 
       0,   0,  60,   0,   0,   0, 
-     38,   1,   0,   0,  42,  26, 
+     42,  26,   0,   0,   0,   0, 
+      0,   0, 228,   0,   0,   0, 
+     38,   1,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
+    120,   0,   0,   0, 174,   0, 
+      0,   0, 104,   1,   0,   0, 
       0,   0,   0,   0,   0,   0, 
-      0,   0,   0,   0,   0,   0, 
-    104,   1,   0,   0,   0,   0, 
-      0,   0,   1,   0,   0,   0, 
-     61,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
      10,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
@@ -8998,7 +8998,7 @@ const BYTE g_PbrPixelShader[] =
       3,   0,   0,   0,   3,   0, 
       0,   0,   0,   0,  59,   0, 
       0,   0, 113,   0,   0,   0, 
-     69,  58,  92,  80, 114, 111, 
+     72,  58,  92,  80, 114, 111, 
     106, 101,  99, 116, 115,  92, 
      78, 105,  99, 107, 101, 108, 
      92,  78, 105,  99, 107, 101, 
@@ -9007,7 +9007,7 @@ const BYTE g_PbrPixelShader[] =
     114, 115,  92,  80,  98, 114, 
      80, 105, 120, 101, 108,  83, 
     104,  97, 100, 101, 114,  46, 
-    104, 108, 115, 108,   0,  69, 
+    104, 108, 115, 108,   0,  72, 
      58,  92,  80, 114, 111, 106, 
     101,  99, 116, 115,  92,  78, 
     105,  99, 107, 101, 108,  92, 
@@ -9016,7 +9016,7 @@ const BYTE g_PbrPixelShader[] =
      83, 104,  97, 100, 101, 114, 
     115,  92,  80,  98, 114,  72, 
     101, 108, 112, 101, 114,  46, 
-    104, 108, 115, 108,   0,  69, 
+    104, 108, 115, 108,   0,  72, 
      58,  92,  80, 114, 111, 106, 
     101,  99, 116, 115,  92,  78, 
     105,  99, 107, 101, 108,  92, 
@@ -9043,11 +9043,11 @@ const BYTE g_PbrPixelShader[] =
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0, 148,  46, 
-     49,   1, 216, 200, 147,  97, 
-      1,   0,   0,   0,  23, 224, 
-      0, 135, 254,  38, 233,  64, 
-    178,  60,   3, 229, 101,  83, 
-    229,  26, 246,   0,   0,   0, 
+     49,   1,  15, 146, 153,  97, 
+      1,   0,   0,   0, 241, 253, 
+    173,  43,  44,  95, 155,  66, 
+    183, 131,  33,  68,  29, 241, 
+    201,   7, 246,   0,   0,   0, 
      47,  76, 105, 110, 107,  73, 
     110, 102, 111,   0,  47, 110, 
      97, 109, 101, 115,   0,  47, 
@@ -9055,7 +9055,7 @@ const BYTE g_PbrPixelShader[] =
      97, 100, 101, 114,  98, 108, 
     111,  99, 107,   0,  47, 115, 
     114,  99,  47, 102, 105, 108, 
-    101, 115,  47, 101,  58,  92, 
+    101, 115,  47, 104,  58,  92, 
     112, 114, 111, 106, 101,  99, 
     116, 115,  92, 110, 105,  99, 
     107, 101, 108,  92, 110, 105, 
@@ -9067,7 +9067,7 @@ const BYTE g_PbrPixelShader[] =
     101, 114,  46, 104, 108, 115, 
     108,   0,  47, 115, 114,  99, 
      47, 102, 105, 108, 101, 115, 
-     47, 101,  58,  92, 112, 114, 
+     47, 104,  58,  92, 112, 114, 
     111, 106, 101,  99, 116, 115, 
      92, 110, 105,  99, 107, 101, 
     108,  92, 110, 105,  99, 107, 
@@ -9078,7 +9078,7 @@ const BYTE g_PbrPixelShader[] =
     114,  46, 104, 108, 115, 108, 
       0,  47, 115, 114,  99,  47, 
     102, 105, 108, 101, 115,  47, 
-    101,  58,  92, 112, 114, 111, 
+    104,  58,  92, 112, 114, 111, 
     106, 101,  99, 116, 115,  92, 
     110, 105,  99, 107, 101, 108, 
      92, 110, 105,  99, 107, 101, 
@@ -9091,15 +9091,15 @@ const BYTE g_PbrPixelShader[] =
      46, 104, 108, 115, 108,   0, 
       6,   0,   0,   0,  10,   0, 
       0,   0,   1,   0,   0,   0, 
-     62,   2,   0,   0,   0,   0, 
-      0,   0,  17,   0,   0,   0, 
-      7,   0,   0,   0,   0,   0, 
-      0,   0,   5,   0,   0,   0, 
-    104,   0,   0,   0,   9,   0, 
-      0,   0, 169,   0,   0,   0, 
-     10,   0,   0,   0,  10,   0, 
-      0,   0,   6,   0,   0,   0, 
-     34,   0,   0,   0,   8,   0, 
+    103,   2,   0,   0,   0,   0, 
+      0,   0,  34,   0,   0,   0, 
+      8,   0,   0,   0,  17,   0, 
+      0,   0,   7,   0,   0,   0, 
+      0,   0,   0,   0,   5,   0, 
+      0,   0,  10,   0,   0,   0, 
+      6,   0,   0,   0, 104,   0, 
+      0,   0,   9,   0,   0,   0, 
+    169,   0,   0,   0,  10,   0, 
       0,   0,   0,   0,   0,   0, 
     220,  81,  51,   1,   0,   0, 
       0,   0,   0,   0,   0,   0, 

@@ -1,6 +1,6 @@
 #include "D3D11Core.h"
 
-namespace Nickel::Renderer::DXLayer::Core {
+namespace Nickel::Renderer::DXLayer11::Core {
 namespace {
 	
 }

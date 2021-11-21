@@ -11,14 +11,14 @@ namespace Nickel {
 	class Background {
 		const std::string texturePath = "Data/Textures/skybox/irradianceCubemap/output_pmrem"; // /galaxy2048.jpg
 
-		DXLayer::ShaderProgram shaderProgram;
+		DXLayer11::ShaderProgram shaderProgram;
 		Material material;
 
-		DXLayer::ShaderProgram irradianceshaderProgram;
+		DXLayer11::ShaderProgram irradianceshaderProgram;
 		Material irradianceMaterial;
 
 	public:
-		DXLayer::TextureDX11 texture;
+		DXLayer11::TextureDX11 texture;
 		DescribedMesh skyboxMesh;
 
 		inline auto Create(ID3D11Device1* device) {
@@ -55,7 +55,7 @@ namespace Nickel {
 		}
 
 	private:
-		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DXLayer::TextureDX11 {
+		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DXLayer11::TextureDX11 {
 			const auto rm = ResourceManager::GetInstance();
 			/*
 			LoadedImageData imgs[6] {
@@ -77,7 +77,7 @@ namespace Nickel {
 				L"Data/Textures/skybox/irradianceCubemap/output_iem_negz.hdr"
 			};
 			
-			auto result = DXLayer::CreateCubeMap(device, files);
+			auto result = DXLayer11::CreateCubeMap(device, files);
 			//for (u32 i = 0; i < ArrayCount(imgs); i++)
 				//stbi_image_free(imgs[i].data);
 
@@ -85,16 +85,16 @@ namespace Nickel {
 		}
 
 		inline auto CreateMaterial(ID3D11Device1* device) -> Material {
-			auto rasterizerDesc = DXLayer::GetDefaultRasterizerDescription();
+			auto rasterizerDesc = DXLayer11::GetDefaultRasterizerDescription();
 			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
 
 			return Material{
 				.program = &shaderProgram,
 				.pipelineState = PipelineState{
-					.rasterizerState = DXLayer::CreateRasterizerState(device, rasterizerDesc),
-					.depthStencilState = DXLayer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ZERO, D3D11_COMPARISON_LESS_EQUAL, false)
+					.rasterizerState = DXLayer11::CreateRasterizerState(device, rasterizerDesc),
+					.depthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ZERO, D3D11_COMPARISON_LESS_EQUAL, false)
 				},
-				.textures = std::vector<DXLayer::TextureDX11>(1)
+				.textures = std::vector<DXLayer11::TextureDX11>(1)
 			};
 		}
 

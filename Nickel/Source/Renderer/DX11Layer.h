@@ -1,12 +1,12 @@
 #pragma once
 
-#include "DirectXIncludes.h"
+#include "Direct3D11/DirectX11Includes.h"
 #include "../platform.h"
 #include "../Math.h"
 
 using namespace Microsoft::WRL;
 
-namespace Nickel::Renderer::DXLayer {
+namespace Nickel::Renderer::DXLayer11 {
 	enum class ClearFlag { // TODO: move to base renderer layer
 		CLEAR_COLOR   = 1 << 0,
 		CLEAR_DEPTH   = 1 << 1,
@@ -71,5 +71,5 @@ namespace Nickel::Renderer::DXLayer {
 	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
 
 	auto GetDefaultSamplerState(ID3D11Device1* device) -> ID3D11SamplerState*;
-	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DXLayer::TextureDX11;
+	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) ->DXLayer11::TextureDX11;
 }

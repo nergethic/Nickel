@@ -1,6 +1,6 @@
 #include "ShaderProgram.h"
 
-namespace Nickel::Renderer::DXLayer {
+namespace Nickel::Renderer::DXLayer11 {
 	// auto CreateInputLayout(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> shaderBytecodeWithInputSignature) -> ID3D11InputLayout*;
 
 	auto ShaderProgram::Create(ID3D11Device1* device, std::span<const u8> vertexShaderBytecode, std::span<const u8> pixelShaderBytecode) -> void {

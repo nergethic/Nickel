@@ -135,10 +135,10 @@ struct ConstantBuffer {
 };
 
 struct Material {
-	Nickel::Renderer::DXLayer::ShaderProgram* program;
+	Nickel::Renderer::DXLayer11::ShaderProgram* program;
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
-	std::vector<DXLayer::TextureDX11> textures;
+	std::vector<DXLayer11::TextureDX11> textures;
 	
 	ConstantBuffer vertexConstantBuffer;
 	ConstantBuffer pixelConstantBuffer;
@@ -157,7 +157,7 @@ struct RendererState {
 	// Direct3D device and swap chain.
 	ComPtr<ID3D11Device1> device = nullptr;
 	ComPtr<IDXGISwapChain1> swapChain = nullptr;
-	DXLayer::CmdQueue cmdQueue = {};
+	DXLayer11::CmdQueue cmdQueue = {};
 	
 	// Render target view for the back buffer of the swap chain.
 	ID3D11RenderTargetView* defaultRenderTargetView = nullptr;
@@ -168,15 +168,15 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	DXLayer::TextureDX11 albedoTexture;
-	DXLayer::TextureDX11 normalTexture;
-	DXLayer::TextureDX11 aoTexture;
-	DXLayer::TextureDX11 metalRoughnessTexture;
-	DXLayer::TextureDX11 emissiveTexture;
-	DXLayer::TextureDX11 matCapTexture;
-	DXLayer::TextureDX11 debugBoxTexture;
-	DXLayer::TextureDX11 radianceTexture;
-	DXLayer::TextureDX11 brdfLUT;
+	DXLayer11::TextureDX11 albedoTexture;
+	DXLayer11::TextureDX11 normalTexture;
+	DXLayer11::TextureDX11 aoTexture;
+	DXLayer11::TextureDX11 metalRoughnessTexture;
+	DXLayer11::TextureDX11 emissiveTexture;
+	DXLayer11::TextureDX11 matCapTexture;
+	DXLayer11::TextureDX11 debugBoxTexture;
+	DXLayer11::TextureDX11 radianceTexture;
+	DXLayer11::TextureDX11 brdfLUT;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBufferType::NumConstantBuffers];
 
@@ -200,11 +200,11 @@ struct RendererState {
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
-	DXLayer::ShaderProgram pbrProgram;
-	DXLayer::ShaderProgram lineProgram;
-	DXLayer::ShaderProgram simpleProgram;
-	DXLayer::ShaderProgram textureProgram;
-	DXLayer::ShaderProgram convoluteIrradianceBackgroundProgram;
+	DXLayer11::ShaderProgram pbrProgram;
+	DXLayer11::ShaderProgram lineProgram;
+	DXLayer11::ShaderProgram simpleProgram;
+	DXLayer11::ShaderProgram textureProgram;
+	DXLayer11::ShaderProgram convoluteIrradianceBackgroundProgram;
 
 	Material pbrMat;
 	Material lineMat;

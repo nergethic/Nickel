@@ -3,9 +3,10 @@
 #include "Mesh.h"
 #include "stb/stb_image.h"
 
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
+#pragma comment(lib, "assimp-vc143-mtd.lib")
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 //#include "assimp/material.h"
 
 namespace Nickel::Renderer {
@@ -28,7 +29,7 @@ namespace Nickel::Renderer {
 		auto Init(ID3D11Device1* _device) -> void;
 		
 		// NOTE: supports BMP, JPEG, PNG, TIFF, GIF
-		auto LoadTexture(std::wstring path)->DXLayer::TextureDX11;
+		auto LoadTexture(std::wstring path)->DXLayer11::TextureDX11;
 		auto LoadImageData(std::string path)->LoadedImageData;
 		auto LoadHDRImageData(std::string path)->LoadedImageData;
 		auto ProcessMesh(const aiMesh& mesh, const aiScene& scene)->MeshData;
@@ -54,6 +55,6 @@ namespace Nickel::Renderer {
 
 	private:
 		ID3D11Device1* device;
-		std::vector<DXLayer::TextureDX11> loadedTextures = std::vector<DXLayer::TextureDX11>();
+		std::vector<DXLayer11::TextureDX11> loadedTextures = std::vector<DXLayer11::TextureDX11>();
 	};
 }

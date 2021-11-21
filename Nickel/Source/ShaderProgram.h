@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Renderer/DirectXIncludes.h"
+#include "Renderer/Direct3D11/DirectX11Includes.h"
 #include <variant>
 
-namespace Nickel::Renderer::DXLayer {
+namespace Nickel::Renderer::DXLayer11 {
 	enum class ShaderType {
 		Vertex,
 		Hull,

@@ -252,9 +252,6 @@
     <ClInclude Include="Source\Background.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\DirectXIncludes.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\DX11Layer.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
@@ -275,6 +272,15 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Core.h">
       <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\DirectX12Includes.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\CommonDirectXIncludes.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\DirectX11Includes.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
