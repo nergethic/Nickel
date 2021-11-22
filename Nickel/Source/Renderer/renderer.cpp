@@ -32,6 +32,10 @@ namespace Nickel::Renderer {
 		return SetPlatformInterface(platform) && gfx.Init();
 	}
 
+	auto Render() -> void {
+		gfx.Render();
+	}
+
 	auto Shutdown() -> void {
 
 	}

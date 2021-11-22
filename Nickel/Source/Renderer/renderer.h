@@ -233,6 +233,7 @@ namespace Nickel::Renderer {
 	auto Init(GraphicsPlatform platform) -> bool;
 	auto Initialize(HWND handle, u32 clientWidth, u32 clientHeight) -> RendererState;
 	auto Shutdown() -> void;
+	auto Render() -> void;
 }
 
 

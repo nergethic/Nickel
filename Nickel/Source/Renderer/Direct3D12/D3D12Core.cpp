@@ -7,6 +7,70 @@ namespace {
 	ID3D12Device8* mainDevice = nullptr;
 	IDXGIFactory7* dxgiFactory = nullptr;
 
+	class D3D12Command {
+	public:
+		explicit D3D12Command(ID3D12Device8& device, D3D12_COMMAND_LIST_TYPE type) {
+			D3D12_COMMAND_QUEUE_DESC desc{
+				.Type = type,
+				.Priority = D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+				.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE,
+				.NodeMask = 0,
+			};
+			ASSERT_ERROR_RESULT(device.CreateCommandQueue(&desc, IID_PPV_ARGS(&cmdQueue)));
+			cmdQueue->SetName(type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT ?
+				L"GFX cmd queue" :
+				type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE ?
+				L"compute cmd queue" : L"cmd queue");
+
+			for (u32 i = 0; i < ArrayCount(cmdFrames); i++) {
+				CommandFrame& frame = cmdFrames[i];
+				ASSERT_ERROR_RESULT(device.CreateCommandAllocator(type, IID_PPV_ARGS(&frame.cmdAllocator)));
+				frame.cmdAllocator[i].SetName(L"cmd allocator " + i);
+			}
+
+			ASSERT_ERROR_RESULT(device.CreateCommandList(0, type, cmdFrames[0].cmdAllocator, nullptr, IID_PPV_ARGS(&cmdList)));
+			ASSERT_ERROR_RESULT(cmdList->Close());
+			cmdList->SetName(type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT ?
+				L"GFX cmd list" :
+				type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE ?
+				L"compute cmd queue" : L"cmd list");
+		}
+
+		auto BeginFrame() -> void {
+			CommandFrame& cmdFrame = cmdFrames[currentFrameIndex];
+			cmdFrame.Wait();
+			ASSERT_ERROR_RESULT(cmdFrame.cmdAllocator->Reset()); // frees memory used by previously recorded commands
+			cmdList->Reset(cmdFrame.cmdAllocator, nullptr);
+		}
+
+		auto EndFrame() -> void {
+			ASSERT_ERROR_RESULT(cmdList->Close());
+			ID3D12CommandList* const cmdLists[]{ cmdList };
+			cmdQueue->ExecuteCommandLists(ArrayCount(cmdLists), cmdLists);
+			currentFrameIndex = (currentFrameIndex + 1) % ArrayCount(cmdFrames);
+		}
+
+	private:
+		struct CommandFrame {
+			ID3D12CommandAllocator* cmdAllocator = nullptr;
+
+			auto Wait() -> void {
+
+			}
+
+			auto Release() -> void {
+				SafeRelease(cmdAllocator);
+			}
+		};
+
+		ID3D12CommandQueue* cmdQueue = nullptr;
+		ID3D12GraphicsCommandList6* cmdList = nullptr;
+		CommandFrame cmdFrames[3] = {};
+		u32 currentFrameIndex = 0;
+	};
+
+	
+
 	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_1; // NOTE: we need mesh shaders support
 
 	auto GetMainAdapter() -> IDXGIAdapter4* {
@@ -87,5 +151,9 @@ auto Shutdown() -> void {
 
 	SafeRelease(mainDevice);
 	SafeRelease(dxgiFactory);
+}
+
+auto Render() -> void {
+
 }
 }

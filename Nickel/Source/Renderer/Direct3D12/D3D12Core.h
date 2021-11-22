@@ -4,4 +4,5 @@
 namespace Nickel::Renderer::DX12Layer::Core {
 	auto Init() -> bool;
 	auto Shutdown() -> void;
+	auto Render() -> void;
 }
