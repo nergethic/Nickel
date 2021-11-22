@@ -28,6 +28,7 @@ namespace Nickel::Renderer {
 	}
 
 	auto Init(GraphicsPlatform platform) -> bool {
+		Logger::Init(); // TODO: super ugly, figure out where to initialize this
 		return SetPlatformInterface(platform) && gfx.Init();
 	}
 
@@ -36,8 +37,6 @@ namespace Nickel::Renderer {
 	}
 
 	auto Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {
-		Logger::Init(); // TODO: super ugly, figure out where to initialize this
-
 		if (!XMVerifyCPUSupport()) {
 			MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
 			Logger::Critical("XMVerifyCPUSupport failed");

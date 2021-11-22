@@ -4,20 +4,15 @@ using namespace Microsoft::WRL;
 
 namespace Nickel::Renderer::DX12Layer::Core {
 namespace {
-	ID3D12Device9* mainDevice = nullptr;
+	ID3D12Device8* mainDevice = nullptr;
 	IDXGIFactory7* dxgiFactory = nullptr;
 
-	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL_12_2; // NOTE: we need mesh shaders support
+	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_1; // NOTE: we need mesh shaders support
 
 	auto GetMainAdapter() -> IDXGIAdapter4* {
 		IDXGIAdapter4* adapter = nullptr;
 		for (u32 i = 0; i < dxgiFactory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)) != DXGI_ERROR_NOT_FOUND; i++) {
 			if (SUCCEEDED(D3D12CreateDevice(adapter, targetRequiredFeatureLevel, __uuidof(ID3D12Device), nullptr))) {
-				D3D12_FEATURE_DATA_D3D12_OPTIONS7 featureData{};
-				mainDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &featureData, sizeof(featureData));
-				if (featureData.MeshShaderTier == 0) // D3D12DDI_MESH_SHADER_TIER_NOT_SUPPORTED
-					continue;
-
 				return adapter;
 			}
 			SafeRelease(adapter);
@@ -34,7 +29,7 @@ auto Init() -> bool {
 	u32 dxgiFactoryFlags = 0;
 	if constexpr (_DEBUG) {
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-		ComPtr<ID3D12Debug5> debugInterface;
+		ComPtr<ID3D12Debug3> debugInterface;
 		ASSERT_ERROR_RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
 		debugInterface->EnableDebugLayer();
 		debugInterface->SetEnableGPUBasedValidation(TRUE); // NOTE: this makes things run super slow 
@@ -45,10 +40,19 @@ auto Init() -> bool {
 
 	ComPtr<IDXGIAdapter4> mainAdapter;
 	mainAdapter.Attach(GetMainAdapter());
-	if (mainAdapter == nullptr)
+	if (mainAdapter == nullptr) {
+		Logger::Error("Couldn't find appriopriate adapter");
 		return false;
+	}
 
 	ASSERT_ERROR_RESULT(D3D12CreateDevice(mainAdapter.Get(), targetRequiredFeatureLevel, IID_PPV_ARGS(&mainDevice)));
+	D3D12_FEATURE_DATA_D3D12_OPTIONS7 featureData{};
+	mainDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &featureData, sizeof(featureData));
+	if (featureData.MeshShaderTier == 0) { // D3D12DDI_MESH_SHADER_TIER_NOT_SUPPORTED
+		Logger::Error("Mesh shaders aren't supported on created device");
+		return false;
+	}
+		
 
 	mainDevice->SetName(L"Main DX12 device");
 

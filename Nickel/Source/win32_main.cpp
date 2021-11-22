@@ -336,8 +336,9 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
 	Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
-	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
-	InitializeImGui(wndHandle, rs);
+	//RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+	Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D12);
+	//InitializeImGui(wndHandle, rs);
 
 	GameMemory gameMemory{};
 	Win32State win32State{};
@@ -351,7 +352,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	GameInput *oldInput = &input[1];
 
 	if (!gameMemory.isInitialized) {
-		Nickel::Initialize(&gameMemory, &rs);
+		//Nickel::Initialize(&gameMemory, &rs);
 		gameMemory.isInitialized = true;
 	}
 
@@ -390,14 +391,14 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 		newInput->normalizedMouseY = mouseY / (clientWidth-1);
 
 		Win32ProcessPendingMessages(newKeyboardController);
-		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
+		//Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);
 	}
 
-	ImGui_ImplDX11_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
+	//ImGui_ImplDX11_Shutdown();
+	//ImGui_ImplWin32_Shutdown();
+	//ImGui::DestroyContext();
 
 	spdlog::drop_all(); // Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 }
