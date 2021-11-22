@@ -9,6 +9,7 @@
 #include <sstream>
 #include <span>
 #include <variant>
+#include <mutex>
 
 #include "Logger.h"
 

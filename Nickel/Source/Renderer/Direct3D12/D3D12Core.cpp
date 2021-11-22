@@ -4,11 +4,18 @@ using namespace Microsoft::WRL;
 
 namespace Nickel::Renderer::DX12Layer::Core {
 namespace {
-	ID3D12Device8* mainDevice = nullptr;
-	IDXGIFactory7* dxgiFactory = nullptr;
-
 	class D3D12Command {
 	public:
+		constexpr auto GetCmdQueue() const -> ID3D12CommandQueue* const { return cmdQueue; }
+		constexpr auto GetCmdList() -> ID3D12GraphicsCommandList6* { return cmdList; }
+		constexpr auto GetCurrentFrameIndex() const -> u32{ return currentFrameIndex; }
+
+		D3D12Command() = default;
+		explicit D3D12Command(D3D12Command& o) = delete;
+		explicit D3D12Command(D3D12Command&& o) = delete;
+		auto operator=(const D3D12Command&) -> D3D12Command& = delete;
+		auto operator=(const D3D12Command&&) -> D3D12Command& = delete;
+
 		explicit D3D12Command(ID3D12Device8& device, D3D12_COMMAND_LIST_TYPE type) {
 			D3D12_COMMAND_QUEUE_DESC desc{
 				.Type = type,
@@ -16,7 +23,8 @@ namespace {
 				.Flags = D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE,
 				.NodeMask = 0,
 			};
-			ASSERT_ERROR_RESULT(device.CreateCommandQueue(&desc, IID_PPV_ARGS(&cmdQueue)));
+
+			device.CreateCommandQueue(&desc, IID_PPV_ARGS(&cmdQueue));
 			cmdQueue->SetName(type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT ?
 				L"GFX cmd queue" :
 				type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE ?
@@ -25,7 +33,7 @@ namespace {
 			for (u32 i = 0; i < ArrayCount(cmdFrames); i++) {
 				CommandFrame& frame = cmdFrames[i];
 				ASSERT_ERROR_RESULT(device.CreateCommandAllocator(type, IID_PPV_ARGS(&frame.cmdAllocator)));
-				frame.cmdAllocator[i].SetName(L"cmd allocator " + i);
+				frame.cmdAllocator->SetName(L"cmd allocator " + i);
 			}
 
 			ASSERT_ERROR_RESULT(device.CreateCommandList(0, type, cmdFrames[0].cmdAllocator, nullptr, IID_PPV_ARGS(&cmdList)));
@@ -34,11 +42,22 @@ namespace {
 				L"GFX cmd list" :
 				type == D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE ?
 				L"compute cmd queue" : L"cmd list");
+
+			ASSERT_ERROR_RESULT(device.CreateFence(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+			fence->SetName(L"Fence");
+			fenceEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+			Assert(fenceEvent);
+		}
+
+		~D3D12Command() {
+			Assert(cmdQueue == nullptr);
+			Assert(cmdList == nullptr);
+			Assert(fence == nullptr);
 		}
 
 		auto BeginFrame() -> void {
-			CommandFrame& cmdFrame = cmdFrames[currentFrameIndex];
-			cmdFrame.Wait();
+			auto& cmdFrame = GetCurrentFrame();
+			cmdFrame.Wait(fenceEvent, fence);
 			ASSERT_ERROR_RESULT(cmdFrame.cmdAllocator->Reset()); // frees memory used by previously recorded commands
 			cmdList->Reset(cmdFrame.cmdAllocator, nullptr);
 		}
@@ -47,15 +66,47 @@ namespace {
 			ASSERT_ERROR_RESULT(cmdList->Close());
 			ID3D12CommandList* const cmdLists[]{ cmdList };
 			cmdQueue->ExecuteCommandLists(ArrayCount(cmdLists), cmdLists);
+
+			fenceValue++;
+			auto& cmdFrame = GetCurrentFrame();
+			cmdFrame.fenceValue = fenceValue;
+			cmdQueue->Signal(fence, fenceValue);
+
 			currentFrameIndex = (currentFrameIndex + 1) % ArrayCount(cmdFrames);
+		}
+
+		auto Flush() -> void {
+			for (int i = 0; i < ArrayCount(cmdFrames); i++)
+				cmdFrames[i].Wait(fenceEvent, fence);
+			currentFrameIndex = 0;
+		}
+
+		auto Release() -> void {
+			Flush();
+			SafeRelease(fence);
+			fenceValue = 0;
+
+			CloseHandle(fenceEvent);
+			fenceEvent = nullptr;
+
+			SafeRelease(cmdQueue);
+			SafeRelease(cmdList);
+
+			for (int i = 0; i < ArrayCount(cmdFrames); i++)
+				cmdFrames[i].Release();
 		}
 
 	private:
 		struct CommandFrame {
 			ID3D12CommandAllocator* cmdAllocator = nullptr;
+			u64 fenceValue = 0;
 
-			auto Wait() -> void {
-
+			auto Wait(HANDLE fenceEvent, ID3D12Fence* fence) -> void {
+				Assert(fenceEvent && fence != nullptr);
+				if (fence->GetCompletedValue() < fenceValue) {
+					fence->SetEventOnCompletion(fenceValue, fenceEvent);
+					WaitForSingleObject(fenceEvent, INFINITE);
+				}
 			}
 
 			auto Release() -> void {
@@ -63,13 +114,22 @@ namespace {
 			}
 		};
 
+		auto GetCurrentFrame() -> CommandFrame& {
+			return cmdFrames[currentFrameIndex];
+		}
+
 		ID3D12CommandQueue* cmdQueue = nullptr;
 		ID3D12GraphicsCommandList6* cmdList = nullptr;
 		CommandFrame cmdFrames[3] = {};
 		u32 currentFrameIndex = 0;
+		ID3D12Fence* fence = nullptr;
+		HANDLE fenceEvent = nullptr;
+		u64 fenceValue = 0;
 	};
 
-	
+	ID3D12Device8* mainDevice = nullptr;
+	IDXGIFactory7* dxgiFactory = nullptr;
+	D3D12Command cmd;
 
 	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_1; // NOTE: we need mesh shaders support
 
@@ -120,6 +180,7 @@ auto Init() -> bool {
 
 	mainDevice->SetName(L"Main DX12 device");
 
+	/*
 	if constexpr (_DEBUG) {
 		ComPtr<ID3D12InfoQueue> infoQueue;
 		ASSERT_ERROR_RESULT(mainDevice->QueryInterface(IID_PPV_ARGS(&infoQueue)));
@@ -128,13 +189,20 @@ auto Init() -> bool {
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
 		infoQueue->Release();
 	}
+	*/
+
+	new (&cmd) D3D12Command(*mainDevice, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
+	if (cmd.GetCmdQueue() == nullptr)
+		return false;
 
 	return true;
 }
 
 auto Shutdown() -> void {
+	cmd.Release();
+	
 	if constexpr (_DEBUG) {
-		ComPtr<ID3D12InfoQueue> infoQueue;
+		ID3D12InfoQueue* infoQueue;
 		ASSERT_ERROR_RESULT(mainDevice->QueryInterface(IID_PPV_ARGS(&infoQueue)));
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_WARNING, false);
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_ERROR, false);
@@ -148,12 +216,18 @@ auto Shutdown() -> void {
 			D3D12_RLDO_FLAGS::D3D12_RLDO_DETAIL |
 			D3D12_RLDO_FLAGS::D3D12_RLDO_IGNORE_INTERNAL));
 	}
-
+	
 	SafeRelease(mainDevice);
 	SafeRelease(dxgiFactory);
 }
 
 auto Render() -> void {
+	cmd.BeginFrame();
+	ID3D12GraphicsCommandList6* cmdList = cmd.GetCmdList();
+	cmd.EndFrame();
+}
 
+auto GetDevice()->ID3D12Device* const {
+	return mainDevice;
 }
 }

@@ -399,6 +399,6 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	//ImGui_ImplDX11_Shutdown();
 	//ImGui_ImplWin32_Shutdown();
 	//ImGui::DestroyContext();
-
+	Nickel::Renderer::Shutdown();
 	spdlog::drop_all(); // Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 }

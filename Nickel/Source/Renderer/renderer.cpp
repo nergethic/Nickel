@@ -37,7 +37,7 @@ namespace Nickel::Renderer {
 	}
 
 	auto Shutdown() -> void {
-
+		gfx.Shutdown();
 	}
 
 	auto Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {
