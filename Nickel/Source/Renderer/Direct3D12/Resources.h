@@ -30,6 +30,7 @@ namespace Nickel::Renderer::DX12Layer {
 		auto operator=(const DescriptorHeap&&) -> DescriptorHeap & = delete;
 
 		auto Initialize(u32 capacity, bool isShaderVisible) -> bool;
+		auto ProcessDeferredFree(u32 frameIndex) -> void;
 		auto Release() -> void;
 
 		[[nodiscard]] auto Allocate() -> DescriptorHandle;
@@ -53,6 +54,7 @@ namespace Nickel::Renderer::DX12Layer {
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuStartAddressHandle{};
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuStartAddressHandle{};
 		std::unique_ptr<u32[]> freeHandles{};
+		std::vector<u32> deferredFreeIndices[3]{};
 		std::mutex mutex;
 		u32 capacity = 0;
 		u32 size = 0;

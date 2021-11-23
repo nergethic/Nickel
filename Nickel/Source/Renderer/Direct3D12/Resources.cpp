@@ -32,6 +32,9 @@ namespace Nickel::Renderer::DX12Layer {
 
 		for (u32 i = 0; i < capacity; i++)
 			freeHandles[i] = i;
+		for (u32 i = 0; i < 3; i++) {
+			Assert(deferredFreeIndices[i].empty());
+		}
 
 		descriptorSize = device->GetDescriptorHandleIncrementSize(type);
 		cpuStartAddressHandle = heap->GetCPUDescriptorHandleForHeapStart();
@@ -41,7 +44,22 @@ namespace Nickel::Renderer::DX12Layer {
 	}
 
 	auto DescriptorHeap::Release() -> void {
+		Assert(size == 0);
+		Core::SafeDeferredRelease(heap);
+	}
 
+	auto DescriptorHeap::ProcessDeferredFree(u32 frameIndex) -> void {
+		std::lock_guard lock{ mutex };
+		Assert(frameIndex < 3);
+
+		std::vector<u32>& indices{ deferredFreeIndices[frameIndex] }; // TODO: change to custom vector
+		if (!indices.empty()) {
+			for (auto index : indices) {
+				size--;
+				freeHandles[size] = index;
+			}
+			indices.clear();
+		}
 	}
 
 	[[nodiscard]] auto DescriptorHeap::Allocate() -> DescriptorHandle {
@@ -82,7 +100,9 @@ namespace Nickel::Renderer::DX12Layer {
 		const u32 index = static_cast<u32>(handle.cpu.ptr - cpuStartAddressHandle.ptr) / descriptorSize;
 		Assert(handle.index == index);
 
-		// TODO: implement defered free system, other threads could be using a heap so we need to wait until they are done with it and then free
+		const u32 frameIndex = Core::GetCurrentFrameIndex();
+		deferredFreeIndices[frameIndex].push_back(index);
+		Core::SetDeferredReleasesFlag();
 		handle = {};
 	}
 }

@@ -1,4 +1,5 @@
 #include "D3D12Core.h"
+#include "Resources.h"
 
 using namespace Microsoft::WRL;
 
@@ -111,6 +112,7 @@ namespace {
 
 			auto Release() -> void {
 				SafeRelease(cmdAllocator);
+				fenceValue = 0;
 			}
 		};
 
@@ -130,6 +132,13 @@ namespace {
 	ID3D12Device8* mainDevice = nullptr;
 	IDXGIFactory7* dxgiFactory = nullptr;
 	D3D12Command cmd;
+	u32 deferredReleasesFlag[3]{};
+	std::mutex deferredReleasesMutex{};
+	std::vector<IUnknown*> deferredReleases[3]{}; // TODO: change to utility vector
+	DescriptorHeap rtvDescHeap{ D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV };
+	DescriptorHeap dsvDescHeap{ D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV };
+	DescriptorHeap srvDescHeap{ D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+	DescriptorHeap uavDescHeap{ D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
 
 	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_1; // NOTE: we need mesh shaders support
 
@@ -146,6 +155,32 @@ namespace {
 	}
 }
 
+auto __declspec(noinline) ProcessDeferredReleases(u32 frameIndex) -> void {
+	std::lock_guard lock{ deferredReleasesMutex };
+	deferredReleasesFlag[frameIndex] = 0;
+
+	rtvDescHeap.ProcessDeferredFree(frameIndex);
+	dsvDescHeap.ProcessDeferredFree(frameIndex);
+	srvDescHeap.ProcessDeferredFree(frameIndex);
+	uavDescHeap.ProcessDeferredFree(frameIndex);
+
+	std::vector<IUnknown*>& resources{ deferredReleases[frameIndex] }; // TODO: change to utility
+	if (!resources.empty()) {
+		for (auto& r : resources)
+			SafeRelease(r);
+		resources.clear();
+	}
+}
+
+namespace Internal {
+	auto DeferredRelease(IUnknown* ptr) -> void {
+		const u32 frameIndex = GetCurrentFrameIndex();
+		std::lock_guard lock{ deferredReleasesMutex };
+		deferredReleases[frameIndex].push_back(ptr);
+		SetDeferredReleasesFlag();
+	}
+}
+
 auto Init() -> bool {
 	if (mainDevice != nullptr)
 		Shutdown();
@@ -154,10 +189,12 @@ auto Init() -> bool {
 	if constexpr (_DEBUG) {
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 		ComPtr<ID3D12Debug3> debugInterface;
-		ASSERT_ERROR_RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
-		debugInterface->EnableDebugLayer();
-		debugInterface->SetEnableGPUBasedValidation(TRUE); // NOTE: this makes things run super slow 
-		debugInterface->Release();
+		if SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface))) {
+			debugInterface->EnableDebugLayer();
+			debugInterface->SetEnableGPUBasedValidation(TRUE); // NOTE: this makes things run super slow 
+			debugInterface->Release();
+		} else
+			Logger::Error("Debug interface cannot be created. Check if Graphics Tools option is enabled in this system");
 	}
 
 	ASSERT_ERROR_RESULT(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
@@ -180,16 +217,27 @@ auto Init() -> bool {
 
 	mainDevice->SetName(L"Main DX12 device");
 
-	/*
 	if constexpr (_DEBUG) {
-		ComPtr<ID3D12InfoQueue> infoQueue;
+		ID3D12InfoQueue* infoQueue;
 		ASSERT_ERROR_RESULT(mainDevice->QueryInterface(IID_PPV_ARGS(&infoQueue)));
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_WARNING, true);
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_ERROR, true);
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY::D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
 		infoQueue->Release();
 	}
-	*/
+
+	bool heapInitResult = true;
+	heapInitResult &= rtvDescHeap.Initialize(512, false);
+	heapInitResult &= dsvDescHeap.Initialize(512, false);
+	heapInitResult &= srvDescHeap.Initialize(4096, true);
+	heapInitResult &= uavDescHeap.Initialize(512, true);
+	if (!heapInitResult)
+		return false;
+
+	rtvDescHeap.GetHeap()->SetName(L"RTV Descriptor Heap");
+	dsvDescHeap.GetHeap()->SetName(L"DSV Descriptor Heap");
+	srvDescHeap.GetHeap()->SetName(L"SRV Descriptor Heap");
+	uavDescHeap.GetHeap()->SetName(L"UAV Descriptor Heap");
 
 	new (&cmd) D3D12Command(*mainDevice, D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT);
 	if (cmd.GetCmdQueue() == nullptr)
@@ -200,6 +248,16 @@ auto Init() -> bool {
 
 auto Shutdown() -> void {
 	cmd.Release();
+
+	for (u32 i = 0; i < 3; i++)
+		ProcessDeferredReleases(i);
+
+	rtvDescHeap.Release();
+	dsvDescHeap.Release();
+	srvDescHeap.Release();
+	uavDescHeap.Release();
+
+	ProcessDeferredReleases(0);
 	
 	if constexpr (_DEBUG) {
 		ID3D12InfoQueue* infoQueue;
@@ -224,10 +282,23 @@ auto Shutdown() -> void {
 auto Render() -> void {
 	cmd.BeginFrame();
 	ID3D12GraphicsCommandList6* cmdList = cmd.GetCmdList();
+
+	const u32 frameIndex = GetCurrentFrameIndex();
+	if (deferredReleasesFlag[frameIndex]) {
+		ProcessDeferredReleases(frameIndex);
+	}
 	cmd.EndFrame();
 }
 
 auto GetDevice()->ID3D12Device* const {
 	return mainDevice;
+}
+
+auto GetCurrentFrameIndex() -> u32 {
+	return cmd.GetCurrentFrameIndex();
+}
+
+auto SetDeferredReleasesFlag() -> void {
+	deferredReleasesFlag[GetCurrentFrameIndex()] = 1;
 }
 }
