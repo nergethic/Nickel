@@ -172,6 +172,9 @@
     <ClCompile Include="Source\Renderer\Direct3D12\Resources.cpp">
       <Filter>Source Files\Renderer\Direct3D12</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Surface.cpp">
+      <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
@@ -286,6 +289,12 @@
       <Filter>Header Files\Renderer\Direct3D11</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D12\Resources.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Surface.h">
       <Filter>Header Files\Renderer\Direct3D12</Filter>
     </ClInclude>
   </ItemGroup>

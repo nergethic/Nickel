@@ -32,12 +32,41 @@ namespace Nickel::Renderer {
 		return SetPlatformInterface(platform) && gfx.Init();
 	}
 
+	auto Shutdown() -> void {
+		gfx.Shutdown();
+	}
+
 	auto Render() -> void {
 		gfx.Render();
 	}
 
-	auto Shutdown() -> void {
-		gfx.Shutdown();
+	auto CreateSurface(Platform::Window window) -> Surface {
+		return gfx.Surface.Create(window);
+	}
+
+	auto RemoveSurface(SurfaceId id) -> void {
+		Assert(Id::IsValid(id));
+		gfx.Surface.Remove(id);
+	}
+
+	auto Surface::Resize(u32 width, u32 height) const -> void {
+		Assert(IsValid());
+		gfx.Surface.Resize(id, width, height);
+	}
+
+	auto Surface::GetWidth() const -> u32 {
+		Assert(IsValid());
+		return gfx.Surface.GetWidth(id);
+	}
+
+	auto Surface::GetHeight() const -> u32 {
+		Assert(IsValid());
+		return gfx.Surface.GetHeight(id);
+	}
+
+	auto Surface::Render() const -> void {
+		Assert(IsValid());
+		return gfx.Surface.Render(id);
 	}
 
 	auto Initialize(HWND wndHandle, u32 clientWidth, u32 clientHeight) -> RendererState {

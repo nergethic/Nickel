@@ -19,6 +19,7 @@
 // WRL
 #include <wrl/client.h>
 #include "../Platform.h"
+#include "../Window.h"
 
 #include <DirectXTex.h>
 

@@ -141,6 +141,7 @@ namespace {
 	DescriptorHeap uavDescHeap{ D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
 
 	constexpr D3D_FEATURE_LEVEL targetRequiredFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_1; // NOTE: we need mesh shaders support
+	constexpr DXGI_FORMAT defaultRenderTargetFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
 	auto GetMainAdapter() -> IDXGIAdapter4* {
 		IDXGIAdapter4* adapter = nullptr;
@@ -300,5 +301,25 @@ auto GetCurrentFrameIndex() -> u32 {
 
 auto SetDeferredReleasesFlag() -> void {
 	deferredReleasesFlag[GetCurrentFrameIndex()] = 1;
+}
+
+auto GetRtvHeap() -> DescriptorHeap& {
+	return rtvDescHeap;
+}
+
+auto GetDsvHeap() -> DescriptorHeap& {
+	return dsvDescHeap;
+}
+
+auto GetSrvHeap() -> DescriptorHeap& {
+	return srvDescHeap;
+}
+
+auto GetUavHeap() -> DescriptorHeap& {
+	return uavDescHeap;
+}
+
+auto GetDefaultRenderTargetFormat() -> DXGI_FORMAT {
+	return defaultRenderTargetFormat;
 }
 }

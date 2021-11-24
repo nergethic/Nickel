@@ -1,6 +1,10 @@
 #pragma once
 #include "DirectX12Includes.h"
 
+namespace Nickel::Renderer::DX12Layer {
+	class DescriptorHeap;
+}
+
 namespace Nickel::Renderer::DX12Layer::Core {
 	auto Init() -> bool;
 	auto Shutdown() -> void;
@@ -9,6 +13,11 @@ namespace Nickel::Renderer::DX12Layer::Core {
 	auto GetDevice() -> ID3D12Device *const;
 	auto GetCurrentFrameIndex() -> u32;
 	auto SetDeferredReleasesFlag() -> void;
+	auto GetDefaultRenderTargetFormat() -> DXGI_FORMAT;
+	auto GetRtvHeap() -> DescriptorHeap&;
+	auto GetDsvHeap() -> DescriptorHeap&;
+	auto GetSrvHeap() -> DescriptorHeap&;
+	auto GetUavHeap() -> DescriptorHeap&;
 
 	namespace Internal {
 		auto DeferredRelease(IUnknown* ptr) -> void;
