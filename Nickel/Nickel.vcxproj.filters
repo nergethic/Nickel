@@ -175,12 +175,12 @@
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Surface.cpp">
       <Filter>Source Files\Renderer\Direct3D12</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\RendererInterface.cpp">
+      <Filter>Header Files\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ObjLoader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Shaders\PixelShader.h">
@@ -296,6 +296,24 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Surface.h">
       <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\RendererInterface.h">
+      <Filter>Header Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CommonHeaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FreeList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ObjLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

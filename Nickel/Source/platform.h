@@ -1,17 +1,9 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
-#include <utility>
-#include <type_traits>
-#include <intrin.h>
+#include "CommonHeaders.h"
 #include <source_location>
-#include <string>
-#include <sstream>
-#include <span>
-#include <variant>
-#include <mutex>
 
 #include "Logger.h"
+#include "Utilities.h"
 
 #include "imgui/imgui.h";
 #include "imgui/imgui_impl_win32.h";
@@ -38,28 +30,6 @@ inline auto GetSourceLocation(const std::source_location& loc) -> std::string {
 #else
 #define Assert(expr) {}
 #endif
-
-
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
-#define Kilobytes(Value) ((Value)*1024LL)
-#define Megabytes(Value) (Kilobytes(Value)*1024LL)
-#define Gigabytes(Value) (Megabytes(Value)*1024LL)
-#define Terabytes(Value) (Gigabytes(Value)*1024LL)
-
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef i32 bool32;
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef float f32;
-typedef double f64;
 
 //struct MemoryPool {
 //	size_t base;

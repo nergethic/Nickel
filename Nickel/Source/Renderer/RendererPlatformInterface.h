@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer.h"
+#include "RendererInterface.h"
 
 namespace Nickel::Renderer {
 	struct PlatformInterface {

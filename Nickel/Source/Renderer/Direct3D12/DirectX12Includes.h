@@ -11,6 +11,9 @@
 
 #include "../CommonDirectXIncludes.h"
 
+#include "../RendererInterface.h"
+#include "../../Window.h"
+
 namespace Nickel::Renderer::DXLayer12 {
 #include "DirectXTK12/WICTextureLoader.h"
 }
