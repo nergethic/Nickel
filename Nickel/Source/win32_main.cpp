@@ -107,6 +107,9 @@ auto Win32ProcessPendingMessages(GameControllerInput *keyboardController) -> voi
 						if ((VKCode == VK_F4) && altKeyWasDown) {
 							running = false;
 						}
+						if (VKCode == VK_ESCAPE) {
+							running = false;
+						}
 
 						if ((VKCode == VK_RETURN) && altKeyWasDown) {
 							if (message.hwnd) {
@@ -157,8 +160,9 @@ auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LR
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
 		case WM_KEYDOWN:
+		case WM_SYSCHAR:
 		case WM_KEYUP: {
-			// input comes through a non-dispatch message
+			// NOTE: input comes through a non-dispatch message
 		} break;
 
 		case WM_PAINT: {
