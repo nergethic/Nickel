@@ -360,6 +360,7 @@ namespace Nickel {
 		DXLayer11::ClearFlag clearFlag = DXLayer11::ClearFlag::CLEAR_COLOR | DXLayer11::ClearFlag::CLEAR_DEPTH;
 		DXLayer11::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
+		/*
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -367,6 +368,7 @@ namespace Nickel {
 		ImGui::Begin("Hello imgui    ");
 		ImGui::Text("Lorem Ipsum     ");
 		ImGui::End();
+		*/
 		
 		/*
 		DescribedMesh meshes[3];
@@ -431,8 +433,10 @@ namespace Nickel {
 		// rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
 		// DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
 		
+		/*
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		*/
 		rs->swapChain->Present(1, 0);
 
 		previousMouseX = input->normalizedMouseX;

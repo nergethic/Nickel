@@ -178,6 +178,9 @@
     <ClCompile Include="Source\Renderer\RendererInterface.cpp">
       <Filter>Header Files\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Source\imgui\imgui_impl_dx12.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
@@ -314,6 +317,9 @@
     </ClInclude>
     <ClInclude Include="Source\Utilities.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\imgui\imgui_impl_dx12.h">
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

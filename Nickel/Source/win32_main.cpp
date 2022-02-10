@@ -264,6 +264,7 @@ auto InitializeImGui(HWND wndHandle, const RendererState& rs) -> void {
 	ImGui::StyleColorsDark();
 	ImGui_ImplWin32_Init(wndHandle);
 	ImGui_ImplDX11_Init(rs.device.Get(), rs.cmdQueue.queue.Get());
+	//ImGui_ImplDX12_Init(rs.device.Get(), rs.cmdQueue.queue.Get());
 
 	ImGuiStyle* style = &ImGui::GetStyle();
 	ImVec4* colors = style->Colors;
@@ -374,7 +375,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 
 	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
 	//Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D11);
-	InitializeImGui(wndHandle, rs);
+	//InitializeImGui(wndHandle, rs);
 
 	GameMemory gameMemory{};
 	Win32State win32State{};

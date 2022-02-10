@@ -309,6 +309,7 @@
     <ClCompile Include="Source\imgui\imgui_demo.cpp" />
     <ClCompile Include="Source\imgui\imgui_draw.cpp" />
     <ClCompile Include="Source\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Source\imgui\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\imgui\imgui_tables.cpp" />
     <ClCompile Include="Source\imgui\imgui_widgets.cpp" />
@@ -340,6 +341,7 @@
     <ClInclude Include="Source\imgui\imconfig.h" />
     <ClInclude Include="Source\imgui\imgui.h" />
     <ClInclude Include="Source\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="Source\imgui\imgui_impl_dx12.h" />
     <ClInclude Include="Source\imgui\imgui_impl_win32.h" />
     <ClInclude Include="Source\imgui\imgui_internal.h" />
     <ClInclude Include="Source\imgui\imstb_rectpack.h" />
