@@ -37,7 +37,7 @@ namespace Nickel::Renderer::DX12Layer {
 			.Scaling = DXGI_SCALING_STRETCH,
 			.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD,
 			.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED,
-			.Flags = 0
+			.Flags = allowTearing ? DXGI_SWAP_CHAIN_FLAG::DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : static_cast<UINT>(0)
 		};
 
 		IDXGISwapChain1* tempSwapChain;
