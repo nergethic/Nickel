@@ -322,6 +322,31 @@ auto InitializeImGui(HWND wndHandle, const RendererState& rs) -> void {
 	style->WindowRounding = 4.0f;
 }
 
+auto UpdateCursorPos(HWND wndHandle, RECT clipRect, u32 clientHeight, u32 clientWidth, GameInput& newInput) -> void {
+	ClipCursor(&clipRect);
+
+	POINT mousePos;
+	GetCursorPos(&mousePos);
+	ScreenToClient(wndHandle, &mousePos);
+	f32 mouseX = static_cast<f32>(mousePos.x);
+	f32 mouseY = (f32)((clientHeight - 1) - mousePos.y);
+
+	newInput.mouseX = mouseX;
+	newInput.mouseY = mouseY;
+	newInput.normalizedMouseX = mouseX / clientWidth;
+	if (newInput.normalizedMouseX < 0.0f)
+		newInput.normalizedMouseX = 0.0f;
+	else if (newInput.normalizedMouseX > 1.0f)
+		newInput.normalizedMouseX = 1.0f;
+
+	if (newInput.normalizedMouseY < 0.0f)
+		newInput.normalizedMouseY = 0.0f;
+	else if (newInput.normalizedMouseY > 1.0f)
+		newInput.normalizedMouseY = 1.0f;
+
+	newInput.normalizedMouseY = mouseY / (clientWidth - 1);
+}
+
 auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) -> int {
 	//if (!InitializeWinMain(hInstance, "Title", "MyWndClassName", 800, 600))
 	//	return -1;
@@ -336,9 +361,9 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
 	Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
-	//RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
-	Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D12);
-	//InitializeImGui(wndHandle, rs);
+	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+	//Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D11);
+	InitializeImGui(wndHandle, rs);
 
 	GameMemory gameMemory{};
 	Win32State win32State{};
@@ -352,7 +377,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	GameInput *oldInput = &input[1];
 
 	if (!gameMemory.isInitialized) {
-		//Nickel::Initialize(&gameMemory, &rs);
+		Nickel::Initialize(&gameMemory, &rs);
 		gameMemory.isInitialized = true;
 	}
 
@@ -369,6 +394,15 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 			newKeyboardController->buttons[ButtonIndex].endedDown =
 				oldKeyboardController->buttons[ButtonIndex].endedDown;
 		}
+
+		RECT clientRect;
+		GetWindowRect(wndHandle, &clientRect);
+		UpdateCursorPos(wndHandle, clientRect, clientWidth, clientHeight, *newInput);
+		/*
+		RECT clientRect;
+		GetWindowRect(wndHandle, &clientRect);
+
+		ClipCursor(&clientRect);
 
 		POINT mousePos;
 		GetCursorPos(&mousePos);
@@ -389,9 +423,10 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 			newInput->normalizedMouseY = 1.0f;
 
 		newInput->normalizedMouseY = mouseY / (clientWidth-1);
+		*/
 
 		Win32ProcessPendingMessages(newKeyboardController);
-		//Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
+		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);
 	}
