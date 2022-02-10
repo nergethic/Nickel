@@ -129,7 +129,7 @@ auto Win32ProcessPendingMessages(GameControllerInput *keyboardController) -> voi
 	}
 }
 
-// invoked by DispatchMessageA
+// NOTE: Invoked by DispatchMessageA
 auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LRESULT {
 
 	PAINTSTRUCT paintStruct;
@@ -168,8 +168,13 @@ auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LR
 		case WM_PAINT: {
 			hDC = BeginPaint(Window, &paintStruct);
 			EndPaint(Window, &paintStruct);
-		}
-		break;
+		} break;
+
+		case WM_SETFOCUS: {
+			RECT clientRect;
+			GetWindowRect(Window, &clientRect);
+			ClipCursor(&clientRect);
+		} break;
 
 		//case WM_PAINT: {
 			//PAINTSTRUCT Paint;
@@ -326,9 +331,7 @@ auto InitializeImGui(HWND wndHandle, const RendererState& rs) -> void {
 	style->WindowRounding = 4.0f;
 }
 
-auto UpdateCursorPos(HWND wndHandle, RECT clipRect, u32 clientHeight, u32 clientWidth, GameInput& newInput) -> void {
-	ClipCursor(&clipRect);
-
+auto UpdateCursorPos(HWND wndHandle, u32 clientHeight, u32 clientWidth, GameInput& newInput) -> void {
 	POINT mousePos;
 	GetCursorPos(&mousePos);
 	ScreenToClient(wndHandle, &mousePos);
@@ -360,6 +363,10 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 
 	ShowWindow(wndHandle, nShowCmd);
 	UpdateWindow(wndHandle);
+
+	RECT clientRect;
+	GetWindowRect(wndHandle, &clientRect);
+	ClipCursor(&clientRect);
 
 	auto [clientWidth, clientHeight] = GetClientResolution(wndHandle);
 	Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
@@ -399,37 +406,9 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 				oldKeyboardController->buttons[ButtonIndex].endedDown;
 		}
 
-		RECT clientRect;
-		GetWindowRect(wndHandle, &clientRect);
-		UpdateCursorPos(wndHandle, clientRect, clientWidth, clientHeight, *newInput);
-		/*
-		RECT clientRect;
-		GetWindowRect(wndHandle, &clientRect);
-
-		ClipCursor(&clientRect);
-
-		POINT mousePos;
-		GetCursorPos(&mousePos);
-		ScreenToClient(wndHandle, &mousePos);
-		f32 mouseX = static_cast<f32>(mousePos.x);
-		f32 mouseY = (f32)((clientHeight-1) - mousePos.y);
-		newInput->mouseX = mouseX;
-		newInput->mouseY = mouseY;
-		newInput->normalizedMouseX = mouseX / clientWidth;
-		if (newInput->normalizedMouseX < 0.0f)
-			newInput->normalizedMouseX = 0.0f;
-		else if (newInput->normalizedMouseX > 1.0f)
-			newInput->normalizedMouseX = 1.0f;
-
-		if (newInput->normalizedMouseY < 0.0f)
-			newInput->normalizedMouseY = 0.0f;
-		else if (newInput->normalizedMouseY > 1.0f)
-			newInput->normalizedMouseY = 1.0f;
-
-		newInput->normalizedMouseY = mouseY / (clientWidth-1);
-		*/
-
 		Win32ProcessPendingMessages(newKeyboardController);
+
+		UpdateCursorPos(wndHandle, clientWidth, clientHeight, *newInput);
 		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);
