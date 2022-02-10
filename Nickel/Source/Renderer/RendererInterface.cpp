@@ -34,10 +34,6 @@ namespace Nickel::Renderer {
 		gfx.Shutdown();
 	}
 
-	auto Render() -> void {
-		gfx.Render();
-	}
-
 	auto CreateSurface(Platform::Window window) -> Surface {
 		return gfx.Surface.Create(window);
 	}

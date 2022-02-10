@@ -8,7 +8,6 @@ namespace Nickel::Renderer::DX12Layer {
 namespace Nickel::Renderer::DX12Layer::Core {
 	auto Init() -> bool;
 	auto Shutdown() -> void;
-	//auto Render() -> void;
 
 	namespace Internal {
 		auto DeferredRelease(IUnknown* ptr) -> void;
@@ -36,6 +35,5 @@ namespace Nickel::Renderer::DX12Layer::Core {
 	auto ResizeSurface(SurfaceId id, u32, u32) -> void;
 	auto GetSurfaceWidth(SurfaceId id) -> u32;
 	auto GetSurfaceHeight(SurfaceId id) -> u32;
-	auto GetRenderSurface(SurfaceId id) -> void;
 	auto RenderSurface(SurfaceId id) -> void;
 }

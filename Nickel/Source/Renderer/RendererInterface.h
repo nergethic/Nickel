@@ -28,7 +28,6 @@ namespace Nickel::Renderer {
 
 	auto Init(GraphicsPlatform platform) -> bool;
 	auto Shutdown() -> void;
-	auto Render() -> void;
 
 	auto CreateSurface(Platform::Window window)->Surface;
 	auto RemoveSurface(SurfaceId id) -> void;

@@ -134,8 +134,7 @@ namespace Nickel::Renderer::DX12Layer::Core {
 		IDXGIFactory7* dxgiFactory = nullptr;
 		D3D12Command cmd;
 
-		//using surface_collection = utl::free_list<D3D12Surface>;
-		//surface_collection surfaces;
+		utl::free_list<D3D12Surface> surfaces;
 
 		u32 deferredReleasesFlag[3]{};
 		std::mutex deferredReleasesMutex{};
@@ -286,17 +285,6 @@ namespace Nickel::Renderer::DX12Layer::Core {
 		SafeRelease(dxgiFactory);
 	}
 
-	auto Render() -> void {
-		cmd.BeginFrame();
-		ID3D12GraphicsCommandList6* cmdList = cmd.GetCmdList();
-
-		const u32 frameIndex = GetCurrentFrameIndex();
-		if (deferredReleasesFlag[frameIndex]) {
-			ProcessDeferredReleases(frameIndex);
-		}
-		cmd.EndFrame();
-	}
-
 	auto GetDevice() -> ID3D12Device* const {
 		return mainDevice;
 	}
@@ -330,33 +318,38 @@ namespace Nickel::Renderer::DX12Layer::Core {
 	}
 
 	auto CreateSurface(Platform::Window window) -> Surface {
-		//SurfaceId id{ surfaces.add(window) };
-		//surfaces[id].CreateSwapChain(dxgiFactory, cmd.GetCmdQueue());
-		//return Surface{ id };
+		SurfaceId id{ surfaces.add(window) };
+		surfaces[id].CreateSwapChain(dxgiFactory, cmd.GetCmdQueue());
+		return Surface{ id };
 		return Surface{ 0 };
 	}
 
 	auto RemoveSurface(SurfaceId id) -> void {
-
+		cmd.Flush();
+		surfaces.remove(id);
 	}
 
 	auto ResizeSurface(SurfaceId id, u32, u32) -> void {
-
+		cmd.Flush();
+		surfaces[id].Resize();
 	}
 
 	auto GetSurfaceWidth(SurfaceId id)->u32 {
-		return 0;
+		return surfaces[id].GetWidth();
 	}
 
 	auto GetSurfaceHeight(SurfaceId id)->u32 {
-		return 0;
-	}
-
-	auto GetRenderSurface(SurfaceId id) -> void {
-
+		return surfaces[id].GetHeight();
 	}
 
 	auto RenderSurface(SurfaceId id) -> void {
+		cmd.BeginFrame();
+		ID3D12GraphicsCommandList6* cmdList = cmd.GetCmdList();
 
+		const u32 frameIndex = GetCurrentFrameIndex();
+		if (deferredReleasesFlag[frameIndex]) {
+			ProcessDeferredReleases(frameIndex);
+		}
+		cmd.EndFrame();
 	}
 }

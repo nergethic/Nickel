@@ -17,6 +17,12 @@ namespace Nickel::Renderer::DX12Layer {
 
 		Release();
 
+		if (SUCCEEDED(factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(u32))) && allowTearing) {
+			presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+		}
+
+		this->format = format;
+
 		DXGI_SWAP_CHAIN_DESC1 desc{
 			.Width = window.GetWidth(),
 			.Height = window.GetHeight(),
@@ -27,7 +33,7 @@ namespace Nickel::Renderer::DX12Layer {
 				.Quality = 0,
 			},
 			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-			.BufferCount = 3,
+			.BufferCount = BUFFER_COUNT,
 			.Scaling = DXGI_SCALING_STRETCH,
 			.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD,
 			.AlphaMode = DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_UNSPECIFIED,
@@ -47,13 +53,34 @@ namespace Nickel::Renderer::DX12Layer {
 		Finalize();
 	}
 
+	auto D3D12Surface::Present() const -> void {
+		Assert(swapChain != nullptr);
+		ASSERT_ERROR_RESULT(swapChain->Present(0, presentFlags));
+		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
+	}
+
+	auto D3D12Surface::Resize() -> void {
+		Assert(swapChain);
+		for (u32 i{ 0 }; i < BUFFER_COUNT; ++i) {
+			SafeRelease(renderTargetData[i].resource);
+		}
+
+		const u32 flags{ allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0ul };
+		ASSERT_ERROR_RESULT(swapChain->ResizeBuffers(BUFFER_COUNT, 0, 0, DXGI_FORMAT_UNKNOWN, flags));
+		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
+
+		Finalize();
+
+		//DEBUG_OP(OutputDebugString(L"::D3D12 Surface Resized.\n"));
+	}
+
 	auto D3D12Surface::Finalize() -> void {
-		for (u32 i = 0; i < 3; i++) {
+		for (u32 i = 0; i < BUFFER_COUNT; i++) {
 			RenderTargetData& data = renderTargetData[i];
 			Assert(data.resource != nullptr);
 			swapChain->GetBuffer(i, IID_PPV_ARGS(&data.resource));
 			D3D12_RENDER_TARGET_VIEW_DESC desc{
-			.Format = Core::GetDefaultRenderTargetFormat(),
+			.Format = format,
 			.ViewDimension = D3D12_RTV_DIMENSION::D3D12_RTV_DIMENSION_TEXTURE2D,
 			};
 
@@ -75,22 +102,12 @@ namespace Nickel::Renderer::DX12Layer {
 	}
 
 	auto D3D12Surface::Release() -> void {
-		for (u32 i = 0; i < 3; i++) {
+		for (u32 i = 0; i < BUFFER_COUNT; i++) {
 			RenderTargetData& data = renderTargetData[i];
 			SafeRelease(data.resource);
 			Core::GetRtvHeap().Free(data.rtv);
 		}
 		
 		SafeRelease(swapChain);
-	}
-
-	auto D3D12Surface::Present() const -> void {
-		Assert(swapChain != nullptr);
-		ASSERT_ERROR_RESULT(swapChain->Present(0,0));
-		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
-	}
-
-	auto D3D12Surface::Resize(u32 width, u32 height) -> void {
-
 	}
 }
