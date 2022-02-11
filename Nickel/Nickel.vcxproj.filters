@@ -181,6 +181,9 @@
     <ClCompile Include="Source\imgui\imgui_impl_dx12.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Helpers.cpp">
+      <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">
@@ -320,6 +323,9 @@
     </ClInclude>
     <ClInclude Include="Source\imgui\imgui_impl_dx12.h">
       <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Helpers.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

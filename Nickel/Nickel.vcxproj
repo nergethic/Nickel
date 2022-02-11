@@ -320,6 +320,7 @@
     <ClCompile Include="Source\Renderer\Direct3D11\D3D11Core.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D11\D3D11Interface.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Core.cpp" />
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Helpers.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Interface.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Surface.cpp" />
     <ClCompile Include="Source\Renderer\Direct3D12\Resources.cpp" />
@@ -359,6 +360,7 @@
     <ClInclude Include="Source\Renderer\Direct3D11\D3D11Interface.h" />
     <ClInclude Include="Source\Renderer\Direct3D11\DirectX11Includes.h" />
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Core.h" />
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Helpers.h" />
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Interface.h" />
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Surface.h" />
     <ClInclude Include="Source\Renderer\Direct3D12\DirectX12Includes.h" />
