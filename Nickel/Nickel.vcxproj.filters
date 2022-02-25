@@ -202,6 +202,9 @@
     <ClCompile Include="Source\Renderer\Direct3D11\ForwardPass.cpp">
       <Filter>Source Files\Renderer\Direct3D11</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Background.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\game.h">

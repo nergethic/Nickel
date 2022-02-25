@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "ResourceManager.h"
+#include "Renderer/Direct3D11/D3D11Core.h"
 
 namespace Nickel::Renderer {
 	ResourceManager* ResourceManager::resourceManager = nullptr;
@@ -11,11 +12,10 @@ namespace Nickel::Renderer {
 		return resourceManager;
 	}
 
-	auto ResourceManager::Init(ID3D11Device1* _device) -> void {
-		device = _device;
-	}
+	auto ResourceManager::Init() -> void {}
 
 	auto ResourceManager::LoadTexture(std::wstring path) -> DX11Layer::TextureDX11 {
+		auto device = DX11Layer::Core::GetDevice();
 		DX11Layer::TextureDX11 newTex{ .samplerState = DX11Layer::GetDefaultSamplerState(device)};
 		ASSERT_ERROR_RESULT(DirectX::CreateWICTextureFromFile(device, path.c_str(), &newTex.resource, &newTex.srv));
 		

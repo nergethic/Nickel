@@ -442,6 +442,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	//Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
 	//RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+	RendererState rs{};
 
 	if (!XMVerifyCPUSupport()) {
 		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
@@ -486,7 +487,7 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 		Win32ProcessPendingMessages(newKeyboardController);
 
 		UpdateCursorPos(wndHandle, clientWidth, clientHeight, *newInput);
-		Nickel::NewUpdateAndRender(&gameMemory, newInput);
+		Nickel::NewUpdateAndRender(&gameMemory, &rs, newInput);
 		//Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);

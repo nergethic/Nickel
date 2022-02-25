@@ -1,93 +1,11 @@
 #include "game.h"
 #include "Renderer/renderer.h"
+#include "Renderer/Direct3D11/D3D11Core.h"
 
 #include "LineGenerator.h"
 
 namespace Nickel {
 	using namespace Renderer;
-
-	auto SetPipelineState(const ID3D11DeviceContext1& cmd, D3D11_VIEWPORT* viewport, const PipelineState& pipeline) -> void {
-		ID3D11DeviceContext1& cmdQueue = const_cast<ID3D11DeviceContext1&>(cmd);
-		cmdQueue.RSSetState(pipeline.rasterizerState);
-		cmdQueue.OMSetDepthStencilState(pipeline.depthStencilState, 1);
-		// cmdQueue.OMSetBlendState() // TODO
-		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
-	}
-
-	auto Submit(RendererState& rs, const DX11Layer::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
-		auto cmd = cmdQueue.queue.Get();
-		const auto program = mesh.material.program;
-		if (program == nullptr) {
-			Logger::Error("Mesh material program is null");
-			return;
-		}
-
-		const auto& gpuData = mesh.gpuData;
-		auto& mat = mesh.material;
-
-		if (mesh.gpuData.indexCount == 0) {
-			Logger::Warn("Index count is 0!");
-			return;
-		}
-
-		mat.program->Bind(cmd);
-		cmd->IASetPrimitiveTopology(gpuData.topology);
-
-		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
-		const auto vertexBuffer = gpuData.vertexBuffer.buffer.get();
-
-		DX11Layer::SetIndexBuffer(*cmd, indexBuffer);
-		DX11Layer::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
-
-		if (mat.textures.size() > 0) {
-			cmd->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
-			for (int i = 0; i < mat.textures.size(); i++) {
-				const auto& tex = mat.textures[i];
-				cmd->PSSetShaderResources(i, 1, &tex.srv); // TODO: this just puts every texture in slot 0 - fix it
-			}
-		}
-		
-		cmd->VSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
-		cmd->PSSetConstantBuffers(0, ArrayCount(rs.g_d3dConstantBuffers), rs.g_d3dConstantBuffers);
-
-		const auto vertexConstantBuffer = mat.vertexConstantBuffer.buffer.Get();
-		if (vertexConstantBuffer != nullptr) {
-			Assert(mat.vertexConstantBuffer.index < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
-			cmd->VSSetConstantBuffers(mat.vertexConstantBuffer.index, 1, &vertexConstantBuffer);
-		}
-
-		const auto pixelConstantBuffer = mat.pixelConstantBuffer.buffer.Get();
-		if (pixelConstantBuffer != nullptr) {
-			Assert(mat.pixelConstantBuffer.index < D3D11_COMMONSHADER_CONSTANT_BUFFER_HW_SLOT_COUNT)
-			cmd->PSSetConstantBuffers(mat.pixelConstantBuffer.index, 1, &pixelConstantBuffer);
-		}
-
-		SetPipelineState(*cmd, &rs.g_Viewport, mesh.material.pipelineState);
-		DX11Layer::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
-	}
-
-	auto DrawModel(RendererState& rs, const Nickel::Renderer::DX11Layer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
-		auto c = cmd.queue.Get();
-		Assert(c != nullptr);
-
-		// update:
-		const auto t = mesh.transform;
-		const auto& pos = t.position + offset;
-		auto worldMat = XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z)
-			* XMMatrixRotationRollPitchYawFromVector(FXMVECTOR{ t.rotation.x, t.rotation.y, t.rotation.z })
-			* XMMatrixTranslation(pos.x, pos.y, pos.z);
-
-		const auto& viewProjectionMatrix = rs.mainCamera.get()->GetViewProjectionMatrix();
-
-		PerObjectBufferData data;
-		data.modelMatrix = XMMatrixTranspose(worldMat);
-		data.viewProjectionMatrix = XMMatrixTranspose(viewProjectionMatrix);
-		data.modelViewProjectionMatrix = XMMatrixTranspose(worldMat * viewProjectionMatrix);
-
-		c->UpdateSubresource1(rs.g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object], 0, nullptr, &data, 0, 0, 0);
-
-		Submit(rs, cmd, mesh);		
-	}
 
 	auto GetVertexPosUVFromModelData(MeshData* data) -> std::vector<VertexPosUV> {
 		Assert(data != nullptr);
@@ -155,7 +73,10 @@ namespace Nickel {
 
 	static Nickel::Renderer::Surface surface;
 	auto NewInitialize(GameMemory* memory) -> void {
-		auto window = Platform::Window{ 0 };
+		auto resourceManager = ResourceManager::GetInstance();
+		resourceManager->Init();
+
+		auto window = Platform::Window{0};
 		surface = Renderer::CreateSurface(window);
 	}
 
@@ -167,11 +88,11 @@ namespace Nickel {
 
 		ID3D11Device1* device = rs->device.Get();
 		auto resourceManager = ResourceManager::GetInstance();
-		resourceManager->Init(device);
+		resourceManager->Init();
 
 		rs->mainCamera = std::make_unique<Camera>(45.0f, 1.5f, 0.1f, 100.0f);
 
-		background.Create(device);
+		background.Create();
 
 		rs->defaultDepthStencilBuffer = DX11Layer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
@@ -322,9 +243,40 @@ namespace Nickel {
 	static f32 timer = 0.0f;
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
 
-	auto NewUpdateAndRender(GameMemory* memory, GameInput* input) -> void {
+	auto NewUpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
+		timer += 0.01f;
+		if (timer > 1000.0f)
+			timer -= 1000.0f;
+
+		static float angle = -90.0f;
+		float radius = 2.1f;
+		angle += 1.2f;
+		XMFLOAT3 lightPos = XMFLOAT3(radius * cos(XMConvertToRadians(angle)), 0.0f, radius * sin(XMConvertToRadians(angle)));
+
+		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
+		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
+
+		// Update camera
+		auto& camera = *Renderer::DX11Layer::Core::GetMainCamera();
+		camera.lookAtPosition.x += dtMouseX * 50.0f;
+		camera.lookAtPosition.y += dtMouseY * 50.0f;
+		camera.RecalculateMatrices();
+
+		// Prepare and send frame data to the GPU
+		PerFrameBufferData frameData;
+		frameData.viewMatrix = XMMatrixTranspose(camera.GetViewMatrix());
+		frameData.cameraPosition = XMFLOAT3(camera.position.x, camera.position.y, camera.position.z);
+		frameData.lightPosition = lightPos;
+
+		auto cmd = Renderer::DX11Layer::Core::GetCmd();
+		cmd->UpdateSubresource1(Renderer::DX11Layer::Core::GetPerFrameUniform(), 0, nullptr, &frameData, 0, 0, 0);
+
+		// Render
 		if (surface.IsValid())
 			surface.Render();
+
+		previousMouseX = input->normalizedMouseX;
+		previousMouseY = input->normalizedMouseY;
 	}
 
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
@@ -382,6 +334,8 @@ namespace Nickel {
 		DX11Layer::ClearFlag clearFlag = DX11Layer::ClearFlag::CLEAR_COLOR | DX11Layer::ClearFlag::CLEAR_DEPTH;
 		DX11Layer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
+		//auto& camera = *rs->mainCamera.get();
+
 		/*
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -420,36 +374,40 @@ namespace Nickel {
 		// rs->bunny.transform.rotation.y += 0.005;
 		// rs->skybox.transform.rotation.y += 0.0005;
 
+		/*
 		for (auto& line : rs->lines)
 			if (line.material.program != nullptr)
-				DrawModel(*rs, cmd, line);
+				DrawModel(camera, cmd, line);
 
 		for (int y = -2; y <= 2; y++) {
 			for (int x = -2; x <= 2; x++) {
 				for (int i = 0; i < rs->bunny.size(); i++) {
 					const auto t = rs->bunny[i].transform;
 					rs->bunny[i].transform.rotation.y += 0.0004f;
-					DrawModel(*rs, cmd, rs->bunny[i], {x * 3.0f, y * 3.0f, -4.0f});
+					DrawModel(camera, cmd, rs->bunny[i], {x * 3.0f, y * 3.0f, -4.0f});
 				}
 			}
 		}
 
-		DrawModel(*rs, cmd, rs->debugCube);
+		DrawModel(camera, cmd, rs->debugCube);
+		*/
 		// DrawModel(*rs, cmd, rs->debugBoxTextured);
 
+		/*
 		f32 dtMouseX = input->normalizedMouseX - previousMouseX;
 		f32 dtMouseY = input->normalizedMouseY - previousMouseY;
 		camera.lookAtPosition.x += dtMouseX * 50.0f;
 		camera.lookAtPosition.y += dtMouseY * 50.0f;
 		camera.RecalculateMatrices();
 
-		DrawModel(*rs, cmd, background.skyboxMesh);
+		DrawModel(camera, cmd, background.skyboxMesh);
+		*/
 		
 		/*
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 		*/
-		rs->swapChain->Present(1, 0);
+		//rs->swapChain->Present(1, 0);
 
 		previousMouseX = input->normalizedMouseX;
 		previousMouseY = input->normalizedMouseY;

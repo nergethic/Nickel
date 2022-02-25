@@ -26,7 +26,7 @@ namespace Nickel::Renderer {
 		auto operator=(const ResourceManager&) -> void = delete;
 
 		static auto GetInstance() -> ResourceManager*;
-		auto Init(ID3D11Device1* _device) -> void;
+		auto Init() -> void;
 		
 		// NOTE: supports BMP, JPEG, PNG, TIFF, GIF
 		auto LoadTexture(std::wstring path)->DX11Layer::TextureDX11;
@@ -54,7 +54,6 @@ namespace Nickel::Renderer {
 		*/
 
 	private:
-		ID3D11Device1* device;
 		std::vector<DX11Layer::TextureDX11> loadedTextures = std::vector<DX11Layer::TextureDX11>();
 	};
 }

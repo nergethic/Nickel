@@ -55,20 +55,9 @@ struct GPUMeshData {
 };
 
 struct PipelineState { // rasterizer, blend, depth, stencil
-	//ID3D11InputLayout* inputLayout = nullptr;
-
-	//ID3D11VertexShader* vertexShader = nullptr;
-	//ID3D11Buffer* vertexConstantBuffers = nullptr;
-	//ID3D11PixelShader* pixelShader = nullptr;
-	//ID3D11Buffer* pixelConstantBuffers = nullptr;
-
 	ID3D11RasterizerState* rasterizerState = nullptr;
 	ID3D11DepthStencilState* depthStencilState = nullptr;
 	// D3D11_RENDER_TARGET_BLEND_DESC1 ?? 
-	
-	//D3D11_PRIMITIVE_TOPOLOGY topology;
-	//short vertexConstantBuffersCount = 0;
-	//short pixelConstantBuffersCount = 0;
 };
 
 struct PerApplicationData {

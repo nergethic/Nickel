@@ -34,7 +34,7 @@ static Nickel::Background background;
 namespace Nickel {
 	auto NewInitialize(GameMemory* memory) -> void;
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void;
-	auto NewUpdateAndRender(GameMemory* memory, GameInput* input) -> void;
+	auto NewUpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void;
 	auto SetDefaultPass(const DX11Layer::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void;
 	auto LoadObjMeshData(MeshData& modelData, const std::string& path) -> void;
