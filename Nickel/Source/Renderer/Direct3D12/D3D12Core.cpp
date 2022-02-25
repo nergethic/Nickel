@@ -1,6 +1,6 @@
 #include "D3D12Core.h"
 #include "D3D12Surface.h"
-#include "Resources.h"
+#include "D3D12Resources.h"
 
 using namespace Microsoft::WRL;
 
@@ -190,6 +190,15 @@ namespace Nickel::Renderer::DX12Layer::Core {
 		if (mainDevice != nullptr)
 			Shutdown();
 
+		/*
+		D3D12_FEATURE_DATA_D3D12_OPTIONS12 options12 = {};
+		bool enhancedBarriersSupported = false;
+		if (SUCCEEDED(pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &options12, sizeof(options12))))
+		{
+			enhancedBarriersSupported = options12.EnhancedBarriersSupported;
+		}
+		*/
+
 		u32 dxgiFactoryFlags = 0;
 		if constexpr (_DEBUG) {
 			dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
@@ -329,7 +338,7 @@ namespace Nickel::Renderer::DX12Layer::Core {
 		surfaces.remove(id);
 	}
 
-	auto ResizeSurface(SurfaceId id, u32, u32) -> void {
+	auto ResizeSurface(SurfaceId id, u32 width, u32 height) -> void {
 		cmd.Flush();
 		surfaces[id].Resize();
 	}

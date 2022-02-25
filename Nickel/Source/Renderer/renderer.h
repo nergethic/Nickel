@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Window.h"
-#include "DX11Layer.h"
+#include "Direct3D11/DX11Layer.h"
 #include "../ShaderProgram.h"
 
 // STL includes
@@ -138,10 +138,10 @@ struct ConstantBuffer {
 };
 
 struct Material {
-	Nickel::Renderer::DXLayer11::ShaderProgram* program;
+	Nickel::Renderer::DX11Layer::ShaderProgram* program;
 	PipelineState pipelineState;
 	D3D11_CULL_MODE overrideCullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
-	std::vector<DXLayer11::TextureDX11> textures;
+	std::vector<DX11Layer::TextureDX11> textures;
 	
 	ConstantBuffer vertexConstantBuffer;
 	ConstantBuffer pixelConstantBuffer;
@@ -154,13 +154,17 @@ struct DescribedMesh {
 	Material material;
 };
 
+struct GfxDevice {
+
+};
+
 struct RendererState {
 	HWND g_WindowHandle;
 
 	// Direct3D device and swap chain.
 	ComPtr<ID3D11Device1> device = nullptr;
 	ComPtr<IDXGISwapChain1> swapChain = nullptr;
-	DXLayer11::CmdQueue cmdQueue = {};
+	DX11Layer::CmdQueue cmdQueue = {};
 	
 	// Render target view for the back buffer of the swap chain.
 	ID3D11RenderTargetView* defaultRenderTargetView = nullptr;
@@ -171,15 +175,15 @@ struct RendererState {
 
 	D3D11_VIEWPORT g_Viewport = {0};
 
-	DXLayer11::TextureDX11 albedoTexture;
-	DXLayer11::TextureDX11 normalTexture;
-	DXLayer11::TextureDX11 aoTexture;
-	DXLayer11::TextureDX11 metalRoughnessTexture;
-	DXLayer11::TextureDX11 emissiveTexture;
-	DXLayer11::TextureDX11 matCapTexture;
-	DXLayer11::TextureDX11 debugBoxTexture;
-	DXLayer11::TextureDX11 radianceTexture;
-	DXLayer11::TextureDX11 brdfLUT;
+	DX11Layer::TextureDX11 albedoTexture;
+	DX11Layer::TextureDX11 normalTexture;
+	DX11Layer::TextureDX11 aoTexture;
+	DX11Layer::TextureDX11 metalRoughnessTexture;
+	DX11Layer::TextureDX11 emissiveTexture;
+	DX11Layer::TextureDX11 matCapTexture;
+	DX11Layer::TextureDX11 debugBoxTexture;
+	DX11Layer::TextureDX11 radianceTexture;
+	DX11Layer::TextureDX11 brdfLUT;
 
 	ID3D11Buffer* g_d3dConstantBuffers[(u32)ConstantBufferType::NumConstantBuffers];
 
@@ -203,11 +207,11 @@ struct RendererState {
 	UINT backbufferWidth;
 	UINT backbufferHeight;
 
-	DXLayer11::ShaderProgram pbrProgram;
-	DXLayer11::ShaderProgram lineProgram;
-	DXLayer11::ShaderProgram simpleProgram;
-	DXLayer11::ShaderProgram textureProgram;
-	DXLayer11::ShaderProgram convoluteIrradianceBackgroundProgram;
+	DX11Layer::ShaderProgram pbrProgram;
+	DX11Layer::ShaderProgram lineProgram;
+	DX11Layer::ShaderProgram simpleProgram;
+	DX11Layer::ShaderProgram textureProgram;
+	DX11Layer::ShaderProgram convoluteIrradianceBackgroundProgram;
 
 	Material pbrMat;
 	Material lineMat;

@@ -1,6 +1,8 @@
 #include "game.h"
 #include "Renderer/renderer.h"
 
+#include "LineGenerator.h"
+
 namespace Nickel {
 	using namespace Renderer;
 
@@ -12,7 +14,7 @@ namespace Nickel {
 		cmdQueue.RSSetViewports(1, viewport); // TOOD: move to render target setup?
 	}
 
-	auto Submit(RendererState& rs, const DXLayer11::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
+	auto Submit(RendererState& rs, const DX11Layer::CmdQueue& cmdQueue, const DescribedMesh& mesh) -> void {
 		auto cmd = cmdQueue.queue.Get();
 		const auto program = mesh.material.program;
 		if (program == nullptr) {
@@ -34,8 +36,8 @@ namespace Nickel {
 		const auto indexBuffer = gpuData.indexBuffer.buffer.get();
 		const auto vertexBuffer = gpuData.vertexBuffer.buffer.get();
 
-		DXLayer11::SetIndexBuffer(*cmd, indexBuffer);
-		DXLayer11::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
+		DX11Layer::SetIndexBuffer(*cmd, indexBuffer);
+		DX11Layer::SetVertexBuffer(*cmd, vertexBuffer, gpuData.vertexBuffer.stride, gpuData.vertexBuffer.offset);
 
 		if (mat.textures.size() > 0) {
 			cmd->PSSetSamplers(0, 1, &mat.textures[0].samplerState);
@@ -61,10 +63,10 @@ namespace Nickel {
 		}
 
 		SetPipelineState(*cmd, &rs.g_Viewport, mesh.material.pipelineState);
-		DXLayer11::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
+		DX11Layer::DrawIndexed(cmdQueue, mesh.gpuData.indexCount, 0, 0);
 	}
 
-	auto DrawModel(RendererState& rs, const Nickel::Renderer::DXLayer11::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
+	auto DrawModel(RendererState& rs, const Nickel::Renderer::DX11Layer::CmdQueue& cmd, const DescribedMesh& mesh, Vec3 offset = {0.0, 0.0, 0.0}) -> void { // TODO: const Material* overrideMat = nullptr
 		auto c = cmd.queue.Get();
 		Assert(c != nullptr);
 
@@ -151,6 +153,12 @@ namespace Nickel {
 		LoadObjMeshData(meshData, path);
 	}
 
+	static Nickel::Renderer::Surface surface;
+	auto NewInitialize(GameMemory* memory) -> void {
+		auto window = Platform::Window{ 0 };
+		surface = Renderer::CreateSurface(window);
+	}
+
 	auto Initialize(GameMemory* memory, RendererState* rs) -> void {
 		Assert(memory != nullptr);
 		Assert(rs != nullptr);
@@ -165,14 +173,14 @@ namespace Nickel {
 
 		background.Create(device);
 
-		rs->defaultDepthStencilBuffer = DXLayer11::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
+		rs->defaultDepthStencilBuffer = DX11Layer::CreateDepthStencilTexture(device, rs->backbufferWidth, rs->backbufferHeight);
 		Assert(rs->defaultDepthStencilBuffer != nullptr);
-		rs->defaultDepthStencilView = DXLayer11::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
+		rs->defaultDepthStencilView = DX11Layer::CreateDepthStencilView(device, rs->defaultDepthStencilBuffer);
 
 		// Create the constant buffers for the variables defined in the vertex shader.
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation] = DXLayer11::CreateConstantBuffer(device, sizeof(PerApplicationData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object] = DXLayer11::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
-		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame] = DXLayer11::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Appliation] = DX11Layer::CreateConstantBuffer(device, sizeof(PerApplicationData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Object] = DX11Layer::CreateConstantBuffer(device, sizeof(PerObjectBufferData));
+		rs->g_d3dConstantBuffers[(u32)ConstantBufferType::CB_Frame] = DX11Layer::CreateConstantBuffer(device, sizeof(PerFrameBufferData));
 
 		// Create shader programs
 		rs->pbrProgram.Create(rs->device.Get(), std::span{ g_PbrVertexShader }, std::span{ g_PbrPixelShader });
@@ -204,11 +212,11 @@ namespace Nickel {
 			L"Data/Textures/skybox/radianceCubemap/output_pmrem_posz.hdr",
 			L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
 		};
-		rs->radianceTexture = DXLayer11::CreateCubeMap(device, radianceFacePaths);
+		rs->radianceTexture = DX11Layer::CreateCubeMap(device, radianceFacePaths);
 		rs->brdfLUT = resourceManager->LoadTexture(L"Data/Textures/brdfLUT.jpg");
 
-		auto defaultDepthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-		auto defaultRasterizerState = DXLayer11::CreateDefaultRasterizerState(device);
+		auto defaultDepthStencilState = DX11Layer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+		auto defaultRasterizerState = DX11Layer::CreateDefaultRasterizerState(device);
 
 		D3D11_RENDER_TARGET_BLEND_DESC1 blendDescription = { 0 };
 		D3D11_BLEND_DESC1 stateDesc = { 0 };
@@ -237,7 +245,7 @@ namespace Nickel {
 		}
 		
 		
-		// simpleMat.constantBuffer = DXLayer11::CreateConstantBuffer(device, )
+		// simpleMat.constantBuffer = DX11Layer::CreateConstantBuffer(device, )
 		{
 			auto& textureMat = rs->textureMat;
 			textureMat = Material{
@@ -247,7 +255,7 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				}
 			};
-			textureMat.textures = std::vector<DXLayer11::TextureDX11>(1);
+			textureMat.textures = std::vector<DX11Layer::TextureDX11>(1);
 			textureMat.textures[0] = rs->albedoTexture;
 		}
 
@@ -260,11 +268,11 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				},
 				.pixelConstantBuffer = {
-					.buffer = DXLayer11::CreateConstantBuffer(device, sizeof(PbrPixelBufferData)),
+					.buffer = DX11Layer::CreateConstantBuffer(device, sizeof(PbrPixelBufferData)),
 					.index = 3
 				}
 			};
-			pbrMat.textures = std::vector<DXLayer11::TextureDX11>(8);
+			pbrMat.textures = std::vector<DX11Layer::TextureDX11>(8);
 			pbrMat.textures[0] = rs->albedoTexture;
 			pbrMat.textures[1] = rs->normalTexture;
 			pbrMat.textures[2] = rs->metalRoughnessTexture;
@@ -313,6 +321,12 @@ namespace Nickel {
 	static XMFLOAT4 light4Pos = { 0.0, 0.0, 0.0, 0.0 };
 	static f32 timer = 0.0f;
 	const FLOAT clearColor[4] = { 0.13333f, 0.13333f, 0.13333f, 1.0f };
+
+	auto NewUpdateAndRender(GameMemory* memory, GameInput* input) -> void {
+		if (surface.IsValid())
+			surface.Render();
+	}
+
 	auto UpdateAndRender(GameMemory* memory, RendererState* rs, GameInput* input) -> void {
 		// GameState* gs = (GameState*)memory;
 
@@ -352,13 +366,21 @@ namespace Nickel {
 		rs->pbrMat.pixelConstantBuffer.Update(rs->cmdQueue.queue.Get(), bufferData);
 
 		// RENDER ---------------------------
+		/*
+		for (u32 i{ 0 }; i < _countof(_surfaces); ++i) {
+			if (_surfaces[i].surface.is_valid()) {
+				_surfaces[i].surface.render();
+			}
+		}
+		*/
+
 		Assert(rs->defaultRenderTargetView != nullptr);
 		Assert(rs->defaultDepthStencilView != nullptr);
-		DXLayer11::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
+		DX11Layer::SetRenderTarget(queue, &rs->defaultRenderTargetView, rs->defaultDepthStencilView);
 		queue.RSSetViewports(1, &rs->g_Viewport);
 
-		DXLayer11::ClearFlag clearFlag = DXLayer11::ClearFlag::CLEAR_COLOR | DXLayer11::ClearFlag::CLEAR_DEPTH;
-		DXLayer11::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
+		DX11Layer::ClearFlag clearFlag = DX11Layer::ClearFlag::CLEAR_COLOR | DX11Layer::ClearFlag::CLEAR_DEPTH;
+		DX11Layer::Clear(rs->cmdQueue, static_cast<u32>(clearFlag), rs->defaultRenderTargetView, rs->defaultDepthStencilView, clearColor, 1.0f, 0);
 
 		/*
 		ImGui_ImplDX11_NewFrame();
@@ -422,16 +444,6 @@ namespace Nickel {
 		camera.RecalculateMatrices();
 
 		DrawModel(*rs, cmd, background.skyboxMesh);
-
-		// DrawBunny(cmd, rs, rs->pipelineStates[0]);
-
-		// rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(2.0f, 2.0f, 2.0f));
-		// rs->g_WorldMatrix *= XMMatrixTranslation(lightPos.x, lightPos.y, lightPos.z);
-		//DrawLight(cmd, rs, rs->pipelineStates[0]);
-
-		// rs->g_WorldMatrix = XMMatrixMultiply(XMMatrixIdentity(), XMMatrixScaling(0.5f, 0.5f, 0.5f));
-		// rs->g_WorldMatrix *= XMMatrixTranslation(radius * cos(XMConvertToRadians(180.0f)), 0.0f, radius * sin(XMConvertToRadians(180.0f)));
-		// DrawSuzanne(cmd, rs, rs->pipelineStates[1]);
 		
 		/*
 		ImGui::Render();
@@ -443,139 +455,6 @@ namespace Nickel {
 		previousMouseY = input->normalizedMouseY;
 	}
 
-	auto CreateLineIndices(u32 length) -> std::vector<u32> {
-		auto indices = std::vector<u32>(length*6);
-
-		u32 c = 0;
-		u32 index = 0;
-
-		for (u32 j = 0; j < length; j++) {
-			auto i = index;
-			indices[c++] = i + 0;
-			indices[c++] = i + 1;
-			indices[c++] = i + 2;
-			indices[c++] = i + 2;
-			indices[c++] = i + 1;
-			indices[c++] = i + 3;
-			index += 2;
-		}
-
-		return indices;
-	}
-
-	auto DuplicateLineVertices(std::span<Vec3> vertices, bool mirror = false) -> std::vector<Vec3> {
-		Assert(vertices.data() != nullptr && vertices.size() >= 0);
-		auto result = std::vector<Vec3>();
-		for (const auto& v : vertices) {
-			const auto outV = mirror ? Vec3(-v.x, -v.y, -v.z) : v;
-			result.push_back(outV);
-			result.push_back(v);
-		}
-		return result;
-	}
-
-	auto DuplicateLineVertices(std::span<i32> vertices, bool mirror = false) -> std::vector<i32> {
-		Assert(vertices.data() != nullptr && vertices.size() >= 0);
-		auto result = std::vector<i32>();
-		for (const auto& v : vertices) {
-			const auto outV = mirror ? -v : v;
-			result.push_back(outV);
-			result.push_back(v);
-		}
-		return result;
-	}
-
-	auto Clamp(u32 val, u32 min, u32 max) {
-		if (val < min)
-			val = min;
-		else if (val > max)
-			val = max;
-
-		return val;
-	}
-
-	/*
-	auto GenerateLineInDir(Vec3 startPos, Vec3 pointOffset, Vec3 dir, u32 pointCount) -> std::vector<Vec3> {
-		auto result = std::vector<Vec3>(pointCount);
-		const f32 len = std::sqrt(pointOffset.x * pointOffset.x + pointOffset.y * pointOffset.y + pointOffset.z * pointOffset.z);
-		const auto dirNormalized = Vec3{
-			pointOffset.x / len,
-			pointOffset.y / len,
-			pointOffset.z / len,
-		};
-		for (u32 i = 0; i < pointCount; i++) {
-			auto val = Vec3{ startPos.x + (dirNormalized.x*pointOffset.x*i) , startPos.y + (dirNormalized.y*pointOffset.y*i), startPos.z + (dirNormalized.z*pointOffset.z*i) };
-			result[i] = val;
-		}
-
-		return result;
-	}
-	*/
-
-	auto GenerateLine(RendererState* rs, std::vector<Vec3> vertexData, DescribedMesh& describedMesh) -> void {
-		auto device = rs->device.Get();
-
-		//each pair has a mirrored direction 
-		auto dirs = std::vector<i32>(vertexData.size());
-		for (int i = 0; i < vertexData.size(); i++) {
-			dirs[i] = 1;
-		}
-		auto direction = DuplicateLineVertices(std::span{ dirs }, true);
-		auto positions = DuplicateLineVertices(std::span{ vertexData });
-
-		auto prevs = std::vector<Vec3>(vertexData.size());
-		for (u32 i = 0; i < vertexData.size(); i++) {
-			u32 idx = Clamp(i - 1, 0, prevs.size() - 1);
-			prevs[i] = vertexData[idx];
-		}
-		auto previousVertex = DuplicateLineVertices(std::span{ prevs });
-
-		auto nexts = std::vector<Vec3>(vertexData.size());
-		for (u32 i = 0; i < vertexData.size(); i++) {
-			u32 idx = Clamp(i + 1, 0, nexts.size() - 1);
-			nexts[i] = vertexData[idx];
-		}
-		auto nextVertex = DuplicateLineVertices(std::span{ nexts });
-
-		//
-		auto vertexFormatData = std::vector<LineVertexData>();
-		for (int i = 0; i < direction.size(); i++) {
-			auto vertex = LineVertexData{
-				.position = XMFLOAT3(positions[i].x, positions[i].y, positions[i].z),
-				.previous = XMFLOAT3(previousVertex[i].x, previousVertex[i].y, previousVertex[i].z),
-				.next = XMFLOAT3(nextVertex[i].x, nextVertex[i].y, nextVertex[i].z),
-				.direction = XMFLOAT3(direction[i], direction[i], direction[i])
-			};
-			vertexFormatData.push_back(vertex);
-		}
-
-		auto indexData = CreateLineIndices(vertexData.size());
-
-		const u32 indexCount = indexData.size();
-		const u32 vertexCount = vertexFormatData.size() - 6;
-
-		describedMesh.transform.scale = {1.0f, 1.0f, 1.0f};
-		describedMesh.transform.position = { 0.0f, 0.0f, 0.0f };
-		describedMesh.gpuData = GPUMeshData{
-			.vertexCount = vertexCount,
-			.indexCount = indexCount,
-			.topology = D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
-		};
-		describedMesh.gpuData.indexBuffer.Create(device, std::span(indexData));
-		describedMesh.gpuData.vertexBuffer.Create<LineVertexData>(device, std::span(vertexFormatData), false);
-		describedMesh.material = rs->lineMat;
-		//line.mesh = meshData; // TODO: is this useless?
-	}
-
-	auto GenerateLinePoints(Vec3 from, Vec3 to, u32 pointCount) -> std::vector<Vec3> {
-		auto result = std::vector<Vec3>();
-		for (i32 i = 0; i <= pointCount; i++) {
-			result.push_back(Vec3::Lerp(from, to, static_cast<f32>(i) / pointCount));
-		}
-
-		return result;
-	}
-
 	auto LoadContent(RendererState* rs) -> bool {
 		Assert(rs != nullptr);
 		Assert(rs->device != nullptr);
@@ -585,11 +464,11 @@ namespace Nickel {
 		auto resourceManager = ResourceManager::GetInstance();
 
 		{ // convert vertex data to be LineVertexData compatible
-			auto defaultDepthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
-			auto rasterizerDesc = DXLayer11::GetDefaultRasterizerDescription();
+			auto defaultDepthStencilState = DX11Layer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ALL, D3D11_COMPARISON_LESS, false);
+			auto rasterizerDesc = DX11Layer::GetDefaultRasterizerDescription();
 			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
 			//rasterizerDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
-			auto defaultRasterizerState = DXLayer11::CreateRasterizerState(device, rasterizerDesc);
+			auto defaultRasterizerState = DX11Layer::CreateRasterizerState(device, rasterizerDesc);
 			auto& lineMat = rs->lineMat;
 			lineMat = Material{
 				.program = &rs->lineProgram,
@@ -598,7 +477,7 @@ namespace Nickel {
 					.depthStencilState = defaultDepthStencilState
 				},
 				.vertexConstantBuffer = {
-					.buffer = DXLayer11::CreateConstantBuffer(device, sizeof(LineBufferData)),
+					.buffer = DX11Layer::CreateConstantBuffer(device, sizeof(LineBufferData)),
 					.index = 3
 				}
 			};
@@ -615,12 +494,12 @@ namespace Nickel {
 			const u32 linePointsCount = 100;
 			for (i32 x = -5; x <= 5; x++, lineIdx++) {
 				const auto xOffset = static_cast<f32>(x) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ xOffset, 0.0, -10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->lines[lineIdx]);
+				App::GenerateLine(rs, App::GenerateLinePoints(Vec3{ xOffset, 0.0, -10.0 }, Vec3{ xOffset, 0.0, 10.0 }, linePointsCount), rs->lines[lineIdx]);
 			}
 				
 			for (i32 y = -5; y <= 5; y++, lineIdx++) {
 				const auto yOffset = static_cast<f32>(y) * 2.0f;
-				GenerateLine(rs, GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->lines[lineIdx]);
+				App::GenerateLine(rs, App::GenerateLinePoints(Vec3{ -10.0, 0.0, yOffset }, Vec3{ 10.0, 0.0, yOffset }, linePointsCount), rs->lines[lineIdx]);
 			}
 		}
 
@@ -769,7 +648,7 @@ namespace Nickel {
 		return true;
 	}
 
-	auto SetDefaultPass(const DXLayer11::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
+	auto SetDefaultPass(const DX11Layer::CmdQueue& cmd, ID3D11RenderTargetView* const* renderTargetView, ID3D11DepthStencilView& depthStencilView) -> void {
 		Assert(cmd.queue != nullptr);
 		cmd.queue->OMSetRenderTargets(1, renderTargetView, &depthStencilView);
 	}

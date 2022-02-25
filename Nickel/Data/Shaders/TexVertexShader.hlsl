@@ -1,20 +1,17 @@
 #include "CommonConstantBuffers.hlsl"
 
-struct VertexData
-{
+struct VertexData {
 	float3 position : POSITION;
     float3 normal: NORMAL;
 	float2 uv: UV;
 };
 
-struct VertexShaderOutput
-{
+struct VertexShaderOutput {
 	float2 uv : UV;
 	float4 position : SV_POSITION;
 };
 
-VertexShaderOutput TexVertexShader(VertexData IN )
-{
+VertexShaderOutput TexVertexShader(VertexData IN) {
     VertexShaderOutput OUT;
 
 	/*

@@ -1,6 +1,6 @@
 #include "DX11Layer.h"
 
-namespace Nickel::Renderer::DXLayer11 {
+namespace Nickel::Renderer::DX11Layer {
 	// function inspired by: http://www.rastertek.com/dx11tut03.html
 	auto QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync) -> DXGI_RATIONAL {
 		DXGI_RATIONAL refreshRate = { 0, 1 };
@@ -483,10 +483,10 @@ namespace Nickel::Renderer::DXLayer11 {
 		desc.MinLOD = FLT_MIN;
 		desc.MipLODBias = 0;
 
-		return DXLayer11::CreateSamplerState(device, desc);
+		return DX11Layer::CreateSamplerState(device, desc);
 	}
 
-	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DXLayer11::TextureDX11 {
+	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DX11Layer::TextureDX11 {
 		DirectX::TexMetadata meta[6];
 		DirectX::ScratchImage imgsData[6];
 		for (int i = 0; i < 6; i++) {
@@ -543,7 +543,7 @@ namespace Nickel::Renderer::DXLayer11 {
 		ID3D11ShaderResourceView* srv;
 		ASSERT_ERROR_RESULT(device->CreateShaderResourceView(cubeTexture, &resourceViewDesc, &srv));
 
-		return DXLayer11::TextureDX11{
+		return DX11Layer::TextureDX11{
 			.resource = cubeTexture,
 			.srv = srv,
 			.samplerState = GetDefaultSamplerState(device)

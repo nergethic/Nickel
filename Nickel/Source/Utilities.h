@@ -7,7 +7,7 @@
 
 #if USE_STL_VECTOR
 #include <vector>
-namespace primal::utl {
+namespace Nickel::utl {
 template<typename T>
 using vector = std::vector<T>;
 
@@ -28,7 +28,7 @@ void erase_unordered(T& v, size_t index)
 #else
 #include "Vector.h"
 
-namespace primal::utl {
+namespace Nickel::utl {
 template<typename T>
 void erase_unordered(T& v, size_t index)
 {
@@ -47,7 +47,7 @@ using deque = std::deque<T>;
 #endif
 
 
-namespace primal::utl {
+namespace Nickel::utl {
 
 // TODO: implement our own containers
 

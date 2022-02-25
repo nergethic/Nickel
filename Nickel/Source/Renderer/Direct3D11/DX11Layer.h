@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Direct3D11/DirectX11Includes.h"
+#include "DirectX11Includes.h"
 #include "../platform.h"
 #include "../Math.h"
 
 using namespace Microsoft::WRL;
 
-namespace Nickel::Renderer::DXLayer11 {
+namespace Nickel::Renderer::DX11Layer {
 	enum class ClearFlag { // TODO: move to base renderer layer
 		CLEAR_COLOR   = 1 << 0,
 		CLEAR_DEPTH   = 1 << 1,
@@ -60,8 +60,8 @@ namespace Nickel::Renderer::DXLayer11 {
 	auto Draw(const CmdQueue& cmd, int indexCount, int startVertex) -> void;
 	auto DrawIndexed(const CmdQueue& cmd, int indexCount, int startIndex, int startVertex) -> void;
 	auto CreateInputLayout(ID3D11Device1* device, std::span<D3D11_INPUT_ELEMENT_DESC> vertexLayoutDesc, std::span<const u8> shaderBytecodeWithInputSignature)->ID3D11InputLayout*;
-	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY)->D3D11_VIEWPORT;
-	auto EnableDebug(const ID3D11Device1& device1, bool shouldBeVerbose)->ID3D11Debug*;
+	auto CreateViewPort(f32 minX, f32 minY, f32 maxX, f32 maxY) -> D3D11_VIEWPORT;
+	auto EnableDebug(const ID3D11Device1& device1, bool shouldBeVerbose) -> ID3D11Debug*;
 
 	auto SetRenderTargets(const ID3D11DeviceContext1& cmdQueue, std::span<ID3D11RenderTargetView* const*> colorTargets, ID3D11DepthStencilView* depthTarget = nullptr) -> void;
 	auto SetRenderTarget(const ID3D11DeviceContext1& cmdQueue, ID3D11RenderTargetView* const* colorTarget, ID3D11DepthStencilView* depthTarget = nullptr) -> void;
@@ -71,5 +71,5 @@ namespace Nickel::Renderer::DXLayer11 {
 	auto DrawIndexed(const ID3D11DeviceContext1& cmdQueue, UINT indexCount) -> void;
 
 	auto GetDefaultSamplerState(ID3D11Device1* device) -> ID3D11SamplerState*;
-	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) ->DXLayer11::TextureDX11;
+	auto CreateCubeMap(ID3D11Device1* device, std::span<const wchar_t*, 6> imgData) -> DX11Layer::TextureDX11;
 }

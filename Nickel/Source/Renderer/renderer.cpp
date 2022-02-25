@@ -13,7 +13,7 @@ namespace Nickel::Renderer {
 			Assert(false);
 		}
 
-		auto [device, deviceCtx] = DXLayer11::CreateDevice();
+		auto [device, deviceCtx] = DX11Layer::CreateDevice();
 
 		ID3D11Device1* device1 = nullptr;
 		ASSERT_ERROR_RESULT(device->QueryInterface(&device1));
@@ -23,11 +23,11 @@ namespace Nickel::Renderer {
 
 		ID3D11Debug* d3dDebug = nullptr;
 		if constexpr (_DEBUG) {
-			d3dDebug = DXLayer11::EnableDebug(*device1, false);
+			d3dDebug = DX11Layer::EnableDebug(*device1, false);
 			ASSERT_ERROR_RESULT(d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_FLAGS::D3D11_RLDO_SUMMARY | D3D11_RLDO_FLAGS::D3D11_RLDO_DETAIL));
 		}
 
-		auto swapChain1 = Renderer::DXLayer11::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
+		auto swapChain1 = Renderer::DX11Layer::CreateSwapChain(wndHandle, device1, clientWidth, clientHeight);
 
 		// back buffer for swap chain
 		ID3D11Texture2D* backBufferTexture;
@@ -41,13 +41,13 @@ namespace Nickel::Renderer {
 		backBufferTexture->GetDesc(&backBufferDesc);
 		SafeRelease(backBufferTexture);
 
-		D3D11_VIEWPORT viewport = DXLayer11::CreateViewPort(0.0f, 0.0f, backBufferDesc.Width, backBufferDesc.Height);
+		D3D11_VIEWPORT viewport = DX11Layer::CreateViewPort(0.0f, 0.0f, backBufferDesc.Width, backBufferDesc.Height);
 
 		RendererState rs = {
 			.g_WindowHandle = wndHandle,
 			.device = device1,
 			.swapChain = swapChain1,
-			.cmdQueue = DXLayer11::CmdQueue {
+			.cmdQueue = DX11Layer::CmdQueue {
 				.queue = deviceCtx1,
 				.debug = d3dDebug
 			},

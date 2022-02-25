@@ -1,13 +1,11 @@
 Texture2D shaderTexture : register(t0);
 SamplerState sampleType : register(s0);
 
-struct PixelShaderInput
-{
+struct PixelShaderInput {
 	float2 uv : UV;
 };
 
-float4 TexPixelShader(PixelShaderInput IN) : SV_TARGET
-{
+float4 TexPixelShader(PixelShaderInput IN) : SV_TARGET {
 	float2 uv = IN.uv;
 	//uv.x = 1.0 - uv.x;
 	//uv.y = 1.0 + uv.y;

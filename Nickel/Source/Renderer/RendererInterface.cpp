@@ -9,7 +9,7 @@ namespace Nickel::Renderer {
 		auto SetPlatformInterface(GraphicsPlatform platform) -> bool {
 			switch (platform) {
 			case GraphicsPlatform::Direct3D11: {
-				DXLayer11::GetPlatformInterface(gfx);
+				DX11Layer::GetPlatformInterface(gfx);
 			} break;
 
 

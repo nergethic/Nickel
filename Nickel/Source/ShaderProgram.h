@@ -3,7 +3,7 @@
 #include "Renderer/Direct3D11/DirectX11Includes.h"
 #include <variant>
 
-namespace Nickel::Renderer::DXLayer11 {
+namespace Nickel::Renderer::DX11Layer {
 	enum class ShaderType {
 		Vertex,
 		Hull,

@@ -9,16 +9,17 @@ namespace Nickel {
 	};
 
 	class Background {
-		const std::string texturePath = "Data/Textures/skybox/irradianceCubemap/output_pmrem"; // /galaxy2048.jpg
+		const std::string texturePath = "Data/Textures/skybox/radianceCubemap/output_pmrem";
+		// const std::string texturePath = "Data/Textures/skybox/irradianceCubemap/output_pmrem"; // /galaxy2048.jpg
 
-		DXLayer11::ShaderProgram shaderProgram;
+		DX11Layer::ShaderProgram shaderProgram;
 		Material material;
 
-		DXLayer11::ShaderProgram irradianceshaderProgram;
+		DX11Layer::ShaderProgram irradianceshaderProgram;
 		Material irradianceMaterial;
 
 	public:
-		DXLayer11::TextureDX11 texture;
+		DX11Layer::TextureDX11 texture;
 		DescribedMesh skyboxMesh;
 
 		inline auto Create(ID3D11Device1* device) {
@@ -55,7 +56,7 @@ namespace Nickel {
 		}
 
 	private:
-		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DXLayer11::TextureDX11 {
+		inline auto CreateCubemapTexture(ID3D11Device1* device, const std::string& path) -> DX11Layer::TextureDX11 {
 			const auto rm = ResourceManager::GetInstance();
 			/*
 			LoadedImageData imgs[6] {
@@ -68,16 +69,17 @@ namespace Nickel {
 			};
 			*/
 
+			//L"Data/Textures/skybox/radianceCubemap/output_iem_posx.hdr",
 			const wchar_t* files[6] = {
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_posx.hdr",
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_negx.hdr",
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_posy.hdr",
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_negy.hdr",
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_posz.hdr",
-				L"Data/Textures/skybox/irradianceCubemap/output_iem_negz.hdr"
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posx.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negx.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posy.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negy.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_posz.hdr",
+				L"Data/Textures/skybox/radianceCubemap/output_pmrem_negz.hdr"
 			};
 			
-			auto result = DXLayer11::CreateCubeMap(device, files);
+			auto result = DX11Layer::CreateCubeMap(device, files);
 			//for (u32 i = 0; i < ArrayCount(imgs); i++)
 				//stbi_image_free(imgs[i].data);
 
@@ -85,16 +87,16 @@ namespace Nickel {
 		}
 
 		inline auto CreateMaterial(ID3D11Device1* device) -> Material {
-			auto rasterizerDesc = DXLayer11::GetDefaultRasterizerDescription();
+			auto rasterizerDesc = DX11Layer::GetDefaultRasterizerDescription();
 			rasterizerDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
 
 			return Material{
 				.program = &shaderProgram,
 				.pipelineState = PipelineState{
-					.rasterizerState = DXLayer11::CreateRasterizerState(device, rasterizerDesc),
-					.depthStencilState = DXLayer11::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ZERO, D3D11_COMPARISON_LESS_EQUAL, false)
+					.rasterizerState = DX11Layer::CreateRasterizerState(device, rasterizerDesc),
+					.depthStencilState = DX11Layer::CreateDepthStencilState(device, true, D3D11_DEPTH_WRITE_MASK_ZERO, D3D11_COMPARISON_LESS_EQUAL, false)
 				},
-				.textures = std::vector<DXLayer11::TextureDX11>(1)
+				.textures = std::vector<DX11Layer::TextureDX11>(1)
 			};
 		}
 

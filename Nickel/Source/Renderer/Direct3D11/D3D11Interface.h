@@ -3,7 +3,7 @@
 namespace Nickel::Renderer {
 	struct PlatformInterface;
 
-	namespace DXLayer11 {
+	namespace DX11Layer {
 		auto GetPlatformInterface(PlatformInterface& platformInterface) -> void;
 	}
 }

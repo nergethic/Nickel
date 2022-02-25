@@ -1,10 +1,26 @@
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include "Windows.h"
 #include "platform.h"
 #include "game.h"
 //#include "Renderer/renderer.h"
 
+using namespace Nickel::Platform;
+
 static bool running = true;
 static WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
+
+Nickel::utl::free_list<HWND> windowHandles;
+auto GetHwndFromId(WindowId id) -> HWND {
+	Assert(windowHandles[id] != nullptr);
+	return windowHandles[id];
+}
+
+HWND GetWindowHandle(WindowId id) {
+	return GetHwndFromId(id);
+}
 
 auto GetController(GameInput *input, u32 controllerIndex) -> GameControllerInput* {
 	Assert(controllerIndex < ArrayCount(input->controllers));
@@ -176,6 +192,14 @@ auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LR
 			ClipCursor(&clientRect);
 		} break;
 
+		//case WM_NCCREATE: {
+			//const WindowId id{ windowHandles.add() };
+			//windowHandles[id] = Window;
+
+			//SetWindowLongPtr(Window, GWLP_USERDATA, (LONG_PTR)id);
+			//Assert(GetLastError() == 0);
+		//} break;
+
 		//case WM_PAINT: {
 			//PAINTSTRUCT Paint;
 			//HDC DeviceContext = BeginPaint(Window, &Paint);
@@ -191,6 +215,31 @@ auto CALLBACK WndProc(HWND Window, UINT Msg,	WPARAM WParam, LPARAM LParam) -> LR
 	}
 
 	return 0;
+}
+
+auto MakeWindow(LPCSTR className, u32 width, u32 height, DWORD style, HINSTANCE hInstance) -> Window {
+	HWND wndHandle = CreateWindowExA(
+		0, // WS_EX_TOPMOST | WS_EX_LAYERED,
+		className, // windowClass->lpszClassName
+		"Nickel",
+		style,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		width,
+		height,
+		0,
+		0,
+		hInstance,
+		0
+	);
+
+	if (wndHandle == nullptr) {
+		auto errCode = GetLastError();
+		auto x = errCode;
+	}
+	const auto windowId = static_cast<Nickel::Id::IdType>(GetWindowLongPtr(wndHandle, GWLP_USERDATA));
+	windowHandles[windowId] = wndHandle;
+	return Window{ windowId };
 }
 
 auto InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) -> HWND { //HINSTANCE hInstance, std::string title, std::string wndClassName, int width, int height) {
@@ -211,12 +260,20 @@ auto InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) -> HWND { /
 	if (!RegisterClassEx(windowClass))
 		return FALSE;
 
+	DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
 	RECT windowRect = { 0, 0, GLOBAL_WINDOW_WIDTH, GLOBAL_WINDOW_HEIGHT };
-	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+	//AdjustWindowRect(&windowRect, style, FALSE);
+
+	//auto window = MakeWindow(windowClass->lpszClassName,
+		//windowRect.right - windowRect.left,
+		//windowRect.bottom - windowRect.top,
+		//style,
+		//hInstance
+	//);
 
 	HWND wndHandle = CreateWindowExA(
 		0, // WS_EX_TOPMOST | WS_EX_LAYERED,
-		windowClass->lpszClassName,
+		windowClass->lpszClassName, // windowClass->lpszClassName
 		"Nickel",
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		CW_USEDEFAULT,
@@ -229,11 +286,23 @@ auto InitializeWinMain(WNDCLASSEX* windowClass, HINSTANCE hInstance) -> HWND { /
 		0
 	);
 
-	if (!wndHandle) {
+	if (wndHandle == nullptr) {
+		auto errCode = GetLastError();
+		auto x = errCode;
+	}
+	const auto id = static_cast<Nickel::Id::IdType>(GetWindowLongPtr(wndHandle, GWLP_USERDATA));
+	const WindowId windowId{ windowHandles.add() };
+	windowHandles[windowId] = wndHandle;
+
+	auto window = Window{ windowId };
+	//return Window{ windowId };
+
+	const auto hwnd = reinterpret_cast<HWND>(window.GetHandle());
+	if (hwnd == nullptr) {
 		return FALSE;
 	}
 
-	return wndHandle;
+	return hwnd;
 }
 
 auto GetClientResolution(HWND wndHandle) -> std::pair<u32, u32> {
@@ -367,14 +436,20 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 
 	RECT clientRect;
 	GetWindowRect(wndHandle, &clientRect);
-	ClipCursor(&clientRect);
 
 	auto [clientWidth, clientHeight] = GetClientResolution(wndHandle);
-	Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
-	Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
+	//Assert(clientWidth  == GLOBAL_WINDOW_WIDTH);
+	//Assert(clientHeight == GLOBAL_WINDOW_HEIGHT);
 
-	RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
-	//Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D11);
+	//RendererState rs = Nickel::Renderer::Initialize(wndHandle, clientWidth, clientHeight);
+
+	if (!XMVerifyCPUSupport()) {
+		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
+		// Logger::Critical("XMVerifyCPUSupport failed");
+		Assert(false);
+	}
+
+	Nickel::Renderer::Init(Nickel::Renderer::GraphicsPlatform::Direct3D11);
 	//InitializeImGui(wndHandle, rs);
 
 	GameMemory gameMemory{};
@@ -389,7 +464,8 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	GameInput *oldInput = &input[1];
 
 	if (!gameMemory.isInitialized) {
-		Nickel::Initialize(&gameMemory, &rs);
+		Nickel::NewInitialize(&gameMemory);
+		//Nickel::Initialize(&gameMemory, &rs);
 		gameMemory.isInitialized = true;
 	}
 
@@ -410,7 +486,8 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 		Win32ProcessPendingMessages(newKeyboardController);
 
 		UpdateCursorPos(wndHandle, clientWidth, clientHeight, *newInput);
-		Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
+		Nickel::NewUpdateAndRender(&gameMemory, newInput);
+		//Nickel::UpdateAndRender(&gameMemory, &rs, newInput);
 
 		std::swap(newInput, oldInput);
 	}
@@ -421,3 +498,5 @@ auto WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int 
 	Nickel::Renderer::Shutdown();
 	spdlog::drop_all(); // NOTE: Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 }
+
+#include "IncludeWindowCpp.h"

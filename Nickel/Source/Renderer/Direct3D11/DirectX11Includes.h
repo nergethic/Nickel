@@ -5,5 +5,9 @@
 #pragma warning(pop)
 
 #include "../CommonDirectXIncludes.h"
+
+#include "../RendererInterface.h"
+#include "../../Window.h"
+
 #include <d3d11_1.h>
 #include <DirectXTK/WICTextureLoader.h>

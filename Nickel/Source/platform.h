@@ -4,6 +4,7 @@
 
 #include "Logger.h"
 #include "Utilities.h"
+#include "Window.h"
 
 #include "imgui/imgui.h";
 #include "imgui/imgui_impl_win32.h";
@@ -39,47 +40,6 @@ inline auto GetSourceLocation(const std::source_location& loc) -> std::string {
 
 // #define PushStruct(s) (size_of(s))
 // entity = PushStruct(Arena, Entity);
-
-namespace Nickel::Id {
-	using IdType = u32;
-
-	namespace Internal {
-		constexpr u32 generationBits = 8;
-		constexpr u32 indexBits = sizeof(IdType) * 8 - generationBits;
-		constexpr IdType indexMask = (IdType{ 1 } << indexBits) - 1;
-		constexpr IdType generationMask = (IdType{ 1 } << generationBits) - 1;
-		
-	}
-
-	constexpr IdType invalidId = IdType(-1);
-	constexpr u32 minDeletedElements = 1024;
-
-	using GenerationType = std::conditional_t<Internal::generationBits <= 16, std::conditional_t<Internal::generationBits <= 8, u8, u16>, u32>;
-	static_assert(sizeof(GenerationType) * 8 >= Internal::generationBits);
-	static_assert(sizeof(IdType) - sizeof(GenerationType) > 0);
-
-	constexpr auto IsValid(IdType id) -> bool {
-		return id != invalidId;
-	}
-
-	constexpr auto GetIndex(IdType id) -> IdType {
-		IdType index = id & Internal::indexMask;
-		Assert(index != Internal::indexMask);
-		return index;
-	}
-
-	constexpr auto GetGeneration(IdType id) -> IdType {
-		return (id >> Internal::indexBits) & Internal::generationMask;
-	}
-
-	constexpr auto NewGeneration(IdType id) -> IdType {
-		const IdType generation = Id::GetGeneration(id) + 1;
-		assert(generation < ((static_cast<u64>(1) << Internal::generationBits)-1));
-		return GetIndex(id) | (generation << Internal::indexBits);
-	}
-
-	#define DEFINE_TYPED_ID(name) using name = Id::IdType;
-}
 
 struct LoadedImageData {
 	u8* data;

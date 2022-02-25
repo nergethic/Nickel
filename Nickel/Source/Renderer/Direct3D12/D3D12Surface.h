@@ -1,8 +1,8 @@
 #pragma once
 #include "../platform.h"
-#include "DirectX12Includes.h"
 #include "../Window.h"
-#include "Resources.h"
+#include "DirectX12Includes.h"
+#include "D3D12Resources.h"
 
 namespace Nickel::Renderer::DX12Layer {
 	class D3D12Surface {

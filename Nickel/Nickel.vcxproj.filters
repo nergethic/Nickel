@@ -49,6 +49,12 @@
     <Filter Include="Source Files\Renderer\Direct3D12">
       <UniqueIdentifier>{6cd90e17-4282-4825-af2c-d617dd19c165}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\App">
+      <UniqueIdentifier>{78990ce9-8e56-4865-9662-95f7e58dad1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\App">
+      <UniqueIdentifier>{6eb11f2f-3e14-4b65-953d-6a55d917412e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\Shaders\SimplePixelShader.hlsl">
@@ -151,9 +157,6 @@
     <ClCompile Include="Source\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\DX11Layer.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\renderer.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
@@ -169,9 +172,6 @@
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Interface.cpp">
       <Filter>Source Files\Renderer\Direct3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\Direct3D12\Resources.cpp">
-      <Filter>Source Files\Renderer\Direct3D12</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Surface.cpp">
       <Filter>Source Files\Renderer\Direct3D12</Filter>
     </ClCompile>
@@ -183,6 +183,24 @@
     </ClCompile>
     <ClCompile Include="Source\Renderer\Direct3D12\D3D12Helpers.cpp">
       <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="LineGenerator.cpp">
+      <Filter>Source Files\App</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D11\D3D11Surface.cpp">
+      <Filter>Source Files\Renderer\Direct3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D12\D3D12Resources.cpp">
+      <Filter>Source Files\Renderer\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D11\DX11Layer.cpp">
+      <Filter>Source Files\Renderer\Direct3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Direct3D11\ForwardPass.cpp">
+      <Filter>Source Files\Renderer\Direct3D11</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -264,9 +282,6 @@
     <ClInclude Include="Source\Background.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\DX11Layer.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\RendererPlatformInterface.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
@@ -293,9 +308,6 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D11\DirectX11Includes.h">
       <Filter>Header Files\Renderer\Direct3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\Direct3D12\Resources.h">
-      <Filter>Header Files\Renderer\Direct3D12</Filter>
     </ClInclude>
     <ClInclude Include="Source\Window.h">
       <Filter>Header Files</Filter>
@@ -326,6 +338,27 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Direct3D12\D3D12Helpers.h">
       <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="LineGenerator.h">
+      <Filter>Header Files\App</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\D3D11Surface.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D12\D3D12Resources.h">
+      <Filter>Header Files\Renderer\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\IncludeWindowCpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\DX11Layer.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Direct3D11\ForwardPass.h">
+      <Filter>Header Files\Renderer\Direct3D11</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

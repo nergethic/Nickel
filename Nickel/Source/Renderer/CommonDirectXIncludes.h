@@ -24,8 +24,8 @@
 #include <DirectXTex.h>
 
 #if defined(_DEBUG)
-	#define ASSERT_ERROR_RESULT(res) { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer11::AssertD3DResult(_result, GetSourceLocation(std::source_location::current())); }
-	#define LOG_ERROR_RESULT(res)    { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DXLayer11::LogD3DResult(_result, GetSourceLocation(std::source_location::current())); }
+	#define ASSERT_ERROR_RESULT(res) { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DX11Layer::AssertD3DResult(_result, GetSourceLocation(std::source_location::current())); }
+	#define LOG_ERROR_RESULT(res)    { HRESULT _result = res; if (FAILED(_result)) Nickel::Renderer::DX11Layer::LogD3DResult(_result, GetSourceLocation(std::source_location::current())); }
 #else
 	#define ASSERT_ERROR_RESULT(res) {}
 	#define LOG_ERROR_RESULT(res) {}
@@ -46,7 +46,7 @@ struct DxDeleter {
 	}
 };
 
-namespace Nickel::Renderer::DXLayer11 {
+namespace Nickel::Renderer::DX11Layer {
 	inline auto GetHResultString(HRESULT errCode) -> std::string {
 		switch (errCode) {
 			// Windows

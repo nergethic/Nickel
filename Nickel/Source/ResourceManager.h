@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/DX11Layer.h"
+#include "Renderer/Direct3D11/DX11Layer.h"
 #include "Mesh.h"
 #include "stb/stb_image.h"
 
@@ -29,7 +29,7 @@ namespace Nickel::Renderer {
 		auto Init(ID3D11Device1* _device) -> void;
 		
 		// NOTE: supports BMP, JPEG, PNG, TIFF, GIF
-		auto LoadTexture(std::wstring path)->DXLayer11::TextureDX11;
+		auto LoadTexture(std::wstring path)->DX11Layer::TextureDX11;
 		auto LoadImageData(std::string path)->LoadedImageData;
 		auto LoadHDRImageData(std::string path)->LoadedImageData;
 		auto ProcessMesh(const aiMesh& mesh, const aiScene& scene)->MeshData;
@@ -55,6 +55,6 @@ namespace Nickel::Renderer {
 
 	private:
 		ID3D11Device1* device;
-		std::vector<DXLayer11::TextureDX11> loadedTextures = std::vector<DXLayer11::TextureDX11>();
+		std::vector<DX11Layer::TextureDX11> loadedTextures = std::vector<DX11Layer::TextureDX11>();
 	};
 }
